@@ -1,6 +1,10 @@
-import { useAgenteBase } from './useAgenteBase'
-import * as queries from '../graphql/colegioProfesionalQueries'
+import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import * as queries from '../graphql/colegioProfesionalQueries.strawchemy'
 
 export function useColegioProfesional() {
-  return useAgenteBase('colegiosProfesionales', queries, { conContacto: true })
+  const base = useAgenteBaseStrawchemy('colegiosProfesionales', queries)
+
+  return {
+    ...base
+  }
 }

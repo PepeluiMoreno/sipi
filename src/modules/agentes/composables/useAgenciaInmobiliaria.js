@@ -1,14 +1,15 @@
-import { useAgenteBase } from './useAgenteBase'
+import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import * as queries from '../graphql/agenciaInmobiliariaQueries.strawchemy'
 
 export function useAgenciaInmobiliaria() {
-  const base = useAgenteBase('agenciasInmobiliarias', { conContacto: true })
+  const base = useAgenteBaseStrawchemy('agenciasInmobiliarias', queries)
 
-  const listarPorLocalidad = async (localidadId) => {
-    return base.listar({ localidadId })
+  const listarPorMunicipio = async (municipioId) => {
+    return base.listar({ municipioId: { eq: municipioId } })
   }
 
   return {
     ...base,
-    listarPorLocalidad
+    listarPorMunicipio
   }
 }

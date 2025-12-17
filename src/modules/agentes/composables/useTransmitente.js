@@ -1,5 +1,10 @@
-import { useAgenteBase } from './useAgenteBase'
+import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import * as queries from '../graphql/transmitenteQueries.strawchemy'
 
 export function useTransmitente() {
-  return useAgenteBase('transmitentes', { conContacto: true })
+  const base = useAgenteBaseStrawchemy('transmitentes', queries)
+
+  return {
+    ...base
+  }
 }
