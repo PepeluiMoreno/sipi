@@ -1,5 +1,5 @@
 // Base
-export { useAgenteBase } from './useAgenteBase'
+// export { useAgenteBase } from './useAgenteBase' // Removed legacy base
 
 // Agentes con Contacto
 export { useTecnico } from './useTecnico'
@@ -18,3 +18,7 @@ export { useTransmitente } from './useTransmitente'
 export { useAdministracionTitular } from './useAdministracionTitular'
 export { useNotariaTitular } from './useNotariaTitular'
 export { useRegistroPropiedadTitular } from './useRegistroPropiedadTitular'
+export { useDiocesisTitular } from './useDiocesisTitular' // Added this
+
+// Base Strawchemy
+export { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
