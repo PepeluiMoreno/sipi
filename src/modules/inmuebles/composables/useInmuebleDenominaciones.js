@@ -1,150 +1,64 @@
-import { ref } from 'vue'
-import { useQuery, useMutation } from '@vue/apollo-composable'
-import {
-  LISTAR_DENOMINACIONES,
-  OBTENER_DENOMINACION,
-  CREAR_DENOMINACION,
-  ACTUALIZAR_DENOMINACION,
-  ELIMINAR_DENOMINACION,
-  ESTABLECER_PRINCIPAL
-} from '../graphql/inmuebleDenominacionQueries'
+import { computed } from 'vue'
+import { toRefs } from 'vue'
+import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import * as queries from '../graphql/inmuebleDenominacionQueries.js'
 
-export function useInmuebleDenominacion(inmuebleId) {
-  const denominaciones = ref([])
-  const denominacion = ref(null)
-  const loading = ref(false)
-  const error = ref(null)
+export function useInmuebleDenominaciones(inmuebleId) {
+  // Inicializamos base con la entidad 'inmuebleDenominaciones'
+  // Nota: inmuebleId se pasará en el filtro al listar
+  const base = useAgenteBaseStrawchemy('inmuebleDenominaciones', queries)
 
+  // Desestructurar lo que necesitemos explícitamente o usar base.
+
+  /**
+   * Listar denominaciones de un inmueble específico
+   */
   const listar = async () => {
-    loading.value = true
-    error.value = null
-    try {
-      const { data, error: queryError } = await useQuery(LISTAR_DENOMINACIONES, {
-        inmuebleId,
-        orderBy: ['esPrincipal_DESC', 'denominacion_ASC']
-      })
-      if (queryError) throw queryError
-      denominaciones.value = data.value?.inmuebleDenominaciones?.items || []
-      return denominaciones.value
-    } catch (err) {
-      error.value = `Error al cargar denominaciones: ${err.message}`
-      console.error('Error en listar Denominaciones:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
+    // Forzamos filtro para este inmueble
+    return base.listar({
+      inmuebleId: { eq: inmuebleId }
+    })
   }
 
-  const obtener = async (id) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { data } = await useQuery(OBTENER_DENOMINACION, { id })
-      denominacion.value = data.value?.inmuebleDenominacion?.item || null
-      return denominacion.value
-    } catch (err) {
-      error.value = `Error al obtener denominación: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
+  /**
+   * Crear vinculada al inmueble
+   */
   const crear = async (inputData) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { mutate } = useMutation(CREAR_DENOMINACION)
-      const { data, errors } = await mutate({
-        inmuebleId,
-        input: inputData
-      })
-      if (errors) throw new Error(errors[0].message)
-      const nueva = data.crearInmuebleDenominacion.item
-      denominaciones.value.unshift(nueva)
-      return nueva
-    } catch (err) {
-      error.value = `Error al crear denominación: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
+    return base.crear({
+      ...inputData,
+      inmuebleId // Aseguramos que se vincule
+    })
   }
 
-  const actualizar = async (id, inputData) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { mutate } = useMutation(ACTUALIZAR_DENOMINACION)
-      const { data, errors } = await mutate({ id, input: inputData })
-      if (errors) throw new Error(errors[0].message)
-      const actualizada = data.actualizarInmuebleDenominacion.item
-      const index = denominaciones.value.findIndex(i => i.id === id)
-      if (index !== -1) denominaciones.value[index] = actualizada
-      return actualizada
-    } catch (err) {
-      error.value = `Error al actualizar denominación: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const eliminar = async (id) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { mutate } = useMutation(ELIMINAR_DENOMINACION)
-      const { data, errors } = await mutate({ id })
-      if (errors) throw new Error(errors[0].message)
-      denominaciones.value = denominaciones.value.filter(i => i.id !== id)
-      return data.eliminarInmuebleDenominacion.success
-    } catch (err) {
-      error.value = `Error al eliminar denominación: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
+  // Establecer principal (simulada por ahora)
   const establecerPrincipal = async (id) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { mutate } = useMutation(ESTABLECER_PRINCIPAL)
-      const { data, errors } = await mutate({ inmuebleId, denominacionId: id })
-      if (errors) throw new Error(errors[0].message)
-      await listar() // Recargar lista
-      return data.establecerDenominacionPrincipal.success
-    } catch (err) {
-      error.value = `Error al establecer principal: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
+    // TODO: Implementar lógica idealmente en backend
+    // Por ahora solo actualizamos la local a true
+    return base.actualizar(id, { esPrincipal: true })
   }
 
-  // Computed
+  // Computed properties específicas
   const denominacionPrincipal = computed(() => {
-    return denominaciones.value.find(d => d.esPrincipal) || null
+    return base.items.value.find(d => d.esPrincipal) || null
   })
 
   const denominacionesAlternativas = computed(() => {
-    return denominaciones.value.filter(d => !d.esPrincipal)
+    return base.items.value.filter(d => !d.esPrincipal)
   })
 
   return {
-    denominaciones,
-    denominacion,
+    ...base,
+    // Alias legacy
+    denominaciones: base.items,
+    denominacion: base.item,
+
+    // Extensions
     denominacionPrincipal,
     denominacionesAlternativas,
-    loading,
-    error,
+
+    // Overrides
     listar,
-    obtener,
     crear,
-    actualizar,
-    eliminar,
     establecerPrincipal
   }
 }

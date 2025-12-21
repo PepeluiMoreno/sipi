@@ -1,67 +1,45 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_TIPOS_VIA = gql`
-  query ListarTiposVia($filters: CatalogoSimpleFilters, $pagination: PaginationInput) {
-    tiposVia(filters: $filters, pagination: $pagination) {
-      items {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
-      total
+export const LISTAR = gql`
+  query ListarTiposVia($filter: TipoViaFilter, $offset: Int = 0, $limit: Int = 50) {
+    tiposVia(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
     }
   }
 `
 
-export const OBTENER_TIPO_VIA = gql`
-  query ObtenerTipoVia($id: ID!) {
-    tipoVia(id: $id) {
-      item {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
+export const OBTENER = gql`
+  query ObtenerTipoVia($filter: TipoViaFilter!) {
+    tiposVia(filter: $filter, limit: 1) {
+      id
+      nombre
     }
   }
 `
 
-export const CREAR_TIPO_VIA = gql`
-  mutation CrearTipoVia($input: CatalogoSimpleInput!) {
-    crearTipoVia(input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const CREAR = gql`
+  mutation CrearTipoVia($data: TipoViaCreateInput!) {
+    createTipoVia(data: $data) {
+      id
+      nombre
     }
   }
 `
 
-export const ACTUALIZAR_TIPO_VIA = gql`
-  mutation ActualizarTipoVia($id: ID!, $input: CatalogoSimpleInput!) {
-    actualizarTipoVia(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarTipoVia($data: TipoViaUpdateInput!) {
+    updateTipoVia(data: $data) {
+      id
+      nombre
     }
   }
 `
 
-export const ELIMINAR_TIPO_VIA = gql`
+export const ELIMINAR = gql`
   mutation EliminarTipoVia($id: ID!) {
-    eliminarTipoVia(id: $id) {
-      success
-      message
+    deleteTiposVia(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

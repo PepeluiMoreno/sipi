@@ -1,5 +1,6 @@
-import { useCatalogoBase } from './useCatalogoBase'
+import { useCatalogoBaseStrawchemy } from './useCatalogoBaseStrawchemy'
+import * as queries from '../graphql/figuraProteccionQueries.js'
 
 export function useFiguraProteccion() {
-  return useCatalogoBase('figurasProteccion')
+  return useCatalogoBaseStrawchemy('figurasProteccion', queries)
 }

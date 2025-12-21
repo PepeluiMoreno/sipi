@@ -1,67 +1,53 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_FIGURAS_PROTECCION = gql`
-  query ListarFigurasProteccion($filters: CatalogoSimpleFilters, $pagination: PaginationInput) {
-    figurasProteccion(filters: $filters, pagination: $pagination) {
-      items {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
-      total
+export const LISTAR = gql`
+  query ListarFigurasProteccion($filter: FiguraProteccionFilter, $offset: Int = 0, $limit: Int = 50) {
+    figurasProteccion(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      # Nivel suele ser propiedad de la relación inmueble-figura, pero aquí es el catálogo base?
+      # Si es el catálogo de tipos de figuras, solo nombre.
+    }
+  }
+`
+// NOTA: Esta entidad podría llamarse TipoFiguraProteccion en backend?
+// Revisando schema original o nombres:
+// 'figuraProteccion' (singular) en queries.js anterior.
+// Asumimos 'figurasProteccion' como tabla catálogo.
+// Ojo con colisión con 'InmuebleFiguraProteccion'.
+// Si existe tabla 'figura_proteccion' (catálogo) vs 'inmueble_figura_proteccion' (relación).
+
+export const OBTENER = gql`
+  query ObtenerFiguraProteccion($filter: FiguraProteccionFilter!) {
+    figurasProteccion(filter: $filter, limit: 1) {
+      id
+      nombre
     }
   }
 `
 
-export const OBTENER_FIGURA_PROTECCION = gql`
-  query ObtenerFiguraProteccion($id: ID!) {
-    figuraProteccion(id: $id) {
-      item {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
+export const CREAR = gql`
+  mutation CrearFiguraProteccion($data: FiguraProteccionCreateInput!) {
+    createFiguraProteccion(data: $data) {
+      id
+      nombre
     }
   }
 `
 
-export const CREAR_FIGURA_PROTECCION = gql`
-  mutation CrearFiguraProteccion($input: CatalogoSimpleInput!) {
-    crearFiguraProteccion(input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarFiguraProteccion($data: FiguraProteccionUpdateInput!) {
+    updateFiguraProteccion(data: $data) {
+      id
+      nombre
     }
   }
 `
 
-export const ACTUALIZAR_FIGURA_PROTECCION = gql`
-  mutation ActualizarFiguraProteccion($id: ID!, $input: CatalogoSimpleInput!) {
-    actualizarFiguraProteccion(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
-    }
-  }
-`
-
-export const ELIMINAR_FIGURA_PROTECCION = gql`
+export const ELIMINAR = gql`
   mutation EliminarFiguraProteccion($id: ID!) {
-    eliminarFiguraProteccion(id: $id) {
-      success
-      message
+    deleteFigurasProteccion(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

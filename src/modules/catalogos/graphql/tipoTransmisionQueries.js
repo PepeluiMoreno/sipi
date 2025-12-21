@@ -1,67 +1,45 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_TIPOS_TRANSMISION = gql`
-  query ListarTiposTransmision($filters: CatalogoSimpleFilters, $pagination: PaginationInput) {
-    tiposTransmision(filters: $filters, pagination: $pagination) {
-      items {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
-      total
+export const LISTAR = gql`
+  query ListarTiposTransmision($filter: TipoTransmisionFilter, $offset: Int = 0, $limit: Int = 50) {
+    tiposTransmision(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
     }
   }
 `
 
-export const OBTENER_TIPO_TRANSMISION = gql`
-  query ObtenerTipoTransmision($id: ID!) {
-    tipoTransmision(id: $id) {
-      item {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
+export const OBTENER = gql`
+  query ObtenerTipoTransmision($filter: TipoTransmisionFilter!) {
+    tiposTransmision(filter: $filter, limit: 1) {
+      id
+      nombre
     }
   }
 `
 
-export const CREAR_TIPO_TRANSMISION = gql`
-  mutation CrearTipoTransmision($input: CatalogoSimpleInput!) {
-    crearTipoTransmision(input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const CREAR = gql`
+  mutation CrearTipoTransmision($data: TipoTransmisionCreateInput!) {
+    createTipoTransmision(data: $data) {
+      id
+      nombre
     }
   }
 `
 
-export const ACTUALIZAR_TIPO_TRANSMISION = gql`
-  mutation ActualizarTipoTransmision($id: ID!, $input: CatalogoSimpleInput!) {
-    actualizarTipoTransmision(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarTipoTransmision($data: TipoTransmisionUpdateInput!) {
+    updateTipoTransmision(data: $data) {
+      id
+      nombre
     }
   }
 `
 
-export const ELIMINAR_TIPO_TRANSMISION = gql`
+export const ELIMINAR = gql`
   mutation EliminarTipoTransmision($id: ID!) {
-    eliminarTipoTransmision(id: $id) {
-      success
-      message
+    deleteTiposTransmision(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

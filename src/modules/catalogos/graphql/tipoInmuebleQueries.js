@@ -1,67 +1,49 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_TIPOS_INMUEBLE = gql`
-  query ListarTiposInmueble($filters: CatalogoSimpleFilters, $pagination: PaginationInput) {
-    tiposInmueble(filters: $filters, pagination: $pagination) {
-      items {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
-      total
+export const LISTAR = gql`
+  query ListarTiposInmueble($filter: TipoInmuebleFilter, $offset: Int = 0, $limit: Int = 50) {
+    tiposInmueble(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const OBTENER_TIPO_INMUEBLE = gql`
-  query ObtenerTipoInmueble($id: ID!) {
-    tipoInmueble(id: $id) {
-      item {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
+export const OBTENER = gql`
+  query ObtenerTipoInmueble($filter: TipoInmuebleFilter!) {
+    tiposInmueble(filter: $filter, limit: 1) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const CREAR_TIPO_INMUEBLE = gql`
-  mutation CrearTipoInmueble($input: CatalogoSimpleInput!) {
-    crearTipoInmueble(input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const CREAR = gql`
+  mutation CrearTipoInmueble($data: TipoInmuebleCreateInput!) {
+    createTipoInmueble(data: $data) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const ACTUALIZAR_TIPO_INMUEBLE = gql`
-  mutation ActualizarTipoInmueble($id: ID!, $input: CatalogoSimpleInput!) {
-    actualizarTipoInmueble(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarTipoInmueble($data: TipoInmuebleUpdateInput!) {
+    updateTipoInmueble(data: $data) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const ELIMINAR_TIPO_INMUEBLE = gql`
+export const ELIMINAR = gql`
   mutation EliminarTipoInmueble($id: ID!) {
-    eliminarTipoInmueble(id: $id) {
-      success
-      message
+    deleteTiposInmueble(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

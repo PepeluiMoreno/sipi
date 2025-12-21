@@ -1,5 +1,7 @@
-import { useCatalogoBase } from './useCatalogoBase'
+import { useCatalogoBaseStrawchemy } from './useCatalogoBaseStrawchemy'
+import * as queries from '../graphql/estadoTratamientoQueries.js'
 
 export function useEstadoTratamiento() {
-  return useCatalogoBase('estadosTratamiento')
+  // 'estadosTratamiento' plural assumed
+  return useCatalogoBaseStrawchemy('estadosTratamiento', queries)
 }

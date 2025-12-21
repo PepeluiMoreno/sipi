@@ -1,5 +1,6 @@
-import { useCatalogoBase } from './useCatalogoBase'
+import { useCatalogoBaseStrawchemy } from './useCatalogoBaseStrawchemy'
+import * as queries from '../graphql/rolTecnicoQueries.js'
 
 export function useRolTecnico() {
-  return useCatalogoBase('rolesTecnico')
+  return useCatalogoBaseStrawchemy('rolesTecnicos', queries)
 }

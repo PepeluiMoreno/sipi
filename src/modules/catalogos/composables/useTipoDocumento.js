@@ -1,5 +1,6 @@
-import { useCatalogoBase } from './useCatalogoBase'
+import { useCatalogoBaseStrawchemy } from './useCatalogoBaseStrawchemy'
+import * as queries from '../graphql/tipoDocumentoQueries.js'
 
 export function useTipoDocumento() {
-  return useCatalogoBase('tiposDocumento')
+  return useCatalogoBaseStrawchemy('tiposDocumento', queries)
 }

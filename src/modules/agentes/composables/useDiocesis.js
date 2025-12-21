@@ -1,34 +1,16 @@
 import { computed } from 'vue'
 import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
-import * as queries from '../graphql/diocesisQueries.strawchemy'
+import * as queries from '../graphql/diocesisQueries.js'
 
 export function useDiocesis() {
   const base = useAgenteBaseStrawchemy('diocesis', queries)
 
-  // Alias para mantener compatibilidad con código existente
   const diocesis = computed(() => base.items.value)
-  const diocesisActual = computed(() => base.item.value)
+  const item = computed(() => base.item.value) // diocesis singular is same
 
   return {
-    // Estado con nombres personalizados
+    ...base,
     diocesis,
-    diocesis: diocesisActual, // Mantenemos la duplicación del original
-    loading: base.loading,
-    error: base.error,
-    pagination: computed(() => ({
-      page: 1,
-      pageSize: base.limit.value,
-      total: base.totalCargados.value
-    })),
-
-    // Métodos del base
-    listar: base.listar,
-    obtener: base.obtener,
-    crear: base.crear,
-    actualizar: base.actualizar,
-    eliminar: base.eliminar,
-    buscar: base.buscar,
-    cargarMas: base.cargarMas,
-    reset: base.reset
+    diocesisItem: item // Alias to avoid conflict if needed, though 'item' is standard
   }
 }

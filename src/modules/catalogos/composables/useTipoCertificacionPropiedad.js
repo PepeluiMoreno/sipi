@@ -1,5 +1,6 @@
-import { useCatalogoBase } from './useCatalogoBase'
+import { useCatalogoBaseStrawchemy } from './useCatalogoBaseStrawchemy'
+import * as queries from '../graphql/tipoCertificacionPropiedadQueries.js'
 
 export function useTipoCertificacionPropiedad() {
-  return useCatalogoBase('tiposCertificacionPropiedad')
+  return useCatalogoBaseStrawchemy('tiposCertificacionPropiedad', queries)
 }

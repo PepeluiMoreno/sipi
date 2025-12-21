@@ -1,95 +1,50 @@
-import { ref, computed } from 'vue'
-import { mockInmuebles, ESTADO_MAPEO } from '../../core/mocks'
+import { computed } from 'vue'
+import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import * as queries from '../graphql/inmuebleQueries.js'
 
 export function useInmueble() {
-  const inmuebles = ref([])
-  const inmueble = ref(null)
-  const loading = ref(false)
-  const error = ref(null)
+  // 'inmuebles' es el nombre de la query raiz en GraphQL
+  const base = useAgenteBaseStrawchemy('inmuebles', queries)
 
-  const hasInmuebles = computed(() => inmuebles.value.length > 0)
-  const isEmpty = computed(() => !loading.value && inmuebles.value.length === 0)
+  const inmuebles = computed(() => base.items.value)
+  const inmueble = computed(() => base.item.value)
 
-  const listar = async (filters = {}) => {
-    loading.value = true
-    error.value = null
+  /**
+   * Listar con mapeo de filtros antiguos a Strawchemy si es necesario
+   * O simplemente pasar los filtros directos.
+   * Por ahora asumimos que la UI pasará filtros compatibles o mapeados aquí.
+   */
+  const listar = async (filters = {}, append = false) => {
+    // Aquí podríamos transformar filtros de UI a Strawchemy
+    // Ejemplo: 'search' simple a _or complex
+    // Pero useAgenteBaseStrawchemy ya maneja 'buscar' con search text
+    // Si filters trae 'search', usamos base.buscar? No, base.buscar es otro metodo.
 
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      console.log('🔍 Filtros recibidos:', filters)
-      
-      let filteredInmuebles = [...mockInmuebles]
+    // Si filters es complex object de Strawchemy, lo pasamos directo.
+    // Si es un objeto simple legacy, hacemos map.
 
-      if (filters.search) {
-        const searchTerm = filters.search.toLowerCase()
-        filteredInmuebles = filteredInmuebles.filter(inmueble => 
-          inmueble.denominacion_principal?.toLowerCase().includes(searchTerm) ||
-          inmueble.direccion?.toLowerCase().includes(searchTerm)
-        )
-      }
+    // Mapeo básico de legacy a Strawchemy
+    const strawchemyFilter = { ...filters }
 
-      if (filters.estados && Object.keys(filters.estados).length > 0) {
-        const estadosActivos = Object.keys(filters.estados).filter(key => filters.estados[key])
-        
-        filteredInmuebles = filteredInmuebles.filter(inmueble => {
-          const estadoKey = ESTADO_MAPEO[inmueble.estado]
-          return estadoKey && estadosActivos.includes(estadoKey)
-        })
-      }
-      
-      // Filtro por provincia (usando datos mock)
-      if (filters.provincia) {
-        filteredInmuebles = filteredInmuebles.filter(inmueble => 
-          inmueble.provincia === filters.provincia
-        )
-        console.log('📍 Después de provincia:', filteredInmuebles.length)
-      }
-
-      // Filtro por localidad (usando datos mock)
-      if (filters.localidad) {
-        filteredInmuebles = filteredInmuebles.filter(inmueble => 
-          inmueble.localidad === filters.localidad
-        )
-        console.log('🏘️ Después de localidad:', filteredInmuebles.length)
-      }
-
-      inmuebles.value = filteredInmuebles
-      console.log('🎉 Inmuebles filtrados:', inmuebles.value.length)
-      
-      return { items: inmuebles.value, total: filteredInmuebles.length }
-    } catch (err) {
-      error.value = `Error al cargar inmuebles: ${err.message}`
-      console.error('❌ Error en listar Inmuebles:', err)
-      throw err
-    } finally {
-      loading.value = false
+    // Si hay 'search' y no es el campo search de query, sino filtro local
+    if (filters.search && !filters._or) {
+      // El backend espera 'search' en query root BUSCAR, o filtro manual en LISTAR
+      // Si usamos LISTAR y queremos buscar textualmente:
+      delete strawchemyFilter.search
+      strawchemyFilter._or = [
+        { nombre: { ilike: `%${filters.search}%` } },
+        { direccion: { ilike: `%${filters.search}%` } }
+      ]
     }
-  }
 
-  const obtener = async (id) => {
-    loading.value = true
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500))
-      const found = mockInmuebles.find(i => i.id === id)
-      inmueble.value = found || null
-      return inmueble.value
-    } catch (err) {
-      error.value = `Error al obtener inmueble: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
+    return base.listar(strawchemyFilter, append)
   }
 
   return {
+    ...base,
     inmuebles,
     inmueble,
-    loading,
-    error,
-    hasInmuebles,
-    isEmpty,
-    listar,
-    obtener
+    // Override listar to add custom mapping if needed
+    listar
   }
 }

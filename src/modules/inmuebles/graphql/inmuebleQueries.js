@@ -1,233 +1,194 @@
-// modules/inmuebles/graphql/inmuebleQueries.js
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_INMUEBLES = gql`
+/**
+ * Queries y Mutations para Inmuebles usando Strawchemy
+ */
+
+// ========================================
+// QUERIES
+// ========================================
+
+export const LISTAR = gql`
   query ListarInmuebles(
-    $filters: InmuebleFilters
-    $pagination: PaginationInput
+    $filter: InmuebleFilter
+    $offset: Int = 0
+    $limit: Int = 50
   ) {
-    inmuebles(filters: $filters, pagination: $pagination) {
-      items {
+    inmuebles(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      descripcion
+      direccion
+      superficieConstruida
+      superficieParcela
+      numPlantas
+      anoConstruccion
+      
+      # Relaciones geográficas
+      municipio {
         id
         nombre
-        tipoInmueble {
+        provincia {
           id
           nombre
-        }
-        localidad {
-          id
-          nombre
-          provincia {
+          comunidadAutonoma {
             id
             nombre
-            comunidadAutonoma {
-              id
-              nombre
-            }
           }
         }
-        direccion
-        latitud
-        longitud
-        esBic
-        esRuina
-        estadoConservacion {
-          id
-          nombre
-        }
-        estadoTratamiento {
-          id
-          nombre
-        }
-        tieneCoordenadas
-        protegido
-        createdAt
-        updatedAt
-        # Relaciones para computed properties
-        figurasProteccion {
-          id
-          tipo
-        }
-        denominaciones {
-          id
-          denominacion
-          esPrincipal
-        }
       }
-      total
-      totalPages
+      
+      # Clasificación
+      tipoInmueble {
+        id
+        nombre
+      }
+      
+      # Estado
+      estadoConservacion {
+        id
+        nombre
+      }
+      estadoTratamiento {
+        id
+        nombre
+      }
+      
+      # Protección
+      figuraProteccion {
+        id
+        nombre
+      }
+      
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const OBTENER_INMUEBLE = gql`
+export const OBTENER = gql`
   query ObtenerInmueble(
-    $id: ID!
-    $conDenominaciones: Boolean = false
-    $conTransmisiones: Boolean = false
-    $conActuaciones: Boolean = false
-    $conDocumentos: Boolean = false
-    $conFigurasProteccion: Boolean = false
-    $conInmatriculacion: Boolean = false
-    $conOSM: Boolean = false
-    $conWikidata: Boolean = false
+    $filter: InmuebleFilter!
   ) {
-    inmueble(id: $id) {
-      item {
+    inmuebles(filter: $filter, limit: 1) {
+      id
+      nombre
+      descripcion
+      direccion
+      coordenadas # GeoJSON si es soportado, o string
+      
+      municipio {
         id
         nombre
-        descripcion
-        tipoInmueble {
+        codigoIne
+        provincia {
           id
           nombre
-        }
-        localidad {
-          id
-          nombre
-          provincia {
+          comunidadAutonoma {
             id
             nombre
-            comunidadAutonoma {
-              id
-              nombre
-            }
           }
         }
-        direccion
-        latitud
-        longitud
-        esBic
-        esRuina
-        estaInmatriculado
-        estadoConservacion {
-          id
-          nombre
-        }
-        estadoTratamiento {
-          id
-          nombre
-        }
-        diocesis {
-          id
-          nombre
-        }
-        createdAt
-        updatedAt
-        
-        # Relaciones opcionales
-        denominaciones @include(if: $conDenominaciones) {
-          id
-          denominacion
-          esPrincipal
-          idioma
-        }
-        
-        transmisiones @include(if: $conTransmisiones) {
-          id
-          tipoTransmision
-          fechaTransmision
-          transmitente
-          adquirente
-        }
-        
-        actuaciones @include(if: $conActuaciones) {
-          id
-          tipo
-          descripcion
-          fechaInicio
-          fechaFin
-          estado
-        }
-        
-        documentos @include(if: $conDocumentos) {
-          id
-          tipo
-          titulo
-          fechaDocumento
-        }
-        
-        figurasProteccion @include(if: $conFigurasProteccion) {
-          id
-          tipo
-          nivel
-          fechaDeclaracion
-        }
-        
-        inmatriculacion @include(if: $conInmatriculacion) {
-          id
-          numeroFinca
-          fechaInmatriculacion
-        }
-        
-        osmExt @include(if: $conOSM) {
-          id
-          osmId
-          name
-        }
-        
-        wdExt @include(if: $conWikidata) {
-          id
-          wikidataQid
-        }
       }
-    }
-  }
-`
-
-export const CREAR_INMUEBLE = gql`
-  mutation CrearInmueble($input: InmuebleInput!) {
-    crearInmueble(input: $input) {
-      success
-      item {
+      
+      tipoInmueble {
         id
         nombre
-        tipoInmueble {
-          id
-          nombre
-        }
-        localidad {
-          id
-          nombre
-        }
-        direccion
-        latitud
-        longitud
       }
-      message
-    }
-  }
-`
-
-export const ACTUALIZAR_INMUEBLE = gql`
-  mutation ActualizarInmueble($id: ID!, $input: InmuebleInput!) {
-    actualizarInmueble(id: $id, input: $input) {
-      success
-      item {
+      
+      estadoConservacion {
         id
         nombre
-        tipoInmueble {
-          id
-          nombre
-        }
-        localidad {
-          id
-          nombre
-        }
-        direccion
-        latitud
-        longitud
-        updatedAt
       }
-      message
+      
+      figuraProteccion {
+        id
+        nombre
+      }
+      
+      diocesis {
+        id
+        nombre
+      }
+      
+      # Relaciones one-to-many (usando child pagination si es necesario)
+      denominaciones {
+        id
+        denominacion
+        esPrincipal
+      }
+      
+      inmatriculaciones {
+        id
+        numeroFinca
+        fechaInmatriculacion
+      }
+      
+      updatedAt
     }
   }
 `
 
-export const ELIMINAR_INMUEBLE = gql`
+export const BUSCAR = gql`
+  query BuscarInmuebles(
+    $search: String!
+    $limit: Int = 50
+  ) {
+    inmuebles(
+      filter: {
+        _or: [
+          { nombre: { ilike: $search } }
+          { direccion: { ilike: $search } }
+          { descripcion: { contains: $search } }
+        ]
+      }
+      limit: $limit
+    ) {
+      id
+      nombre
+      direccion
+      municipio {
+        id
+        nombre
+      }
+      tipoInmueble {
+        nombre
+      }
+    }
+  }
+`
+
+// ========================================
+// MUTATIONS
+// ========================================
+
+export const CREAR = gql`
+  mutation CrearInmueble($data: InmuebleCreateInput!) {
+    createInmueble(data: $data) {
+      id
+      nombre
+      direccion
+      createdAt
+    }
+  }
+`
+
+export const ACTUALIZAR = gql`
+  mutation ActualizarInmueble($data: InmuebleUpdateInput!) {
+    updateInmueble(data: $data) {
+      id
+      nombre
+      direccion
+      updatedAt
+    }
+  }
+`
+
+export const ELIMINAR = gql`
   mutation EliminarInmueble($id: ID!) {
-    eliminarInmueble(id: $id) {
-      success
-      message
+    deleteInmuebles(filter: { id: { eq: $id } }) {
+      id
+      nombre
     }
   }
 `

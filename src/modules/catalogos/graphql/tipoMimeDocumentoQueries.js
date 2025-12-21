@@ -1,71 +1,49 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_TIPOS_MIME = gql`
-  query ListarTiposMime($filters: TipoMimeFilters, $pagination: PaginationInput) {
-    tiposMimeDocumento(filters: $filters, pagination: $pagination) {
-      items {
-        id
-        tipoMime
-        extension
-        descripcion
-        createdAt
-        updatedAt
-      }
-      total
+export const LISTAR = gql`
+  query ListarTiposMimeDocumento($filter: TipoMimeDocumentoFilter, $offset: Int = 0, $limit: Int = 50) {
+    tiposMimeDocumento(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const OBTENER_TIPO_MIME = gql`
-  query ObtenerTipoMime($id: ID!) {
-    tipoMimeDocumento(id: $id) {
-      item {
-        id
-        tipoMime
-        extension
-        descripcion
-        createdAt
-        updatedAt
-      }
+export const OBTENER = gql`
+  query ObtenerTipoMimeDocumento($filter: TipoMimeDocumentoFilter!) {
+    tiposMimeDocumento(filter: $filter, limit: 1) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const CREAR_TIPO_MIME = gql`
-  mutation CrearTipoMime($input: TipoMimeInput!) {
-    crearTipoMimeDocumento(input: $input) {
-      success
-      item {
-        id
-        tipoMime
-        extension
-        descripcion
-      }
-      message
+export const CREAR = gql`
+  mutation CrearTipoMimeDocumento($data: TipoMimeDocumentoCreateInput!) {
+    createTipoMimeDocumento(data: $data) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const ACTUALIZAR_TIPO_MIME = gql`
-  mutation ActualizarTipoMime($id: ID!, $input: TipoMimeInput!) {
-    actualizarTipoMimeDocumento(id: $id, input: $input) {
-      success
-      item {
-        id
-        tipoMime
-        extension
-        descripcion
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarTipoMimeDocumento($data: TipoMimeDocumentoUpdateInput!) {
+    updateTipoMimeDocumento(data: $data) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const ELIMINAR_TIPO_MIME = gql`
-  mutation EliminarTipoMime($id: ID!) {
-    eliminarTipoMimeDocumento(id: $id) {
-      success
-      message
+export const ELIMINAR = gql`
+  mutation EliminarTipoMimeDocumento($id: ID!) {
+    deleteTiposMimeDocumento(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

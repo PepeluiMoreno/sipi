@@ -1,67 +1,49 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_TIPOS_CERTIFICACION_PROPIEDAD = gql`
-  query ListarTiposCertificacionPropiedad($filters: CatalogoSimpleFilters, $pagination: PaginationInput) {
-    tiposCertificacionPropiedad(filters: $filters, pagination: $pagination) {
-      items {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
-      total
+export const LISTAR = gql`
+  query ListarTiposCertificacionPropiedad($filter: TipoCertificacionPropiedadFilter, $offset: Int = 0, $limit: Int = 50) {
+    tiposCertificacionPropiedad(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const OBTENER_TIPO_CERTIFICACION_PROPIEDAD = gql`
-  query ObtenerTipoCertificacionPropiedad($id: ID!) {
-    tipoCertificacionPropiedad(id: $id) {
-      item {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
+export const OBTENER = gql`
+  query ObtenerTipoCertificacionPropiedad($filter: TipoCertificacionPropiedadFilter!) {
+    tiposCertificacionPropiedad(filter: $filter, limit: 1) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const CREAR_TIPO_CERTIFICACION_PROPIEDAD = gql`
-  mutation CrearTipoCertificacionPropiedad($input: CatalogoSimpleInput!) {
-    crearTipoCertificacionPropiedad(input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const CREAR = gql`
+  mutation CrearTipoCertificacionPropiedad($data: TipoCertificacionPropiedadCreateInput!) {
+    createTipoCertificacionPropiedad(data: $data) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const ACTUALIZAR_TIPO_CERTIFICACION_PROPIEDAD = gql`
-  mutation ActualizarTipoCertificacionPropiedad($id: ID!, $input: CatalogoSimpleInput!) {
-    actualizarTipoCertificacionPropiedad(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarTipoCertificacionPropiedad($data: TipoCertificacionPropiedadUpdateInput!) {
+    updateTipoCertificacionPropiedad(data: $data) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const ELIMINAR_TIPO_CERTIFICACION_PROPIEDAD = gql`
+export const ELIMINAR = gql`
   mutation EliminarTipoCertificacionPropiedad($id: ID!) {
-    eliminarTipoCertificacionPropiedad(id: $id) {
-      success
-      message
+    deleteTiposCertificacionPropiedad(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

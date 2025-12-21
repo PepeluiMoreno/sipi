@@ -1,89 +1,76 @@
-// modules/inmuebles/graphql/inmuebleDocumentoQueries.js
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_DOCUMENTOS = gql`
-  query ListarDocumentos(
-    $inmuebleId: ID!
-    $filters: DocumentoFilters
-    $orderBy: [String!]
-  ) {
-    inmuebleDocumentos(inmuebleId: $inmuebleId, filters: $filters, orderBy: $orderBy) {
-      items {
+/**
+ * Queries y Mutations para Documentos usando Strawchemy
+ * Entidad base: Documento -> documentos
+ */
+
+export const LISTAR = gql`
+  query ListarDocumentos($filter: DocumentoFilter, $offset: Int = 0, $limit: Int = 50) {
+    documentos(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      inmuebleId
+      titulo
+      tipo
+      descripcion
+      fechaDocumento
+      url
+      fileName
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const OBTENER = gql`
+  query ObtenerDocumento($filter: DocumentoFilter!) {
+    documentos(filter: $filter, limit: 1) {
+      id
+      inmuebleId
+      titulo
+      tipo
+      descripcion
+      fechaDocumento
+      url
+      fileName
+      createdAt
+      updatedAt
+      inmueble {
         id
-        inmuebleId
-        titulo
-        tipo
-        descripcion
-        fechaDocumento
-        url
-        fileName
-        fileSize
-        mimeType
-        createdAt
-        updatedAt
+        nombre
       }
     }
   }
 `
 
-export const OBTENER_DOCUMENTO = gql`
-  query ObtenerDocumento($id: ID!) {
-    inmuebleDocumento(id: $id) {
-      item {
-        id
-        inmuebleId
-        titulo
-        tipo
-        descripcion
-        fechaDocumento
-        url
-        fileName
-        fileSize
-        mimeType
-        createdAt
-        updatedAt
-      }
+export const CREAR = gql`
+  mutation CrearDocumento($data: DocumentoCreateInput!) {
+    createDocumento(data: $data) {
+      id
+      titulo
+      tipo
+      url
     }
   }
 `
 
-export const CREAR_DOCUMENTO = gql`
-  mutation CrearDocumento($inmuebleId: ID!, $input: DocumentoInput!) {
-    crearInmuebleDocumento(inmuebleId: $inmuebleId, input: $input) {
-      success
-      item {
-        id
-        titulo
-        tipo
-        fechaDocumento
-        url
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarDocumento($data: DocumentoUpdateInput!) {
+    updateDocumento(data: $data) {
+      id
+      titulo
+      tipo
+      descripcion
+      fechaDocumento
+      updatedAt
     }
   }
 `
 
-export const ACTUALIZAR_DOCUMENTO = gql`
-  mutation ActualizarDocumento($id: ID!, $input: DocumentoInput!) {
-    actualizarInmuebleDocumento(id: $id, input: $input) {
-      success
-      item {
-        id
-        titulo
-        tipo
-        fechaDocumento
-        url
-      }
-      message
-    }
-  }
-`
-
-export const ELIMINAR_DOCUMENTO = gql`
+export const ELIMINAR = gql`
   mutation EliminarDocumento($id: ID!) {
-    eliminarInmuebleDocumento(id: $id) {
-      success
-      message
+    deleteDocumentos(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

@@ -1,17 +1,11 @@
 import { toRefs } from 'vue'
 import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
-import * as queries from '../graphql/administracionTitularQueries.strawchemy'
+import * as queries from '../graphql/administracionTitularQueries.js'
 
 export function useAdministracionTitular(administracionId) {
-  const base = useAgenteBaseStrawchemy('administracionTitulares', {
-    LISTAR: queries.LISTAR,
-    OBTENER: queries.OBTENER,
-    CREAR: queries.CREAR,
-    ACTUALIZAR: queries.ACTUALIZAR,
-    ELIMINAR: queries.ELIMINAR
-  })
+  const base = useAgenteBaseStrawchemy('administracionTitulares', queries)
 
-  const { items, item } = toRefs(base) // or just use base.items via alias
+  // Desestructurar para uso local si hace falta, pero mantenemos base
 
   /**
    * Listar titulares de esta administración

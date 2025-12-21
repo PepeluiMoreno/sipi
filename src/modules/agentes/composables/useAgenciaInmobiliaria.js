@@ -1,15 +1,16 @@
+import { computed } from 'vue'
 import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
-import * as queries from '../graphql/agenciaInmobiliariaQueries.strawchemy'
+import * as queries from '../graphql/agenciaInmobiliariaQueries.js'
 
 export function useAgenciaInmobiliaria() {
   const base = useAgenteBaseStrawchemy('agenciasInmobiliarias', queries)
 
-  const listarPorMunicipio = async (municipioId) => {
-    return base.listar({ municipioId: { eq: municipioId } })
-  }
+  const agenciasInmobiliarias = computed(() => base.items.value)
+  const agenciaInmobiliaria = computed(() => base.item.value)
 
   return {
     ...base,
-    listarPorMunicipio
+    agenciasInmobiliarias,
+    agenciaInmobiliaria
   }
 }

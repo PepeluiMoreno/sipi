@@ -1,137 +1,95 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_DOCUMENTOS = gql`
-  query ListarDocumentos($filters: DocumentoFilters, $pagination: PaginationInput) {
-    documentos(filters: $filters, pagination: $pagination) {
-      items {
+/**
+ * Queries y Mutations para Documentos usando Strawchemy
+ */
+
+export const LISTAR = gql`
+  query ListarDocumentos($filter: DocumentoFilter, $offset: Int = 0, $limit: Int = 50) {
+    documentos(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      descripcion
+      tipoDocumentoId
+      tipoDocumento {
         id
         nombre
-        descripcion
-        tipoDocumentoId
-        tipoDocumento {
-          id
-          nombre
-        }
-        tipoLicenciaId
-        tipoLicencia {
-          id
-          nombre
-        }
-        fuenteDocumentalId
-        fuenteDocumental {
-          id
-          nombre
-        }
-        contenido
-        mimeType
-        tamaño
-        fechaDocumento
-        createdAt
-        updatedAt
       }
-      total
-      totalPages
-      page
-      pageSize
+      tipoLicenciaId
+      fuenteDocumentalId
+      mimeType
+      tamaño
+      fechaDocumento
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const OBTENER_DOCUMENTO = gql`
-  query ObtenerDocumento($id: ID!) {
-    documento(id: $id) {
-      item {
+export const OBTENER = gql`
+  query ObtenerDocumento($filter: DocumentoFilter!) {
+    documentos(filter: $filter, limit: 1) {
+      id
+      nombre
+      descripcion
+      tipoDocumentoId
+      tipoDocumento {
         id
         nombre
-        descripcion
-        tipoDocumentoId
-        tipoDocumento {
+      }
+      tipoLicenciaId
+      fuenteDocumentalId
+      mimeType
+      tamaño
+      fechaDocumento
+      createdAt
+      updatedAt
+      
+      # Relaciones inversas (si soportadas por schema, si no, se eliminan)
+      inmuebles {
+        id
+        inmueble {
           id
           nombre
         }
-        tipoLicenciaId
-        tipoLicencia {
+      }
+      actuaciones {
+        id
+        actuacion {
           id
-          nombre
+          tipo
         }
-        fuenteDocumentalId
-        fuenteDocumental {
-          id
-          nombre
-        }
-        contenido
-        mimeType
-        tamaño
-        fechaDocumento
-        inmuebles {
-          id
-          inmuebleId
-          descripcion
-          inmueble {
-            id
-            nombre
-          }
-        }
-        actuaciones {
-          id
-          actuacionId
-          descripcion
-          actuacion {
-            id
-            nombre
-          }
-        }
-        transmisiones {
-          id
-          transmisionId
-          descripcion
-          transmision {
-            id
-            fechaTransmision
-          }
-        }
-        createdAt
-        updatedAt
       }
     }
   }
 `
 
-export const CREAR_DOCUMENTO = gql`
-  mutation CrearDocumento($input: DocumentoInput!) {
-    crearDocumento(input: $input) {
-      success
-      item {
-        id
-        nombre
-        tipoDocumentoId
-        mimeType
-        tamaño
-      }
-      message
+export const CREAR = gql`
+  mutation CrearDocumento($data: DocumentoCreateInput!) {
+    createDocumento(data: $data) {
+      id
+      nombre
+      tipoDocumentoId
+      mimeType
+      tamaño
     }
   }
 `
 
-export const ACTUALIZAR_DOCUMENTO = gql`
-  mutation ActualizarDocumento($id: ID!, $input: DocumentoInput!) {
-    actualizarDocumento(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        tipoDocumentoId
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarDocumento($data: DocumentoUpdateInput!) {
+    updateDocumento(data: $data) {
+      id
+      nombre
+      tipoDocumentoId
     }
   }
 `
 
-export const ELIMINAR_DOCUMENTO = gql`
+export const ELIMINAR = gql`
   mutation EliminarDocumento($id: ID!) {
-    eliminarDocumento(id: $id) {
-      success
-      message
+    deleteDocumentos(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

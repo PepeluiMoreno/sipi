@@ -1,5 +1,6 @@
-import { useCatalogoBase } from './useCatalogoBase'
+import { useCatalogoBaseStrawchemy } from './useCatalogoBaseStrawchemy'
+import * as queries from '../graphql/tipoInmuebleQueries.js'
 
 export function useTipoInmueble() {
-  return useCatalogoBase('tiposInmueble')
+  return useCatalogoBaseStrawchemy('tiposInmueble', queries)
 }

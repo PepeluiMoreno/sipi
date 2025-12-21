@@ -1,67 +1,45 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_ESTADOS_CONSERVACION = gql`
-  query ListarEstadosConservacion($filters: CatalogoSimpleFilters, $pagination: PaginationInput) {
-    estadosConservacion(filters: $filters, pagination: $pagination) {
-      items {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
-      total
+export const LISTAR = gql`
+  query ListarEstadosConservacion($filter: EstadoConservacionFilter, $offset: Int = 0, $limit: Int = 50) {
+    estadosConservacion(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
     }
   }
 `
 
-export const OBTENER_ESTADO_CONSERVACION = gql`
-  query ObtenerEstadoConservacion($id: ID!) {
-    estadoConservacion(id: $id) {
-      item {
-        id
-        nombre
-        descripcion
-        createdAt
-        updatedAt
-      }
+export const OBTENER = gql`
+  query ObtenerEstadoConservacion($filter: EstadoConservacionFilter!) {
+    estadosConservacion(filter: $filter, limit: 1) {
+      id
+      nombre
     }
   }
 `
 
-export const CREAR_ESTADO_CONSERVACION = gql`
-  mutation CrearEstadoConservacion($input: CatalogoSimpleInput!) {
-    crearEstadoConservacion(input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const CREAR = gql`
+  mutation CrearEstadoConservacion($data: EstadoConservacionCreateInput!) {
+    createEstadoConservacion(data: $data) {
+      id
+      nombre
     }
   }
 `
 
-export const ACTUALIZAR_ESTADO_CONSERVACION = gql`
-  mutation ActualizarEstadoConservacion($id: ID!, $input: CatalogoSimpleInput!) {
-    actualizarEstadoConservacion(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarEstadoConservacion($data: EstadoConservacionUpdateInput!) {
+    updateEstadoConservacion(data: $data) {
+      id
+      nombre
     }
   }
 `
 
-export const ELIMINAR_ESTADO_CONSERVACION = gql`
+export const ELIMINAR = gql`
   mutation EliminarEstadoConservacion($id: ID!) {
-    eliminarEstadoConservacion(id: $id) {
-      success
-      message
+    deleteEstadosConservacion(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `
