@@ -7,12 +7,11 @@
       </div>
     </div>
 
-    <AdministracionFiltros 
-      :localidades="localidades"
+    <AdministracionFiltros
       @filter-change="handleFilterChange"
     />
 
-    <AdministracionDataGrid 
+    <AdministracionDataGrid
       :items="items"
       :loading="loading"
       :pagination="pagination"
@@ -25,7 +24,6 @@
     <AdministracionFormModal
       :show="showModal"
       :administracion="selectedAdministracion"
-      :localidades="localidades"
       :loading="saving"
       @close="closeModal"
       @save="handleSave"
@@ -36,35 +34,23 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAdministracion } from '../composables/useAdministracion'
-import { useCatalogoBase } from '../../catalogos/composables/useCatalogoBase'
 import AdministracionFiltros from '../components/administracion/AdministracionFiltros.vue'
 import AdministracionDataGrid from '../components/administracion/AdministracionDataGrid.vue'
 import AdministracionFormModal from '../components/administracion/AdministracionFormModal.vue'
 
 const administracionService = useAdministracion()
-const localidadService = useCatalogoBase('localidades', { conContacto: false })
 
 const items = ref([])
-const localidades = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const showModal = ref(false)
 const selectedAdministracion = ref(null)
 const filters = ref({})
+const pagination = administracionService.pagination
 
 onMounted(async () => {
-  await loadLocalidades()
   await loadAdministraciones()
 })
-
-const loadLocalidades = async () => {
-  try {
-    const { items: locs } = await localidadService.listar()
-    localidades.value = locs
-  } catch (error) {
-    console.error('Error cargando localidades:', error)
-  }
-}
 
 const loadAdministraciones = async () => {
   loading.value = true
@@ -80,7 +66,7 @@ const loadAdministraciones = async () => {
 
 const handleFilterChange = async (newFilters) => {
   filters.value = newFilters
-  administracionService.pagination.page = 1
+  pagination.value.page = 1
   await loadAdministraciones()
 }
 
@@ -131,6 +117,4 @@ const handleDelete = async (id) => {
     console.error('Error eliminando administración:', error)
   }
 }
-
-const { pagination } = administracionService
 </script>

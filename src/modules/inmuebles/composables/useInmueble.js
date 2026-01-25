@@ -1,10 +1,10 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import { useAgenteBase } from '../../agentes/composables/useAgenteBase'
 import * as queries from '../graphql/inmuebleQueries.js'
 
 export function useInmueble() {
   // 'inmuebles' es el nombre de la query raiz en GraphQL
-  const base = useAgenteBaseStrawchemy('inmuebles', queries)
+  const base = useAgenteBase('inmuebles', queries)
 
   const inmuebles = computed(() => base.items.value)
   const inmueble = computed(() => base.item.value)
@@ -17,7 +17,7 @@ export function useInmueble() {
   const listar = async (filters = {}, append = false) => {
     // Aquí podríamos transformar filtros de UI a Strawchemy
     // Ejemplo: 'search' simple a _or complex
-    // Pero useAgenteBaseStrawchemy ya maneja 'buscar' con search text
+    // Pero useAgenteBase ya maneja 'buscar' con search text
     // Si filters trae 'search', usamos base.buscar? No, base.buscar es otro metodo.
 
     // Si filters es complex object de Strawchemy, lo pasamos directo.

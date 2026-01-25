@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-screen overflow-y-auto">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-screen overflow-y-auto">
       <!-- Header -->
       <div class="p-6 border-b border-gray-200 flex justify-between items-center">
         <h2 class="text-xl font-semibold text-gray-900">
@@ -16,130 +16,222 @@
 
       <!-- Form -->
       <form @submit.prevent="handleSubmit" class="p-6 space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Nombre -->
-          <div>
+        <!-- Geografía en una línea -->
+        <div class="grid grid-cols-12 gap-4">
+          <!-- Comunidad Autónoma -->
+          <div class="col-span-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Nombre *
+              Comunidad Autónoma
             </label>
-            <input 
-              v-model="form.nombre"
-              type="text"
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <!-- Ámbito -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Ámbito *
-            </label>
-            <select 
-              v-model="form.ambito"
-              required
+            <select
+              v-model="form.comunidadAutonomaId"
+              @change="onComunidadChange"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             >
-              <option value="municipal">Municipal</option>
-              <option value="provincial">Provincial</option>
-              <option value="autonomico">Autonómico</option>
-              <option value="estatal">Estatal</option>
-            </select>
-          </div>
-
-          <!-- Nombre del responsable -->
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Nombre del responsable *
-            </label>
-            <input 
-              v-model="form.nombreResponsable"
-              type="text"
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <!-- Número Identificación -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Número ID *
-            </label>
-            <input 
-              v-model="form.numeroIdentificacion"
-              type="text"
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <!-- Email -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input 
-              v-model="form.email"
-              type="email"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <!-- Teléfono -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Teléfono
-            </label>
-            <input 
-              v-model="form.telefono"
-              type="tel"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <!-- Dirección -->
-          <div class="md:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Dirección
-            </label>
-            <input 
-              v-model="form.direccion"
-              type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <!-- Código Postal -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Código Postal
-            </label>
-            <input 
-              v-model="form.codigoPostal"
-              type="text"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            />
-          </div>
-
-          <!-- Localidad -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              Localidad *
-            </label>
-            <select 
-              v-model="form.localidadId"
-              required
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-            >
-              <option value="">Seleccione localidad</option>
-              <option 
-                v-for="localidad in localidades" 
-                :key="localidad.id" 
-                :value="localidad.id"
+              <option value="">Seleccione comunidad</option>
+              <option
+                v-for="ccaa in comunidadesAutonomas"
+                :key="ccaa.id"
+                :value="ccaa.id"
               >
-                {{ localidad.nombre }}
+                {{ ccaa.nombre }}
               </option>
             </select>
+          </div>
+
+          <!-- Provincia -->
+          <div class="col-span-3">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Provincia
+            </label>
+            <select
+              v-model="form.provinciaId"
+              @change="onProvinciaChange"
+              :disabled="!form.comunidadAutonomaId"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">Seleccione provincia</option>
+              <option
+                v-for="provincia in provinciasFiltradas"
+                :key="provincia.id"
+                :value="provincia.id"
+              >
+                {{ provincia.nombre }}
+              </option>
+            </select>
+          </div>
+
+          <!-- Localidad/Municipio -->
+          <div class="col-span-5">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Localidad
+            </label>
+            <select
+              v-model="form.municipioId"
+              :disabled="!form.provinciaId"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              <option value="">Seleccione localidad</option>
+              <option
+                v-for="municipio in municipiosFiltrados"
+                :key="municipio.id"
+                :value="municipio.id"
+              >
+                {{ municipio.nombre }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Datos de la Administración -->
+        <div class="border-t pt-4">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Datos de la Administración</h3>
+          <div class="grid grid-cols-12 gap-4">
+            <!-- Nombre -->
+            <div class="col-span-7">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Nombre *
+              </label>
+              <input
+                v-model="form.nombre"
+                type="text"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Ámbito -->
+            <div class="col-span-5">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Ámbito *
+              </label>
+              <select
+                v-model="form.ambito"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="municipal">Municipal</option>
+                <option value="provincial">Provincial</option>
+                <option value="autonomico">Autonómico</option>
+                <option value="estatal">Estatal</option>
+              </select>
+            </div>
+
+            <!-- Dirección -->
+            <div class="col-span-7">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Dirección
+              </label>
+              <input
+                v-model="form.direccion"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Código Postal -->
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                C.P.
+              </label>
+              <input
+                v-model="form.codigoPostal"
+                type="text"
+                maxlength="5"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Teléfono de la Administración -->
+            <div class="col-span-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Teléfono
+              </label>
+              <input
+                v-model="form.telefono"
+                type="tel"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Email de la Administración -->
+            <div class="col-span-12">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                v-model="form.email"
+                type="email"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Datos del Responsable/Titular -->
+        <div class="border-t pt-4">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Responsable Actual</h3>
+          <div class="grid grid-cols-12 gap-4">
+            <!-- Nombre del responsable -->
+            <div class="col-span-5">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Nombre del responsable
+              </label>
+              <input
+                v-model="form.titular.nombre"
+                type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- NIF del responsable -->
+            <div class="col-span-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                NIF
+              </label>
+              <input
+                v-model="form.titular.nif"
+                type="text"
+                maxlength="9"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Fecha desde -->
+            <div class="col-span-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha desde
+              </label>
+              <input
+                v-model="form.titular.fechaDesde"
+                type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Email del responsable -->
+            <div class="col-span-9">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                v-model="form.titular.email"
+                type="email"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            <!-- Teléfono del responsable -->
+            <div class="col-span-3">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Teléfono
+              </label>
+              <input
+                v-model="form.titular.telefono"
+                type="tel"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
           </div>
         </div>
 
@@ -167,8 +259,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
-import { 
+import { ref, watch, computed } from 'vue'
+import {
   XMarkIcon,
   ArrowPathIcon
 } from '@heroicons/vue/24/outline'
@@ -182,7 +274,15 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  localidades: {
+  comunidadesAutonomas: {
+    type: Array,
+    default: () => []
+  },
+  provincias: {
+    type: Array,
+    default: () => []
+  },
+  municipios: {
     type: Array,
     default: () => []
   },
@@ -198,29 +298,66 @@ const isEdit = ref(false)
 const form = ref({
   nombre: '',
   ambito: 'municipal',
-  nombreResponsable: '',
-  numeroIdentificacion: '',
   email: '',
   telefono: '',
   direccion: '',
   codigoPostal: '',
-  localidadId: ''
+  comunidadAutonomaId: '',
+  provinciaId: '',
+  municipioId: '',
+  titular: {
+    nombre: '',
+    nif: '',
+    email: '',
+    telefono: '',
+    fechaDesde: ''
+  }
 })
+
+// Filtrado en cascada
+const provinciasFiltradas = computed(() => {
+  if (!form.value.comunidadAutonomaId) return []
+  return props.provincias.filter(p => p.comunidadAutonomaId === form.value.comunidadAutonomaId)
+})
+
+const municipiosFiltrados = computed(() => {
+  if (!form.value.provinciaId) return []
+  return props.municipios.filter(m => m.provinciaId === form.value.provinciaId)
+})
+
+const onComunidadChange = () => {
+  // Resetear provincia y municipio cuando cambia la comunidad
+  form.value.provinciaId = ''
+  form.value.municipioId = ''
+}
+
+const onProvinciaChange = () => {
+  // Resetear municipio cuando cambia la provincia
+  form.value.municipioId = ''
+}
 
 watch(() => props.show, (newVal) => {
   if (newVal && props.administracion) {
     // Modo edición
     isEdit.value = true
+    const titularActual = props.administracion.titularActual || {}
     form.value = {
       nombre: props.administracion.nombre,
       ambito: props.administracion.ambito,
-      nombreResponsable: props.administracion.nombreResponsable || '',
-      numeroIdentificacion: props.administracion.numeroIdentificacion,
       email: props.administracion.email || '',
       telefono: props.administracion.telefono || '',
       direccion: props.administracion.direccion || '',
       codigoPostal: props.administracion.codigoPostal || '',
-      localidadId: props.administracion.localidadId || ''
+      comunidadAutonomaId: props.administracion.comunidadAutonomaId || '',
+      provinciaId: props.administracion.provinciaId || '',
+      municipioId: props.administracion.municipioId || '',
+      titular: {
+        nombre: titularActual.nombre || '',
+        nif: titularActual.identificacion || '',
+        email: titularActual.email || '',
+        telefono: titularActual.telefono || '',
+        fechaDesde: titularActual.fechaInicio || ''
+      }
     }
   } else if (newVal) {
     // Modo creación
@@ -228,13 +365,20 @@ watch(() => props.show, (newVal) => {
     form.value = {
       nombre: '',
       ambito: 'municipal',
-      nombreResponsable: '',
-      numeroIdentificacion: '',
       email: '',
       telefono: '',
       direccion: '',
       codigoPostal: '',
-      localidadId: ''
+      comunidadAutonomaId: '',
+      provinciaId: '',
+      municipioId: '',
+      titular: {
+        nombre: '',
+        nif: '',
+        email: '',
+        telefono: '',
+        fechaDesde: ''
+      }
     }
   }
 })

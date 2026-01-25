@@ -1,9 +1,9 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/diocesisTitularQueries.js'
 
 export function useDiocesisTitular(diocesisId) {
-  const base = useAgenteBaseStrawchemy('diocesisTitulares', queries)
+  const base = useAgenteBase('diocesisTitulares', queries)
 
   const listar = async () => {
     return base.listar({ diocesisId: { eq: diocesisId } })

@@ -1,9 +1,9 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/agenciaInmobiliariaQueries.js'
 
 export function useAgenciaInmobiliaria() {
-  const base = useAgenteBaseStrawchemy('agenciasInmobiliarias', queries)
+  const base = useAgenteBase('agenciasInmobiliarias', queries)
 
   const agenciasInmobiliarias = computed(() => base.items.value)
   const agenciaInmobiliaria = computed(() => base.item.value)

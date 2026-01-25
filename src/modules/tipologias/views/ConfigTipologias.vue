@@ -1,0 +1,300 @@
+<template>
+  <div class="space-y-6">
+    <div class="flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Configuración de Tipologías</h1>
+        <p class="text-gray-600">Gestione las tipologías del sistema</p>
+      </div>
+    </div>
+
+    <!-- Selector de tipología -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Seleccione una tipología
+          </label>
+          <select 
+            v-model="tipologiaSeleccionada"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">-- Seleccione --</option>
+            <option value="tipoInmueble">Tipos de Inmueble</option>
+            <option value="tipoDocumento">Tipos de Documento</option>
+            <option value="tipoVia">Tipos de Vía</option>
+            <option value="estadoConservacion">Estados de Conservación</option>
+            <option value="estadoTratamiento">Estados de Tratamiento</option>
+            <option value="figuraProteccion">Figuras de Protección</option>
+            <option value="fuenteDocumental">Fuentes Documentales</option>
+            <option value="rolTecnico">Roles de Técnico</option>
+            <option value="tipoCertificacionPropiedad">Tipos de Certificación</option>
+            <option value="tipoLicencia">Tipos de Licencia</option>
+            <option value="tipoMimeDocumento">Tipos MIME</option>
+            <option value="tipoPersona">Tipos de Persona</option>
+            <option value="tipoTransmision">Tipos de Transmisión</option>
+          </select>
+        </div>
+
+        <div class="flex items-end">
+          <button
+            @click="crearNuevo"
+            :disabled="!tipologiaSeleccionada"
+            class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+          >
+            <PlusIcon class="w-4 h-4 mr-2" />
+            Nuevo Item
+          </button>
+        </div>
+      </div>
+
+      <!-- Descripción contextual del tipología -->
+      <div v-if="tipologiaSeleccionada && descripcionCatalogo" class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div class="flex items-start">
+          <svg class="w-5 h-5 mr-2 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <p class="text-sm text-blue-800">{{ descripcionCatalogo }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- DataGrid de la tipología -->
+    <div v-if="tipologiaSeleccionada" class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-gray-900">{{ nombreCatalogo }}</h2>
+      </div>
+
+      <div v-if="loading" class="p-12 text-center">
+        <ArrowPathIcon class="w-8 h-8 mx-auto animate-spin text-gray-400" />
+        <p class="mt-2 text-gray-500">Cargando...</p>
+      </div>
+
+      <div v-else-if="items.length === 0" class="p-12 text-center">
+        <ArchiveBoxIcon class="w-12 h-12 mx-auto text-gray-300 mb-4" />
+        <p class="text-gray-500">No hay elementos en este tipología</p>
+      </div>
+
+      <div v-else class="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div 
+          v-for="item in items" 
+          :key="item.id"
+          class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+        >
+          <div class="flex justify-between items-start">
+            <h3 class="text-lg font-semibold text-gray-900">{{ item.nombre }}</h3>
+            <div class="flex space-x-2">
+              <button 
+                @click="editarItem(item)"
+                class="p-1 text-indigo-600 hover:bg-indigo-50 rounded"
+              >
+                <PencilSquareIcon class="w-4 h-4" />
+              </button>
+              <button 
+                @click="eliminarItem(item.id)"
+                class="p-1 text-red-600 hover:bg-red-50 rounded"
+              >
+                <TrashIcon class="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+          
+          <p v-if="item.descripcion" class="text-sm text-gray-600 mt-2">{{ item.descripcion }}</p>
+        </div>
+      </div>
+
+      <!-- Paginación -->
+      <div v-if="pagination.totalPages > 1" class="p-4 border-t border-gray-200 flex justify-between items-center">
+        <div class="text-sm text-gray-600">
+          Mostrando {{ items.length }} de {{ pagination.total }} resultados
+        </div>
+        <div class="flex space-x-2">
+          <button 
+            @click="cambiarPagina(pagination.page - 1)"
+            :disabled="pagination.page <= 1"
+            class="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
+          >
+            Anterior
+          </button>
+          <span class="px-3 py-1 bg-indigo-600 text-white rounded">
+            Pág. {{ pagination.page }}
+          </span>
+          <button 
+            @click="cambiarPagina(pagination.page + 1)"
+            :disabled="pagination.page >= pagination.totalPages"
+            class="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal de formulario -->
+    <CatalogoFormModal
+      v-if="showModal"
+      :show="showModal"
+      :item="itemSeleccionado"
+      :catalogo="tipologiaSeleccionada"
+      :loading="saving"
+      @close="cerrarModal"
+      @save="guardarItem"
+    />
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted, watch, reactive, computed } from 'vue'
+import { ArrowPathIcon, PlusIcon, ArchiveBoxIcon, PencilSquareIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import CatalogoFormModal from '../components/Config.vue'
+// Si necesitas varios composables en el mismo archivo
+import {
+  useTipologiaBase,
+  useTipologiaGenerico,
+  useTipoLicencia,
+  useEstadoConservacion
+} from '/src/modules/tipologias/composables'
+
+// Estado
+const tipologiaSeleccionada = ref('')
+const items = ref([])
+const itemSeleccionado = ref(null)
+const loading = ref(false)
+const saving = ref(false)
+const showModal = ref(false)
+const pagination = ref({
+  page: 1,
+  pageSize: 50,
+  total: 0,
+  totalPages: 0
+})
+
+// Nombres legibles y descripciones para las tipologías
+const nombresTipologias = {
+  tipoInmueble: 'Tipos de Inmueble',
+  tipoDocumento: 'Tipos de Documento',
+  tipoVia: 'Tipos de Vía',
+  estadoConservacion: 'Estados de Conservación',
+  estadoTratamiento: 'Estados de Tratamiento',
+  figuraProteccion: 'Figuras de Protección',
+  fuenteDocumental: 'Fuentes Documentales',
+  rolTecnico: 'Roles de Técnico',
+  tipoCertificacionPropiedad: 'Tipos de Certificación',
+  tipoLicencia: 'Tipos de Licencia',
+  tipoMimeDocumento: 'Tipos MIME',
+  tipoPersona: 'Tipos de Persona',
+  tipoTransmision: 'Tipos de Transmisión'
+}
+
+const descripcionesTipologias = {
+  tipoInmueble: 'Clasificación de inmuebles según su naturaleza y características. Define categorías como edificios, parcelas, viviendas, locales comerciales, etc.',
+  tipoDocumento: 'Tipología de tipos de documentos que se pueden asociar a inmuebles y procesos. Incluye escrituras, planos, licencias, certificados, etc.',
+  tipoVia: 'Clasificación de vías para normalizar direcciones. Incluye tipos como calle, avenida, plaza, camino, pasaje, etc.',
+  estadoConservacion: 'Estados que describen el nivel de conservación física de un inmueble. Desde ruina hasta excelente estado de conservación.',
+  estadoTratamiento: 'Estados del proceso de tratamiento y catalogación de inmuebles. Controla el flujo de trabajo desde la detección hasta la finalización.',
+  figuraProteccion: 'Figuras legales de protección patrimonial aplicables a inmuebles. Incluye BIC, Bien Catalogado, Protección Ambiental, etc.',
+  fuenteDocumental: 'Origen de la información sobre inmuebles. Define repositorios documentales, archivos históricos, registros, etc.',
+  rolTecnico: 'Roles profesionales de técnicos que intervienen en procesos. Arquitectos, aparejadores, arqueólogos, restauradores, etc.',
+  tipoCertificacionPropiedad: 'Tipos de certificaciones y títulos que acreditan la propiedad de inmuebles. Escrituras, títulos históricos, etc.',
+  tipoLicencia: 'Clasificación de licencias administrativas relacionadas con inmuebles. Obras, actividad, ocupación de vía pública, etc.',
+  tipoMimeDocumento: 'Tipos MIME para clasificar formatos de archivos digitales. PDF, imágenes, CAD, etc.',
+  tipoPersona: 'Clasificación de personas según su naturaleza jurídica. Física, jurídica, administración pública, etc.',
+  tipoTransmision: 'Tipos de operaciones de transmisión de propiedad. Compraventa, herencia, donación, permuta, etc.'
+}
+
+const nombreCatalogo = computed(() => {
+  return nombresTipologias[tipologiaSeleccionada.value] || ''
+})
+
+const descripcionCatalogo = computed(() => {
+  return descripcionesTipologias[tipologiaSeleccionada.value] || ''
+})
+
+// Service
+const catalogoService = ref(null)
+
+// Cargar datos cuando se seleccione una tipología
+watch(tipologiaSeleccionada, async (nuevoValor) => {
+  if (!nuevoValor) {
+    items.value = []
+    return
+  }
+
+  // Resetear servicio y paginación
+  pagination.value.page = 1
+  catalogoService.value = useTipologiaGenerico(nuevoValor)
+
+  await cargarItems()
+})
+
+// Funciones
+const cargarItems = async () => {
+  loading.value = true
+  try {
+    const { items: data, total } = await catalogoService.value.listar()
+    items.value = data
+    pagination.value.total = total
+    pagination.value.totalPages = Math.ceil(total / pagination.value.pageSize)
+  } catch (error) {
+    console.error('Error cargando tipología:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const cambiarPagina = async (page) => {
+  if (page < 1 || page > pagination.value.totalPages) return
+  pagination.value.page = page
+  await cargarItems()
+}
+
+const crearNuevo = () => {
+  itemSeleccionado.value = null
+  showModal.value = true
+}
+
+const editarItem = (item) => {
+  itemSeleccionado.value = item
+  showModal.value = true
+}
+
+const cerrarModal = () => {
+  showModal.value = false
+  itemSeleccionado.value = null
+}
+
+const guardarItem = async (data) => {
+  saving.value = true
+  try {
+    if (data.id) {
+      await catalogoService.value.actualizar(data.id, data)
+    } else {
+      await catalogoService.value.crear(data)
+    }
+    await cargarItems()
+    cerrarModal()
+  } catch (error) {
+    console.error('Error guardando item:', error)
+  } finally {
+    saving.value = false
+  }
+}
+
+const eliminarItem = async (id) => {
+  if (!confirm('¿Está seguro de eliminar este item?')) return
+  
+  try {
+    await catalogoService.value.eliminar(id)
+    await cargarItems()
+  } catch (error) {
+    console.error('Error eliminando item:', error)
+  }
+}
+
+onMounted(() => {
+  // Inicialización si es necesaria
+})
+</script>
+
+<style scoped>
+/* Estilos específicos si son necesarios */
+</style>

@@ -1,8 +1,8 @@
-import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import { useAgenteBase } from '../../agentes/composables/useAgenteBase'
 import * as queries from '../graphql/documentoQueries.js'
 
 export function useDocumento() {
-  const base = useAgenteBaseStrawchemy('documentos', queries)
+  const base = useAgenteBase('documentos', queries)
 
   return {
     ...base,

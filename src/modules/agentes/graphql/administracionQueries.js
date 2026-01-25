@@ -14,58 +14,22 @@ import { gql } from '@apollo/client/core'
 // QUERIES
 // ========================================
 
-export const LISTAR_ADMINISTRACIONES = gql`
+export const LISTAR = gql`
   query ListarAdministraciones(
-    $filter: AdministracionFilter
+    $filter: AdministracionFilterInput
     $offset: Int = 0
     $limit: Int = 50
   ) {
     administraciones(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
-      ambito
-      nombreResponsable
-      numeroIdentificacion
-      email
-      telefono
-      direccion
-      codigoPostal
-      municipioSede {
-        id
-        nombre
-        provincia {
-          id
-          nombre
-          comunidadAutonoma {
-            id
-            nombre
-          }
-        }
-      }
-      titulares {
-        id
-        nombre
-        apellidos
-        fechaInicio
-        fechaFin
-        cargo
-      }
-      createdAt
-      updatedAt
-      # Agregaciones automáticas de Strawchemy
-      subvencionesAggregate {
-        count
-        _sum {
-          importe
-        }
-      }
     }
   }
 `
 
 export const OBTENER_ADMINISTRACION = gql`
   query ObtenerAdministracion(
-    $filter: AdministracionFilter!
+    $filter: AdministracionFilterInput!
   ) {
     administraciones(filter: $filter, limit: 1) {
       id
@@ -77,36 +41,10 @@ export const OBTENER_ADMINISTRACION = gql`
       telefono
       direccion
       codigoPostal
-      comunidadAutonoma {
-        id
-        nombre
-      }
-      provincia {
-        id
-        nombre
-      }
       municipioSede {
         id
         nombre
-        codigoIne
       }
-      titulares {
-        id
-        nombre
-        apellidos
-        numeroIdentificacion
-        fechaInicio
-        fechaFin
-        cargo
-      }
-      subvenciones {
-        id
-        nombre
-        importe
-        fechaConcesion
-      }
-      createdAt
-      updatedAt
     }
   }
 `
@@ -118,23 +56,14 @@ export const BUSCAR_ADMINISTRACIONES = gql`
   ) {
     administraciones(
       filter: {
-        _or: [
-          { nombre: { ilike: $search } }
-          { nombreResponsable: { ilike: $search } }
-          { numeroIdentificacion: { contains: $search } }
-        ]
+        nombre: { ilike: $search }
       }
       limit: $limit
     ) {
       id
       nombre
       ambito
-      nombreResponsable
       email
-      municipioSede {
-        id
-        nombre
-      }
     }
   }
 `
@@ -153,11 +82,7 @@ export const LISTAR_POR_AMBITO = gql`
       id
       nombre
       ambito
-      nombreResponsable
-      municipioSede {
-        id
-        nombre
-      }
+      email
     }
   }
 `
@@ -176,11 +101,7 @@ export const LISTAR_POR_MUNICIPIO = gql`
       id
       nombre
       ambito
-      direccion
-      municipioSede {
-        id
-        nombre
-      }
+      email
     }
   }
 `

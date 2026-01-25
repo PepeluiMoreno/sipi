@@ -1,9 +1,9 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/diocesisQueries.js'
 
 export function useDiocesis() {
-  const base = useAgenteBaseStrawchemy('diocesis', queries)
+  const base = useAgenteBase('diocesis', queries)
 
   const diocesis = computed(() => base.items.value)
   const item = computed(() => base.item.value) // diocesis singular is same

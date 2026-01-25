@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/tecnicoQueries.js'
 
 /**
@@ -8,7 +8,7 @@ import * as queries from '../graphql/tecnicoQueries.js'
  */
 export function useTecnico() {
   // 'tecnicos' es el nombre de la query raiz en GraphQL (schema.py: tecnicos: list[TecnicoType])
-  const base = useAgenteBaseStrawchemy('tecnicos', queries)
+  const base = useAgenteBase('tecnicos', queries)
 
   // Alias para mantener compatibilidad con componentes existentes
   const tecnicos = computed(() => base.items.value)

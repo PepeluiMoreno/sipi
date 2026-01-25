@@ -1,9 +1,9 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/notariaTitularQueries.js'
 
 export function useNotariaTitular(notariaId) {
-  const base = useAgenteBaseStrawchemy('notariaTitulares', queries)
+  const base = useAgenteBase('notariaTitulares', queries)
 
   const listar = async () => {
     return base.listar({ notariaId: { eq: notariaId } })

@@ -21,4 +21,4 @@ export { useRegistroPropiedadTitular } from './useRegistroPropiedadTitular'
 export { useDiocesisTitular } from './useDiocesisTitular' // Added this
 
 // Base Strawchemy
-export { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+export { useAgenteBase } from './useAgenteBase'

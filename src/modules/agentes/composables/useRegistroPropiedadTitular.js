@@ -1,9 +1,9 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/registroPropiedadTitularQueries.js'
 
 export function useRegistroPropiedadTitular(registroPropiedadId) {
-  const base = useAgenteBaseStrawchemy('registroPropiedadTitulares', queries)
+  const base = useAgenteBase('registroPropiedadTitulares', queries)
 
   const listar = async () => {
     return base.listar({ registroPropiedadId: { eq: registroPropiedadId } })

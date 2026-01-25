@@ -7,7 +7,9 @@
       </div>
     </div>
 
-    <NotariaFiltros 
+    <NotariaFiltros
+      :comunidades-autonomas="comunidadesAutonomas"
+      :provincias="provincias"
       :localidades="localidades"
       @filter-change="handleFilterChange"
     />
@@ -36,16 +38,20 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useNotaria } from '../composables/useNotaria'
-import { useCatalogoBase } from '../../catalogos/composables/useCatalogoBase'
+import { useTipologiaBase } from '../../tipologias/composables/useTipologiaBase'
 import NotariaFiltros from '../components/notaria/NotariaFiltros.vue'
 import NotariaDataGrid from '../components/notaria/NotariaDataGrid.vue'
 import NotariaFormModal from '../components/notaria/NotariaFormModal.vue'
 
 const notariaService = useNotaria()
-const localidadService = useCatalogoBase('localidades', { conContacto: false })
+const localidadService = useTipologiaBase('municipios', { conContacto: false })
+const ccaaService = useTipologiaBase('comunidadesAutonomas', { conContacto: false })
+const provinciaService = useTipologiaBase('provincias', { conContacto: false })
 
 const items = ref([])
 const localidades = ref([])
+const comunidadesAutonomas = ref([])
+const provincias = ref([])
 const loading = ref(false)
 const saving = ref(false)
 const showModal = ref(false)
@@ -53,9 +59,29 @@ const selectedNotaria = ref(null)
 const filters = ref({})
 
 onMounted(async () => {
+  await loadComunidadesAutonomas()
+  await loadProvincias()
   await loadLocalidades()
   await loadNotarias()
 })
+
+const loadComunidadesAutonomas = async () => {
+  try {
+    const { items: ccaas } = await ccaaService.listar()
+    comunidadesAutonomas.value = ccaas
+  } catch (error) {
+    console.error('Error cargando comunidades autónomas:', error)
+  }
+}
+
+const loadProvincias = async () => {
+  try {
+    const { items: provs } = await provinciaService.listar()
+    provincias.value = provs
+  } catch (error) {
+    console.error('Error cargando provincias:', error)
+  }
+}
 
 const loadLocalidades = async () => {
   try {

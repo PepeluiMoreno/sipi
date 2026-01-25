@@ -1,9 +1,9 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/transmitenteQueries.js'
 
 export function useTransmitente() {
-  const base = useAgenteBaseStrawchemy('transmitentes', queries)
+  const base = useAgenteBase('transmitentes', queries)
 
   const transmitentes = computed(() => base.items.value)
   const transmitente = computed(() => base.item.value)

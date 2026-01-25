@@ -12,12 +12,14 @@ import NotFound from '../views/NotFound.vue'
 import AdministracionesView from '../../agentes/views/AdministracionesView.vue'
 import NotariasView from '../../agentes/views/NotariasView.vue'
 import RegistrosPropiedadView from '../../agentes/views/RegistrosPropiedadView.vue'
+import EntidadesReligiosasView from '../../agentes/views/EntidadesReligiosasView.vue'
 
 // Importar vistas de Documentos
 import Documentos from '../../documentos/views/Documentos.vue'
 
 // Importar vistas de Configuración
-import ConfigCatalogos from '../../catalogos/views/ConfigCatalogos.vue'
+import ConfigProcesos from '../../procesos/views/ConfigProcesos.vue'
+import ConfigTipologias from '../../tipologias/views/ConfigTipologias.vue'
 import ConfigUsuarios from '../../usuarios/views/ConfigUsuarios.vue'
 
 // Importar vistas de Auth
@@ -80,6 +82,11 @@ const routes = [
         name: 'RegistrosPropiedad',
         component: RegistrosPropiedadView
       },
+      {
+        path: '/entidades-religiosas',
+        name: 'EntidadesReligiosas',
+        component: EntidadesReligiosasView
+      },
       // INMUEBLES
       {
         path: '/inmueble-index',
@@ -110,9 +117,14 @@ const routes = [
       */
       // CONFIGURACIÓN
       {
-        path: '/config/catalogos',
-        name: 'ConfigCatalogos',
-        component: ConfigCatalogos
+        path: '/config/procesos',
+        name: 'ConfigProcesos',
+        component: ConfigProcesos
+      },
+      {
+        path: '/config/tipologias',
+        name: 'ConfigTipologias',
+        component: ConfigTipologias
       },
       {
         path: '/config/usuarios',

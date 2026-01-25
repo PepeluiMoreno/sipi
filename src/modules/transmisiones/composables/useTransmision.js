@@ -1,8 +1,8 @@
-import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import { useAgenteBase } from '../../agentes/composables/useAgenteBase'
 import * as queries from '../graphql/transmisionQueries.js'
 
 export function useTransmision() {
-  const base = useAgenteBaseStrawchemy('transmisiones', queries)
+  const base = useAgenteBase('transmisiones', queries)
 
   return {
     ...base,

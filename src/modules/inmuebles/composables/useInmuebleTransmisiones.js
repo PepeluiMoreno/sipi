@@ -1,11 +1,11 @@
 import { ref, computed } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
-import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import { useAgenteBase } from '../../agentes/composables/useAgenteBase'
 import * as queries from '../graphql/InmuebleTransmisionQueries.js'
 
 export function useInmuebleTransmisiones(inmuebleId) {
   // Corrected entity name 'transmisiones'
-  const base = useAgenteBaseStrawchemy('transmisiones', queries)
+  const base = useAgenteBase('transmisiones', queries)
   const generandoCedula = ref(false)
 
   const listar = async () => {

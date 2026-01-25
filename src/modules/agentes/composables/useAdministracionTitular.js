@@ -1,9 +1,9 @@
 import { toRefs } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/administracionTitularQueries.js'
 
 export function useAdministracionTitular(administracionId) {
-  const base = useAgenteBaseStrawchemy('administracionTitulares', queries)
+  const base = useAgenteBase('administracionTitulares', queries)
 
   // Desestructurar para uso local si hace falta, pero mantenemos base
 

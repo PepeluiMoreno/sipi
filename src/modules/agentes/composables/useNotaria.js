@@ -1,5 +1,5 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from './useAgenteBaseStrawchemy'
+import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/notariaQueries.js'
 
 /**
@@ -7,7 +7,7 @@ import * as queries from '../graphql/notariaQueries.js'
  * Reutiliza la lógica base de Strawchemy
  */
 export function useNotaria() {
-  const base = useAgenteBaseStrawchemy('notarias', queries)
+  const base = useAgenteBase('notarias', queries)
 
   // Alias para mantener compatibilidad
   const notarias = computed(() => base.items.value)

@@ -7,8 +7,8 @@ window.onerror = function (msg, url, line) {
 import './style.css'     // LUEGO tus estilos personalizados
 
 import { createApp } from 'vue'
-import { createApolloProvider } from '@vue/apollo-option'
-import { ApolloClient, createHttpLink, InMemoryCache } from '@apollo/client/core'
+import { DefaultApolloClient } from '@vue/apollo-composable'
+import { ApolloClient, createHttpLink, InMemoryCache, ApolloLink } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 
 // IMPORTAR EL COMPONENTE PRINCIPAL
@@ -22,10 +22,10 @@ console.log('>>> [DEBUG] Imports done')
 // Crear instancia de Pinia
 const pinia = createPinia()
 
-// Configurar Apollo Client y Vue Apollo        
+// Configurar Apollo Client y Vue Apollo
 try {
     const httpLink = createHttpLink({
-        uri: 'http://localhost:4000/graphql', // Tu endpoint GraphQL
+        uri: import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8040/graphql',
     })
 
     const authLink = setContext((_, { headers }) => {
@@ -38,8 +38,27 @@ try {
         }
     })
 
+    // Link para limpiar filtros vacíos automáticamente (solución global)
+    const cleanFiltersLink = new ApolloLink((operation, forward) => {
+        // Limpiar variables del query
+        if (operation.variables) {
+            const cleanedVariables = { ...operation.variables }
+
+            // Si existe 'filter' y está vacío, eliminarlo completamente
+            if (cleanedVariables.filter &&
+                typeof cleanedVariables.filter === 'object' &&
+                Object.keys(cleanedVariables.filter).length === 0) {
+                delete cleanedVariables.filter
+            }
+
+            operation.variables = cleanedVariables
+        }
+
+        return forward(operation)
+    })
+
     const apolloClient = new ApolloClient({
-        link: authLink.concat(httpLink),
+        link: cleanFiltersLink.concat(authLink).concat(httpLink),
         cache: new InMemoryCache(),
         defaultOptions: {
             watchQuery: {
@@ -48,22 +67,19 @@ try {
         }
     })
 
-    const apolloProvider = createApolloProvider({
-        defaultClient: apolloClient,
-    })
-
     console.log('>>> [DEBUG] Apollo setup done')
 
     // Crear la aplicación
     const app = createApp(App)
+
+    // Proveer Apollo client para Composition API
+    app.provide(DefaultApolloClient, apolloClient)
 
     // Usar plugins
     console.log('>>> [DEBUG] Using router')
     app.use(router)
     console.log('>>> [DEBUG] Using pinia')
     app.use(pinia)
-    console.log('>>> [DEBUG] Using apollo')
-    app.use(apolloProvider)
 
     console.log('>>> [DEBUG] Mounting app...')
     // Montar la aplicación

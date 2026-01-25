@@ -1,12 +1,12 @@
 import { computed } from 'vue'
 import { toRefs } from 'vue'
-import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import { useAgenteBase } from '../../agentes/composables/useAgenteBase'
 import * as queries from '../graphql/inmuebleDenominacionQueries.js'
 
 export function useInmuebleDenominaciones(inmuebleId) {
   // Inicializamos base con la entidad 'inmuebleDenominaciones'
   // Nota: inmuebleId se pasará en el filtro al listar
-  const base = useAgenteBaseStrawchemy('inmuebleDenominaciones', queries)
+  const base = useAgenteBase('inmuebleDenominaciones', queries)
 
   // Desestructurar lo que necesitemos explícitamente o usar base.
 

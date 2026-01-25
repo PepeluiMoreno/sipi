@@ -1,10 +1,10 @@
 import { computed } from 'vue'
-import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import { useAgenteBase } from '../../agentes/composables/useAgenteBase'
 import * as queries from '../graphql/InmuebleActuacionQueries.js'
 
 export function useInmuebleActuaciones(inmuebleId) {
   // Corrected entity name 'actuaciones'
-  const base = useAgenteBaseStrawchemy('actuaciones', queries)
+  const base = useAgenteBase('actuaciones', queries)
 
   const listar = async () => {
     return base.listar({ inmuebleId: { eq: inmuebleId } })

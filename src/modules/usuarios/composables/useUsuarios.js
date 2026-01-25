@@ -1,10 +1,10 @@
 import { ref, computed } from 'vue'
 import { useMutation, useQuery } from '@vue/apollo-composable'
-import { useAgenteBaseStrawchemy } from '../../agentes/composables/useAgenteBaseStrawchemy'
+import { useAgenteBase } from '../../agentes/composables/useAgenteBase'
 import * as queries from '../graphql/usuarioQueries.js'
 
 export function useUsuarios() {
-  const base = useAgenteBaseStrawchemy('usuarios', queries)
+  const base = useAgenteBase('usuarios', queries)
   const token = ref(localStorage.getItem('token') || null)
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
 
