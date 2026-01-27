@@ -5,7 +5,7 @@ import { gql } from '@apollo/client/core'
  */
 
 export const LISTAR = gql`
-  query ListarDenominaciones($filter: InmuebleDenominacionFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarDenominaciones($filter: InmuebleDenominacionFilterInput, $offset: Int = 0, $limit: Int = 50) {
     inmuebleDenominaciones(filter: $filter, offset: $offset, limit: $limit) {
       id
       inmuebleId
@@ -21,7 +21,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerDenominacion($filter: InmuebleDenominacionFilter!) {
+  query ObtenerDenominacion($filter: InmuebleDenominacionFilterInput!) {
     inmuebleDenominaciones(filter: $filter, limit: 1) {
       id
       inmuebleId

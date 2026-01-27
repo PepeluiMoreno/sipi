@@ -7,7 +7,7 @@ import { gql } from '@apollo/client/core'
 // ==================== CRUD USUARIOS ====================
 
 export const LISTAR = gql`
-  query ListarUsuarios($filter: UsuarioFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarUsuarios($filter: UsuarioFilterInput, $offset: Int = 0, $limit: Int = 50) {
     usuarios(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -28,7 +28,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerUsuario($filter: UsuarioFilter!) {
+  query ObtenerUsuario($filter: UsuarioFilterInput!) {
     usuarios(filter: $filter, limit: 1) {
       id
       nombre

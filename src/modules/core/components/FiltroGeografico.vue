@@ -72,9 +72,9 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { MapIcon, MapPinIcon, BuildingOffice2Icon } from '@heroicons/vue/24/outline'
-import { useTipologiaBase } from '../../tipologias/composables/useTipologiaBase'
+import { useGeografiaStore } from '../stores/geografia'
 
 const props = defineProps({
   modelValue: {
@@ -93,98 +93,35 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'change'])
 
-const ccaaService = useTipologiaBase('comunidadesAutonomas')
-const provinciaService = useTipologiaBase('provincias')
-const municipioService = useTipologiaBase('municipios')
+// Usar el store de geografía (datos cacheados en memoria)
+const geografiaStore = useGeografiaStore()
 
-const comunidadesAutonomas = ref([])
-const provincias = ref([])
-const municipios = ref([])
-const loading = ref(false)
-
+// State local para selecciones
 const selectedComunidad = ref(props.modelValue?.comunidadAutonomaId || '')
 const selectedProvincia = ref(props.modelValue?.provinciaId || '')
 const selectedMunicipio = ref(props.modelValue?.municipioId || '')
 
-onMounted(async () => {
-  await loadComunidadesAutonomas()
+// Computed que obtienen datos del store (sin llamadas al servidor)
+const comunidadesAutonomas = computed(() => geografiaStore.comunidadesAutonomas)
+const provincias = computed(() => geografiaStore.getProvinciasDeCcaa(selectedComunidad.value))
+const municipios = computed(() => geografiaStore.getMunicipiosDeProvincia(selectedProvincia.value))
+const loading = computed(() => geografiaStore.loading)
 
-  // Si hay valores iniciales, cargar las provincias y municipios correspondientes
-  if (selectedComunidad.value) {
-    await loadProvincias(selectedComunidad.value)
-  }
-  if (selectedProvincia.value) {
-    await loadMunicipios(selectedProvincia.value)
-  }
+// Cargar datos del store al montar (solo la primera vez en toda la app)
+onMounted(async () => {
+  await geografiaStore.cargarDatos()
 })
 
-const loadComunidadesAutonomas = async () => {
-  try {
-    loading.value = true
-    const { items } = await ccaaService.listar({}, { limit: null })
-    comunidadesAutonomas.value = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre))
-  } catch (error) {
-    console.error('Error cargando comunidades autónomas:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const loadProvincias = async (comunidadAutonomaId) => {
-  try {
-    loading.value = true
-    const filter = comunidadAutonomaId
-      ? { comunidadAutonomaId: { eq: comunidadAutonomaId } }
-      : {}
-
-    const { items } = await provinciaService.listar(filter, { limit: null })
-    provincias.value = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre))
-  } catch (error) {
-    console.error('Error cargando provincias:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const loadMunicipios = async (provinciaId) => {
-  try {
-    loading.value = true
-    const filter = provinciaId
-      ? { provinciaId: { eq: provinciaId } }
-      : {}
-
-    const { items } = await municipioService.listar(filter, { limit: null })
-    municipios.value = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre))
-  } catch (error) {
-    console.error('Error cargando municipios:', error)
-  } finally {
-    loading.value = false
-  }
-}
-
-const onComunidadChange = async () => {
-  // Resetear provincia y municipio
+const onComunidadChange = () => {
+  // Resetear provincia y municipio (sin llamadas al servidor)
   selectedProvincia.value = ''
   selectedMunicipio.value = ''
-  provincias.value = []
-  municipios.value = []
-
-  if (selectedComunidad.value) {
-    await loadProvincias(selectedComunidad.value)
-  }
-
   emitChange()
 }
 
-const onProvinciaChange = async () => {
-  // Resetear municipio
+const onProvinciaChange = () => {
+  // Resetear municipio (sin llamadas al servidor)
   selectedMunicipio.value = ''
-  municipios.value = []
-
-  if (selectedProvincia.value) {
-    await loadMunicipios(selectedProvincia.value)
-  }
-
   emitChange()
 }
 

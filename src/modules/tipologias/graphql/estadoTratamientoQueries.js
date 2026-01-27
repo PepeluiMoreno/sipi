@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarEstadosTratamiento($filter: EstadoTratamientoFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarEstadosTratamiento($filter: EstadoTratamientoFilterInput, $offset: Int = 0, $limit: Int = 50) {
     estadosTratamiento(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -10,7 +10,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerEstadoTratamiento($filter: EstadoTratamientoFilter!) {
+  query ObtenerEstadoTratamiento($filter: EstadoTratamientoFilterInput!) {
     estadosTratamiento(filter: $filter, limit: 1) {
       id
       nombre

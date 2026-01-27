@@ -6,7 +6,7 @@ import { gql } from '@apollo/client/core'
  */
 
 export const LISTAR = gql`
-  query ListarFigurasProteccion($filter: FiguraProteccionFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarFigurasProteccion($filter: FiguraProteccionFilterInput, $offset: Int = 0, $limit: Int = 50) {
     figuraProtecciones(filter: $filter, offset: $offset, limit: $limit) {
       id
       inmuebleId
@@ -21,7 +21,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerFiguraProteccion($filter: FiguraProteccionFilter!) {
+  query ObtenerFiguraProteccion($filter: FiguraProteccionFilterInput!) {
     figuraProtecciones(filter: $filter, limit: 1) {
       id
       inmuebleId

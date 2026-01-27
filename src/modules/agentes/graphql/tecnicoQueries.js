@@ -10,7 +10,7 @@ import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
   query ListarTecnicos(
-    $filter: TecnicoFilter
+    $filter: TecnicoFilterInput
     $offset: Int = 0
     $limit: Int = 50
   ) {
@@ -54,7 +54,7 @@ export const LISTAR = gql`
 
 export const OBTENER = gql`
   query ObtenerTecnico(
-    $filter: TecnicoFilter!
+    $filter: TecnicoFilterInput!
   ) {
     tecnicos(filter: $filter, limit: 1) {
       id

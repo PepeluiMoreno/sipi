@@ -10,7 +10,7 @@ import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
   query ListarAgenciasInmobiliarias(
-    $filter: AgenciaInmobiliariaFilter
+    $filter: AgenciaInmobiliariaFilterInput
     $offset: Int = 0
     $limit: Int = 50
   ) {
@@ -43,7 +43,7 @@ export const LISTAR = gql`
 
 export const OBTENER = gql`
   query ObtenerAgenciaInmobiliaria(
-    $filter: AgenciaInmobiliariaFilter!
+    $filter: AgenciaInmobiliariaFilterInput!
   ) {
     agenciasInmobiliarias(filter: $filter, limit: 1) {
       id

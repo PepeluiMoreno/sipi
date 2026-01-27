@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarTiposMimeDocumento($filter: TipoMimeDocumentoFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarTiposMimeDocumento($filter: TipoMimeDocumentoFilterInput, $offset: Int = 0, $limit: Int = 50) {
     tiposMimeDocumento(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -11,7 +11,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerTipoMimeDocumento($filter: TipoMimeDocumentoFilter!) {
+  query ObtenerTipoMimeDocumento($filter: TipoMimeDocumentoFilterInput!) {
     tiposMimeDocumento(filter: $filter, limit: 1) {
       id
       nombre

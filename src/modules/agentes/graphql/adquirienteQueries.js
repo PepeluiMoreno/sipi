@@ -10,7 +10,7 @@ import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
   query ListarAdquirientes(
-    $filter: AdquirienteFilter
+    $filter: AdquirienteFilterInput
     $offset: Int = 0
     $limit: Int = 50
   ) {
@@ -41,7 +41,7 @@ export const LISTAR = gql`
 
 export const OBTENER = gql`
   query ObtenerAdquiriente(
-    $filter: AdquirienteFilter!
+    $filter: AdquirienteFilterInput!
   ) {
     adquirientes(filter: $filter, limit: 1) {
       id

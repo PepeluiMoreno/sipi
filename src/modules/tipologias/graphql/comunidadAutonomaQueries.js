@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR_COMUNIDADES_AUTONOMAS = gql`
-  query ListarComunidadesAutonomas($filters: ComunidadAutonomaFilters, $pagination: PaginationInput) {
+  query ListarComunidadesAutonomas($filters: ComunidadAutonomaFilterInputs, $pagination: PaginationInput) {
     comunidadesAutonomas(filters: $filters, pagination: $pagination) {
       items {
         id

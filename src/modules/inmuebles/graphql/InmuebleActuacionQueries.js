@@ -6,7 +6,7 @@ import { gql } from '@apollo/client/core'
  */
 
 export const LISTAR = gql`
-  query ListarActuaciones($filter: ActuacionFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarActuaciones($filter: ActuacionFilterInput, $offset: Int = 0, $limit: Int = 50) {
     actuaciones(filter: $filter, offset: $offset, limit: $limit) {
       id
       inmuebleId
@@ -25,7 +25,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerActuacion($filter: ActuacionFilter!) {
+  query ObtenerActuacion($filter: ActuacionFilterInput!) {
     actuaciones(filter: $filter, limit: 1) {
       id
       inmuebleId

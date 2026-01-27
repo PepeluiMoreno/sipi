@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarTiposInmueble($filter: TipoInmuebleFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarTiposInmueble($filter: TipoInmuebleFilterInput, $offset: Int = 0, $limit: Int = 50) {
     tiposInmueble(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -11,7 +11,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerTipoInmueble($filter: TipoInmuebleFilter!) {
+  query ObtenerTipoInmueble($filter: TipoInmuebleFilterInput!) {
     tiposInmueble(filter: $filter, limit: 1) {
       id
       nombre

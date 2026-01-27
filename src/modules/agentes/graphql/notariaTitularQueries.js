@@ -6,7 +6,7 @@ import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
   query ListarNotariaTitulares(
-    $filter: NotariaTitularFilter
+    $filter: NotariaTitularFilterInput
     $offset: Int = 0
     $limit: Int = 50
   ) {
@@ -30,7 +30,7 @@ export const LISTAR = gql`
 
 export const OBTENER = gql`
   query ObtenerNotariaTitular(
-    $filter: NotariaTitularFilter!
+    $filter: NotariaTitularFilterInput!
   ) {
     notariaTitulares(filter: $filter, limit: 1) {
       id

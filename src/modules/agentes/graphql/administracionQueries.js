@@ -168,7 +168,7 @@ export const ELIMINAR_ADMINISTRACION = gql`
 `
 
 export const ELIMINAR_ADMINISTRACIONES_FILTRO = gql`
-  mutation EliminarAdministracionesFiltro($filter: AdministracionFilter!) {
+  mutation EliminarAdministracionesFiltro($filter: AdministracionFilterInput!) {
     deleteAdministraciones(filter: $filter) {
       id
       nombre

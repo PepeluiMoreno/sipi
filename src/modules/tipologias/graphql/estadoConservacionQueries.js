@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarEstadosConservacion($filter: EstadoConservacionFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarEstadosConservacion($filter: EstadoConservacionFilterInput, $offset: Int = 0, $limit: Int = 50) {
     estadosConservacion(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -10,7 +10,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerEstadoConservacion($filter: EstadoConservacionFilter!) {
+  query ObtenerEstadoConservacion($filter: EstadoConservacionFilterInput!) {
     estadosConservacion(filter: $filter, limit: 1) {
       id
       nombre

@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarTiposVia($filter: TipoViaFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarTiposVia($filter: TipoViaFilterInput, $offset: Int = 0, $limit: Int = 50) {
     tiposVia(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -10,7 +10,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerTipoVia($filter: TipoViaFilter!) {
+  query ObtenerTipoVia($filter: TipoViaFilterInput!) {
     tiposVia(filter: $filter, limit: 1) {
       id
       nombre

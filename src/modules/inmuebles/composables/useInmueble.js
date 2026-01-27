@@ -10,31 +10,40 @@ export function useInmueble() {
   const inmueble = computed(() => base.item.value)
 
   /**
-   * Listar con mapeo de filtros antiguos a Strawchemy si es necesario
-   * O simplemente pasar los filtros directos.
-   * Por ahora asumimos que la UI pasará filtros compatibles o mapeados aquí.
+   * Listar con mapeo de filtros de UI a Strawchemy
+   * @param {Object} filters - Filtros de la UI (search, provinciaId, municipioId, estados)
+   * @param {Boolean} append - Si es true, añade a los items existentes
    */
   const listar = async (filters = {}, append = false) => {
-    // Aquí podríamos transformar filtros de UI a Strawchemy
-    // Ejemplo: 'search' simple a _or complex
-    // Pero useAgenteBase ya maneja 'buscar' con search text
-    // Si filters trae 'search', usamos base.buscar? No, base.buscar es otro metodo.
+    const strawchemyFilter = {}
+    const andConditions = []
 
-    // Si filters es complex object de Strawchemy, lo pasamos directo.
-    // Si es un objeto simple legacy, hacemos map.
+    // Búsqueda textual
+    if (filters.search && filters.search.trim()) {
+      andConditions.push({
+        _or: [
+          { nombre: { ilike: `%${filters.search}%` } },
+          { direccion: { ilike: `%${filters.search}%` } }
+        ]
+      })
+    }
 
-    // Mapeo básico de legacy a Strawchemy
-    const strawchemyFilter = { ...filters }
+    // Filtro por municipio (más específico que provincia)
+    if (filters.municipioId) {
+      andConditions.push({ municipioId: { eq: filters.municipioId } })
+    }
+    // Si solo hay provincia, filtrar por municipios de esa provincia
+    // Nota: esto requiere que el backend soporte filtro nested o lo manejamos diferente
+    // Por ahora, si hay provinciaId sin municipioId, no filtramos geográficamente
+    // ya que el usuario debe seleccionar un municipio específico
 
-    // Si hay 'search' y no es el campo search de query, sino filtro local
-    if (filters.search && !filters._or) {
-      // El backend espera 'search' en query root BUSCAR, o filtro manual en LISTAR
-      // Si usamos LISTAR y queremos buscar textualmente:
-      delete strawchemyFilter.search
-      strawchemyFilter._or = [
-        { nombre: { ilike: `%${filters.search}%` } },
-        { direccion: { ilike: `%${filters.search}%` } }
-      ]
+    // Combinar condiciones con _and
+    if (andConditions.length > 0) {
+      if (andConditions.length === 1) {
+        Object.assign(strawchemyFilter, andConditions[0])
+      } else {
+        strawchemyFilter._and = andConditions
+      }
     }
 
     return base.listar(strawchemyFilter, append)

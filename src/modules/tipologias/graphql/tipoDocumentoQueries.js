@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarTiposDocumento($filter: TipoDocumentoFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarTiposDocumento($filter: TipoDocumentoFilterInput, $offset: Int = 0, $limit: Int = 50) {
     tiposDocumento(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -10,7 +10,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerTipoDocumento($filter: TipoDocumentoFilter!) {
+  query ObtenerTipoDocumento($filter: TipoDocumentoFilterInput!) {
     tiposDocumento(filter: $filter, limit: 1) {
       id
       nombre

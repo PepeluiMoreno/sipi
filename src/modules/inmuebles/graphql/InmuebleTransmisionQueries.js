@@ -6,7 +6,7 @@ import { gql } from '@apollo/client/core'
  */
 
 export const LISTAR = gql`
-  query ListarTransmisiones($filter: TransmisionFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarTransmisiones($filter: TransmisionFilterInput, $offset: Int = 0, $limit: Int = 50) {
     transmisiones(filter: $filter, offset: $offset, limit: $limit) {
       id
       inmuebleId
@@ -28,7 +28,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerTransmision($filter: TransmisionFilter!) {
+  query ObtenerTransmision($filter: TransmisionFilterInput!) {
     transmisiones(filter: $filter, limit: 1) {
       id
       inmuebleId

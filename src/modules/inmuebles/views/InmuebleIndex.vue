@@ -99,9 +99,8 @@ const inmueblesSeleccionados = ref([])
 
 const filtersState = reactive({
   search: '',
-  ccaa: null,
-  provincia: null,
-  localidad: null,
+  provinciaId: null,
+  municipioId: null,
   estados: {
     no_investigado: false,
     inmatriculado: false,

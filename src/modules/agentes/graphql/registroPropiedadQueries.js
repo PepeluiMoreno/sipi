@@ -10,7 +10,7 @@ import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
   query ListarRegistrosPropiedad(
-    $filter: RegistroPropiedadFilter
+    $filter: RegistroPropiedadFilterInput
     $offset: Int = 0
     $limit: Int = 50
   ) {
@@ -50,7 +50,7 @@ export const LISTAR = gql`
 
 export const OBTENER = gql`
   query ObtenerRegistroPropiedad(
-    $filter: RegistroPropiedadFilter!
+    $filter: RegistroPropiedadFilterInput!
   ) {
     registrosPropiedad(filter: $filter, limit: 1) {
       id

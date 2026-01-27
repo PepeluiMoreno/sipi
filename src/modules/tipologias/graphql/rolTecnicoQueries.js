@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarRolesTecnicos($filter: RolTecnicoFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarRolesTecnicos($filter: RolTecnicoFilterInput, $offset: Int = 0, $limit: Int = 50) {
     rolesTecnicos(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -10,7 +10,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerRolTecnico($filter: RolTecnicoFilter!) {
+  query ObtenerRolTecnico($filter: RolTecnicoFilterInput!) {
     rolesTecnicos(filter: $filter, limit: 1) {
       id
       nombre

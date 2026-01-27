@@ -2,7 +2,7 @@
 import { gql } from '@apollo/client/core'
 
 export const ESTADISTICAS_INMUEBLES = gql`
-  query EstadisticasInmuebles($filters: InmuebleFilters) {
+  query EstadisticasInmuebles($filters: InmuebleFilterInputs) {
     estadisticasInmuebles(filters: $filters) {
       totalInmuebles
       conCoordenadas
@@ -40,7 +40,7 @@ export const INFORME_CONSERVACION = gql`
 `
 
 export const INFORME_PROTECCION = gql`
-  query InformeProteccion($filters: InmuebleFilters) {
+  query InformeProteccion($filters: InmuebleFilterInputs) {
     informeProteccion(filters: $filters) {
       totalProtegidos
       porNivelProteccion {

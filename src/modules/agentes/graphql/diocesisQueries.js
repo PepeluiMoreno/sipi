@@ -10,7 +10,7 @@ import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
   query ListarDiocesis(
-    $filter: DiocesisFilter
+    $filter: DiocesisFilterInput
     $offset: Int = 0
     $limit: Int = 50
   ) {
@@ -46,7 +46,7 @@ export const LISTAR = gql`
 
 export const OBTENER = gql`
   query ObtenerDiocesis(
-    $filter: DiocesisFilter!
+    $filter: DiocesisFilterInput!
   ) {
     diocesis(filter: $filter, limit: 1) {
       id

@@ -19,3 +19,7 @@ export { useTipoVia } from './useTipoVia'
 // Complejos
 export { useTipoLicencia } from './useTipoLicencia'
 export { useFuenteDocumental } from './useFuenteDocumental'
+
+// Geograficos
+export { useProvincia } from './useProvincia'
+export { useMunicipio } from './useMunicipio'

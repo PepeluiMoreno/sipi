@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarTiposLicencia($filter: TipoLicenciaFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarTiposLicencia($filter: TipoLicenciaFilterInput, $offset: Int = 0, $limit: Int = 50) {
     tiposLicencia(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -11,7 +11,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerTipoLicencia($filter: TipoLicenciaFilter!) {
+  query ObtenerTipoLicencia($filter: TipoLicenciaFilterInput!) {
     tiposLicencia(filter: $filter, limit: 1) {
       id
       nombre

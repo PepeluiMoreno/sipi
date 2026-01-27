@@ -37,30 +37,20 @@
       <p class="mt-2 text-gray-500">Cargando...</p>
     </div>
 
-    <div v-if="hasItems && pagination.totalPages > 1" 
+    <div v-if="hasItems"
          class="p-4 border-t border-gray-200 flex justify-between items-center">
       <div class="text-sm text-gray-600">
-        Mostrando {{ items.length }} de {{ pagination.total }} resultados
+        Mostrando {{ items.length }} registros
       </div>
-      <div class="flex space-x-2">
-        <button 
-          @click="$emit('change-page', pagination.page - 1)"
-          :disabled="pagination.page <= 1"
-          class="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
-        >
-          Anterior
-        </button>
-        <span class="px-3 py-1 bg-green-600 text-white rounded">
-          Pág. {{ pagination.page }}
-        </span>
-        <button 
-          @click="$emit('change-page', pagination.page + 1)"
-          :disabled="pagination.page >= pagination.totalPages"
-          class="px-3 py-1 rounded border border-gray-300 disabled:opacity-50"
-        >
-          Siguiente
-        </button>
-      </div>
+      <button
+        v-if="hasMore"
+        @click="$emit('load-more')"
+        :disabled="loading"
+        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center"
+      >
+        <ArrowPathIcon v-if="loading" class="w-4 h-4 mr-2 animate-spin" />
+        Cargar más
+      </button>
     </div>
   </div>
 </template>
@@ -83,13 +73,13 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  pagination: {
-    type: Object,
-    default: () => ({})
+  hasMore: {
+    type: Boolean,
+    default: false
   }
 })
 
 const hasItems = computed(() => props.items.length > 0)
 
-defineEmits(['create', 'edit', 'delete', 'change-page'])
+defineEmits(['create', 'edit', 'delete', 'load-more'])
 </script>

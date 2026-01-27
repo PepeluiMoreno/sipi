@@ -12,36 +12,38 @@
       />
     </div>
 
-    <!-- Filtros geográficos usando datos mock COMPLETOS -->
+    <!-- Filtros geográficos usando API real -->
     <div class="filtro-group">
       <label class="filtro-label">Provincia</label>
-      <select 
+      <select
         class="filtro-select"
-        :value="filters.provincia"
-        @change="handleFilterChange('provincia', $event.target.value)"
+        :value="filters.provinciaId"
+        @change="handleProvinciaChange($event.target.value)"
+        :disabled="loadingProvincias"
       >
-        <option value="">Todas las provincias</option>
-        <option v-for="provincia in todasLasProvincias" :key="provincia" :value="provincia">
-          {{ provincia }}
+        <option value="">{{ loadingProvincias ? 'Cargando...' : 'Todas las provincias' }}</option>
+        <option v-for="provincia in todasLasProvincias" :key="provincia.id" :value="provincia.id">
+          {{ provincia.nombre }}
         </option>
       </select>
     </div>
 
     <div class="filtro-group">
-      <label class="filtro-label">Localidad</label>
-      <select 
+      <label class="filtro-label">Municipio</label>
+      <select
         class="filtro-select"
-        :value="filters.localidad"
-        @change="handleFilterChange('localidad', $event.target.value)"
+        :value="filters.municipioId"
+        @change="handleFilterChange('municipioId', $event.target.value)"
+        :disabled="!filters.provinciaId || loadingMunicipios"
       >
-        <option value="">Todas las localidades</option>
-        <option v-for="localidad in todasLasLocalidades" :key="localidad" :value="localidad">
-          {{ localidad }}
+        <option value="">{{ loadingMunicipios ? 'Cargando...' : (filters.provinciaId ? 'Todos los municipios' : 'Seleccione provincia primero') }}</option>
+        <option v-for="municipio in todasLasLocalidades" :key="municipio.id" :value="municipio.id">
+          {{ municipio.nombre }}
         </option>
       </select>
     </div>
 
-    <!-- Filtro por estados usando ESTADOS_INMUEBLE del mock -->
+    <!-- Filtro por estados -->
     <div class="filtro-group">
       <label class="filtro-label">Estados</label>
       <div class="estados-list">
@@ -83,8 +85,8 @@
 </template>
 
 <script setup>
-import { ref, computed, defineProps, defineEmits, onMounted } from 'vue'
-import { mockInmuebles, ESTADOS_INMUEBLE } from '../../../core/mocks'
+import { computed, defineProps, defineEmits, onMounted } from 'vue'
+import { useGeografiaStore } from '../../../core/stores/geografia'
 
 const props = defineProps({
   filters: {
@@ -92,8 +94,8 @@ const props = defineProps({
     required: true,
     default: () => ({
       search: '',
-      provincia: null,
-      localidad: null,
+      provinciaId: null,
+      municipioId: null,
       estados: {}
     })
   },
@@ -105,39 +107,47 @@ const props = defineProps({
 
 const emit = defineEmits(['filters-change', 'apply-filters'])
 
-// Usar los estados definidos en el mock
-const estadosDisponibles = ESTADOS_INMUEBLE
+// Estados de tratamiento disponibles
+const estadosDisponibles = [
+  { key: 'no_investigado', label: 'No investigado' },
+  { key: 'inmatriculado', label: 'Inmatriculado' },
+  { key: 'vendido', label: 'Vendido' },
+  { key: 'en_venta', label: 'En venta' },
+  { key: 'bic', label: 'BIC' }
+]
 
-// Extraer TODAS las provincias y localidades del dataset COMPLETO
-// Usando ref para que no sean reactivas a los filtros actuales
-const todasLasProvincias = ref([])
-const todasLasLocalidades = ref([])
+// Usar store de geografía (datos cacheados en memoria)
+const geografiaStore = useGeografiaStore()
 
-// Inicializar con todos los datos disponibles
-onMounted(() => {
-  // Provincias únicas de todo el dataset
-  const provincias = [...new Set(mockInmuebles.map(inmueble => inmueble.provincia))]
-  todasLasProvincias.value = provincias.sort()
-  
-  // Localidades únicas de todo el dataset  
-  const localidades = [...new Set(mockInmuebles.map(inmueble => inmueble.localidad))]
-  todasLasLocalidades.value = localidades.sort()
-  
-  console.log('📍 Provincias disponibles:', todasLasProvincias.value)
-  console.log('🏘️ Localidades disponibles:', todasLasLocalidades.value)
+// Computed para las listas (sin llamadas al servidor)
+const loadingProvincias = computed(() => geografiaStore.loading)
+const loadingMunicipios = computed(() => geografiaStore.loading)
+const todasLasProvincias = computed(() => geografiaStore.provincias)
+const todasLasLocalidades = computed(() => {
+  if (!props.filters.provinciaId) return []
+  return geografiaStore.getMunicipiosDeProvincia(props.filters.provinciaId)
+})
+
+// Cargar datos del store al montar (solo una vez en toda la app)
+onMounted(async () => {
+  await geografiaStore.cargarDatos()
 })
 
 const handleFilterChange = (key, value) => {
-  const nuevosFiltros = { 
+  const nuevosFiltros = {
     ...props.filters,
     [key]: value || null
   }
-  
-  // Si cambia la provincia, limpiar la localidad seleccionada
-  if (key === 'provincia' && value !== props.filters.provincia) {
-    nuevosFiltros.localidad = null
+  emit('filters-change', nuevosFiltros)
+}
+
+// Manejar cambio de provincia (limpia municipio seleccionado)
+const handleProvinciaChange = (provinciaId) => {
+  const nuevosFiltros = {
+    ...props.filters,
+    provinciaId: provinciaId || null,
+    municipioId: null // Limpiar municipio al cambiar provincia
   }
-  
   emit('filters-change', nuevosFiltros)
 }
 
@@ -160,12 +170,11 @@ const handleAplicarFiltros = () => {
 const handleLimpiarFiltros = () => {
   const filtrosLimpiados = {
     search: '',
-    provincia: null,
-    localidad: null,
+    provinciaId: null,
+    municipioId: null,
     estados: {}
   }
   emit('filters-change', filtrosLimpiados)
-  // No aplicar automáticamente, dejar que el usuario decida
 }
 </script>
 

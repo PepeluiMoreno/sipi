@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarTiposCertificacionPropiedad($filter: TipoCertificacionPropiedadFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarTiposCertificacionPropiedad($filter: TipoCertificacionPropiedadFilterInput, $offset: Int = 0, $limit: Int = 50) {
     tiposCertificacionPropiedad(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -11,7 +11,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerTipoCertificacionPropiedad($filter: TipoCertificacionPropiedadFilter!) {
+  query ObtenerTipoCertificacionPropiedad($filter: TipoCertificacionPropiedadFilterInput!) {
     tiposCertificacionPropiedad(filter: $filter, limit: 1) {
       id
       nombre

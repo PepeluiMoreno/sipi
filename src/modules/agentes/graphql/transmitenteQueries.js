@@ -10,7 +10,7 @@ import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
   query ListarTransmitentes(
-    $filter: TransmitenteFilter
+    $filter: TransmitenteFilterInput
     $offset: Int = 0
     $limit: Int = 50
   ) {
@@ -41,7 +41,7 @@ export const LISTAR = gql`
 
 export const OBTENER = gql`
   query ObtenerTransmitente(
-    $filter: TransmitenteFilter!
+    $filter: TransmitenteFilterInput!
   ) {
     transmitentes(filter: $filter, limit: 1) {
       id

@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
-  query ListarFuentesDocumentales($filter: FuenteDocumentalFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarFuentesDocumentales($filter: FuenteDocumentalFilterInput, $offset: Int = 0, $limit: Int = 50) {
     fuentesDocumentales(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -11,7 +11,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerFuenteDocumental($filter: FuenteDocumentalFilter!) {
+  query ObtenerFuenteDocumental($filter: FuenteDocumentalFilterInput!) {
     fuentesDocumentales(filter: $filter, limit: 1) {
       id
       nombre

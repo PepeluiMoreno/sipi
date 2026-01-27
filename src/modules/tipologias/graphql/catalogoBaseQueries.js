@@ -2,7 +2,7 @@ import { gql } from '@apollo/client/core'
 
 // Listar catálogo simple (nombre, descripción)
 export const LISTAR_CATALOGO_SIMPLE = gql`
-  query ListarCatalogoSimple($catalogo: String!, $filters: CatalogoSimpleFilters, $pagination: PaginationInput) {
+  query ListarCatalogoSimple($catalogo: String!, $filters: CatalogoSimpleFilterInputs, $pagination: PaginationInput) {
     catalogoSimple(catalogo: $catalogo, filters: $filters, pagination: $pagination) {
       items {
         id

@@ -11,20 +11,20 @@
       @filter-change="handleFilterChange"
     />
 
-    <RegistroPropiedadDataGrid 
+    <RegistroPropiedadDataGrid
       :items="items"
       :loading="loading"
-      :pagination="pagination"
+      :has-more="registroService.hasMore.value"
       @create="openCreateModal"
       @edit="openEditModal"
       @delete="handleDelete"
-      @change-page="handlePageChange"
+      @load-more="handleLoadMore"
     />
 
     <RegistroPropiedadFormModal
       :show="showModal"
       :registro="selectedRegistro"
-      :localidades="localidades"
+      :municipios="municipios"
       :loading="saving"
       @close="closeModal"
       @save="handleSave"
@@ -33,83 +33,90 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRegistroPropiedad } from '../composables/useRegistroPropiedad'
-import { useTipologiaBase } from '../../tipologias/composables/useTipologiaBase'
+import { useGeografiaStore } from '../../core/stores/geografia'
 import RegistroPropiedadFiltros from '../components/registroPropiedad/RegistroPropiedadFiltros.vue'
 import RegistroPropiedadDataGrid from '../components/registroPropiedad/RegistroPropiedadDataGrid.vue'
 import RegistroPropiedadFormModal from '../components/registroPropiedad/RegistroPropiedadFormModal.vue'
 
 const registroService = useRegistroPropiedad()
-const localidadService = useTipologiaBase('municipios', { conContacto: false })
-const ccaaService = useTipologiaBase('comunidadesAutonomas', { conContacto: false })
-const provinciaService = useTipologiaBase('provincias', { conContacto: false })
+const geografiaStore = useGeografiaStore()
 
-const items = ref([])
-const localidades = ref([])
-const comunidadesAutonomas = ref([])
-const provincias = ref([])
-const loading = ref(false)
+// Usar estado del composable
+const { items, loading: registrosLoading } = registroService
+
+// Municipios desde el store (para el modal de formulario)
+const municipios = computed(() => geografiaStore.municipios)
+
 const saving = ref(false)
 const showModal = ref(false)
 const selectedRegistro = ref(null)
-const filters = ref({})
+const currentFilters = ref({})
+
+// Computed para loading
+const loading = computed(() => registrosLoading.value)
 
 onMounted(async () => {
-  await loadComunidadesAutonomas()
-  await loadProvincias()
-  await loadLocalidades()
+  // Cargar datos geográficos (solo una vez, cacheados en el store)
+  await geografiaStore.cargarDatos()
   await loadRegistros()
 })
 
-const loadComunidadesAutonomas = async () => {
-  try {
-    const { items: ccaas } = await ccaaService.listar()
-    comunidadesAutonomas.value = ccaas
-  } catch (error) {
-    console.error('Error cargando comunidades autónomas:', error)
-  }
-}
-
-const loadProvincias = async () => {
-  try {
-    const { items: provs } = await provinciaService.listar()
-    provincias.value = provs
-  } catch (error) {
-    console.error('Error cargando provincias:', error)
-  }
-}
-
-const loadLocalidades = async () => {
-  try {
-    const { items: locs } = await localidadService.listar()
-    localidades.value = locs
-  } catch (error) {
-    console.error('Error cargando localidades:', error)
-  }
-}
-
 const loadRegistros = async () => {
-  loading.value = true
   try {
-    const { items: regs } = await registroService.listar(filters.value)
-    items.value = regs
+    await registroService.listar(currentFilters.value)
   } catch (error) {
     console.error('Error cargando registros:', error)
-  } finally {
-    loading.value = false
   }
+}
+
+/**
+ * Transforma los filtros de la UI al formato Strawchemy
+ * Usa datos cacheados del store (sin llamadas al servidor)
+ */
+const buildStrawchemyFilter = (uiFilters) => {
+  const strawchemyFilter = {}
+
+  // Filtro de búsqueda por texto
+  if (uiFilters.search && uiFilters.search.trim()) {
+    const searchPattern = `%${uiFilters.search.trim()}%`
+    strawchemyFilter._or = [
+      { nombre: { ilike: searchPattern } },
+      { nombreRegistrador: { ilike: searchPattern } },
+      { direccion: { ilike: searchPattern } }
+    ]
+  }
+
+  // Filtro geográfico jerárquico (usando datos del store, sin API calls)
+  if (uiFilters.municipioId) {
+    // Caso más específico: filtrar directamente por municipio
+    strawchemyFilter.municipioId = { eq: uiFilters.municipioId }
+  } else if (uiFilters.provinciaId) {
+    // Filtrar por provincia: obtener IDs de municipios desde el store
+    const municipioIds = geografiaStore.getMunicipioIdsDeProvincia(uiFilters.provinciaId)
+    if (municipioIds.length > 0) {
+      strawchemyFilter.municipioId = { in: municipioIds }
+    }
+  } else if (uiFilters.comunidadAutonomaId) {
+    // Filtrar por CCAA: obtener IDs de municipios desde el store
+    const municipioIds = geografiaStore.getMunicipioIdsDeCcaa(uiFilters.comunidadAutonomaId)
+    if (municipioIds.length > 0) {
+      strawchemyFilter.municipioId = { in: municipioIds }
+    }
+  }
+
+  return strawchemyFilter
 }
 
 const handleFilterChange = async (newFilters) => {
-  filters.value = newFilters
-  registroService.pagination.page = 1
+  // Ya no es async - usa datos del store en memoria
+  currentFilters.value = buildStrawchemyFilter(newFilters)
   await loadRegistros()
 }
 
-const handlePageChange = async (newPage) => {
-  registroService.cambiarPagina(newPage)
-  await loadRegistros()
+const handleLoadMore = async () => {
+  await registroService.cargarMas()
 }
 
 const openCreateModal = () => {
@@ -146,7 +153,7 @@ const handleSave = async (data) => {
 
 const handleDelete = async (id) => {
   if (!confirm('¿Está seguro de eliminar este registro?')) return
-  
+
   try {
     await registroService.eliminar(id)
     await loadRegistros()
@@ -154,6 +161,4 @@ const handleDelete = async (id) => {
     console.error('Error eliminando registro:', error)
   }
 }
-
-const { pagination } = registroService
 </script>

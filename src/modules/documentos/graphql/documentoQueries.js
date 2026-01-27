@@ -5,7 +5,7 @@ import { gql } from '@apollo/client/core'
  */
 
 export const LISTAR = gql`
-  query ListarDocumentos($filter: DocumentoFilter, $offset: Int = 0, $limit: Int = 50) {
+  query ListarDocumentos($filter: DocumentoFilterInput, $offset: Int = 0, $limit: Int = 50) {
     documentos(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
@@ -27,7 +27,7 @@ export const LISTAR = gql`
 `
 
 export const OBTENER = gql`
-  query ObtenerDocumento($filter: DocumentoFilter!) {
+  query ObtenerDocumento($filter: DocumentoFilterInput!) {
     documentos(filter: $filter, limit: 1) {
       id
       nombre
