@@ -90,5 +90,4 @@ try {
     console.error('>>> [DEBUG] Error in setup:', e)
 }
 
-console.log('🚀 Desarrollo: Mock data cargado')
 console.log('📍 Router cargado:', router)

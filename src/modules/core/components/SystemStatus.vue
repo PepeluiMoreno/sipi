@@ -29,7 +29,7 @@
           <h4 class="text-[10px] font-semibold mb-1.5 text-indigo-200">Estado del Sistema</h4>
           <div class="space-y-1">
             <div class="flex justify-between text-[10px]">
-              <span class="text-indigo-400">API</span>
+              <span class="text-indigo-400">API REST</span>
               <span :class="apiStatus ? 'text-green-400' : 'text-red-400'">
                 {{ apiStatus ? 'Online' : 'Offline' }}
               </span>
@@ -56,8 +56,12 @@
               <span>{{ lastChecked }}</span>
             </div>
             <div class="flex justify-between">
-              <span>Tiempo:</span>
+              <span>Tiempo respuesta:</span>
               <span>{{ responseTime }}ms</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Uptime API:</span>
+              <span>{{ apiUptime }}</span>
             </div>
           </div>
         </div>
@@ -93,9 +97,15 @@ const checking = ref(false)
 const showDetails = ref(false)
 const lastChecked = ref('Never')
 const responseTime = ref(0)
+const apiUptime = ref('--:--:--')
 
 const overallStatus = computed(() => {
   return apiStatus.value && graphqlStatus.value && dbStatus.value
+})
+
+const dotClasses = computed(() => {
+  if (checking.value) return 'bg-yellow-400'
+  return overallStatus.value ? 'bg-green-400' : 'bg-red-400'
 })
 
 const statusText = computed(() => {
@@ -103,43 +113,74 @@ const statusText = computed(() => {
   return overallStatus.value ? 'Sistema Online' : 'Problemas'
 })
 
+// Función para formatear segundos a HH:MM:SS
+function formatUptime(seconds) {
+  if (!seconds) return '--:--:--'
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+}
+
 async function checkStatus() {
   checking.value = true
   
   try {
     const startTime = Date.now()
     
+    // 1. Verificar API REST (usar el endpoint /health)
     try {
-      const apiResponse = await fetch(`${backendUrl}/api/health`)
-      apiStatus.value = apiResponse.ok
+      const apiResponse = await fetch(`${backendUrl}/health`)
+      if (apiResponse.ok) {
+        const data = await apiResponse.json()
+        apiStatus.value = data.status === 'healthy'
+        apiUptime.value = formatUptime(data.uptime_seconds)
+      } else {
+        apiStatus.value = false
+      }
     } catch {
       apiStatus.value = false
     }
     
+    // 2. Verificar GraphQL
     try {
       const graphqlResponse = await fetch(`${backendUrl}/graphql`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: '{ __typename }' })
+        body: JSON.stringify({ query: '{ __typename }' }),
+        // Agregar timeout para no esperar demasiado
+        signal: AbortSignal.timeout(3000)
       })
       graphqlStatus.value = graphqlResponse.ok
     } catch {
       graphqlStatus.value = false
     }
     
+    // 3. Verificar Base de Datos (usar el endpoint /api/health/db)
     try {
-      const dbResponse = await fetch(`${backendUrl}/api/health/db`)
-      const data = await dbResponse.json()
-      dbStatus.value = data.connected || false
+      const dbResponse = await fetch(`${backendUrl}/api/health/db`, {
+        signal: AbortSignal.timeout(3000)
+      })
+      if (dbResponse.ok) {
+        const data = await dbResponse.json()
+        dbStatus.value = data.database?.connected || data.connected || false
+      } else {
+        dbStatus.value = false
+      }
     } catch {
       dbStatus.value = false
     }
     
     responseTime.value = Date.now() - startTime
-    lastChecked.value = new Date().toLocaleTimeString()
+    lastChecked.value = new Date().toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
     
   } catch (error) {
     console.error('Status check failed:', error)
+    // Si hay un error general, marcar todo como offline
     apiStatus.value = false
     graphqlStatus.value = false
     dbStatus.value = false
@@ -153,7 +194,10 @@ function toggleDetails() {
 }
 
 onMounted(() => {
+  // Verificar inmediatamente al montar
   checkStatus()
+  
+  // Configurar verificación periódica cada 30 segundos
   const interval = setInterval(checkStatus, 30000)
   
   onBeforeUnmount(() => {
