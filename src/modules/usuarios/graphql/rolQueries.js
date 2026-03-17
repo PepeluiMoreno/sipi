@@ -1,80 +1,60 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_ROLES = gql`
-  query ListarRoles($filters: RolFilters, $pagination: PaginationInput) {
-    roles(filters: $filters, pagination: $pagination) {
-      items {
-        id
-        nombre
-        descripcion
-        permisos
-        usuarios_count
-        created_at
-        updated_at
-      }
-      total
-      totalPages
-      page
-      pageSize
+export const LISTAR = gql`
+  query ListarRoles($filter: RolFilterInput, $offset: Int = 0, $limit: Int = 50) {
+    roles(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      descripcion
+      permisos
+      createdAt
+      updatedAt
+      # usuarios_count removido por compatibilidad, usar aggregation si disponible
     }
   }
 `
 
-export const OBTENER_ROL = gql`
-  query ObtenerRol($id: ID!) {
-    rol(id: $id) {
-      item {
+export const OBTENER = gql`
+  query ObtenerRol($filter: RolFilterInput!) {
+    roles(filter: $filter, limit: 1) {
+      id
+      nombre
+      descripcion
+      permisos
+      createdAt
+      updatedAt
+      usuarios {
         id
         nombre
-        descripcion
-        permisos
-        usuarios {
-          id
-          nombre
-          apellidos
-          email
-          nombre_usuario
-        }
-        created_at
-        updated_at
       }
     }
   }
 `
 
-export const CREAR_ROL = gql`
-  mutation CrearRol($input: RolInput!) {
-    crearRol(input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const CREAR = gql`
+  mutation CrearRol($data: RolCreateInput!) {
+    createRol(data: $data) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const ACTUALIZAR_ROL = gql`
-  mutation ActualizarRol($id: ID!, $input: RolInput!) {
-    actualizarRol(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        descripcion
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarRol($data: RolUpdateInput!) {
+    updateRol(data: $data) {
+      id
+      nombre
+      descripcion
     }
   }
 `
 
-export const ELIMINAR_ROL = gql`
+export const ELIMINAR = gql`
   mutation EliminarRol($id: ID!) {
-    eliminarRol(id: $id) {
-      success
-      message
+    deleteRoles(filter: { id: { eq: $id } }) {
+      id
     }
   }
 `

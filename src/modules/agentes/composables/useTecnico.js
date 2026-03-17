@@ -1,151 +1,31 @@
-import { ref } from 'vue'
-import { useQuery, useMutation } from '@vue/apollo-composable'
-import {
-  LISTAR_TECNICOS,
-  OBTENER_TECNICO,
-  CREAR_TECNICO,
-  ACTUALIZAR_TECNICO,
-  ELIMINAR_TECNICO
-} from '../graphql/tecnicoQueries'
+import { computed } from 'vue'
+import { useAgenteBase } from './useAgenteBase'
+import * as queries from '../graphql/tecnicoQueries.js'
 
+/**
+ * Composable para Técnicos
+ * Reutiliza la lógica base de Strawchemy
+ */
 export function useTecnico() {
-  const tecnicos = ref([])
-  const tecnico = ref(null)
-  const loading = ref(false)
-  const error = ref(null)
-  const pagination = ref({ page: 1, pageSize: 50, total: 0 })
+  // 'tecnicos' es el nombre de la query raiz en GraphQL (schema.py: tecnicos: list[TecnicoType])
+  const base = useAgenteBase('tecnicos', queries)
 
-  const listar = async (filters = {}) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { result, error: queryError, onResult } = useQuery(LISTAR_TECNICOS, {
-        filters: {
-          search: filters.search,
-          rolTecnicoId: filters.rolTecnicoId,
-          colegioProfesionalId: filters.colegioProfesionalId,
-          localidadId: filters.localidadId,
-          orderBy: filters.orderBy || ['nombre_ASC']
-        },
-        pagination: {
-          page: filters.page || 1,
-          pageSize: filters.pageSize || 50
-        }
-      })
+  // Alias para mantener compatibilidad con componentes existentes
+  const tecnicos = computed(() => base.items.value)
+  const tecnico = computed(() => base.item.value)
 
-      await new Promise((resolve) => {
-        const stop = onResult(({ data }) => {
-          const response = data?.tecnicos
-          tecnicos.value = response?.items || []
-          pagination.value.total = response?.total || 0
-          stop()
-          resolve()
-        })
-      })
-
-      if (queryError.value) throw queryError.value
-
-      return { items: tecnicos.value, total: pagination.value.total }
-    } catch (err) {
-      error.value = `Error al cargar técnicos: ${err.message}`
-      console.error('Error en listar Tecnicos:', err)
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const obtener = async (id) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { result, error: queryError, onResult } = useQuery(OBTENER_TECNICO, { id })
-
-      await new Promise((resolve) => {
-        const stop = onResult(({ data }) => {
-          tecnico.value = data?.tecnico?.item || null
-          stop()
-          resolve()
-        })
-      })
-
-      if (queryError.value) throw queryError.value
-
-      return tecnico.value
-    } catch (err) {
-      error.value = `Error al obtener técnico: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const crear = async (inputData) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { mutate } = useMutation(CREAR_TECNICO)
-      const { data, errors } = await mutate({ input: inputData })
-      if (errors) throw new Error(errors[0].message)
-      const nuevo = data.crearTecnico.item
-      tecnicos.value.unshift(nuevo)
-      pagination.value.total++
-      return nuevo
-    } catch (err) {
-      error.value = `Error al crear técnico: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const actualizar = async (id, inputData) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { mutate } = useMutation(ACTUALIZAR_TECNICO)
-      const { data, errors } = await mutate({ id, input: inputData })
-      if (errors) throw new Error(errors[0].message)
-      const actualizado = data.actualizarTecnico.item
-      const index = tecnicos.value.findIndex(i => i.id === id)
-      if (index !== -1) tecnicos.value[index] = actualizado
-      return actualizado
-    } catch (err) {
-      error.value = `Error al actualizar técnico: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const eliminar = async (id) => {
-    loading.value = true
-    error.value = null
-    try {
-      const { mutate } = useMutation(ELIMINAR_TECNICO)
-      const { data, errors } = await mutate({ id })
-      if (errors) throw new Error(errors[0].message)
-      tecnicos.value = tecnicos.value.filter(i => i.id !== id)
-      pagination.value.total--
-      return data.eliminarTecnico.success
-    } catch (err) {
-      error.value = `Error al eliminar técnico: ${err.message}`
-      throw err
-    } finally {
-      loading.value = false
-    }
+  // Exponer métodos específicos si hacen falta
+  const listarPorMunicipio = async (municipioId) => {
+    // Usamos el listado genérico filtrando
+    return base.listar({ municipioId: { eq: municipioId } })
   }
 
   return {
+    ...base,
+    // Alias extras
     tecnicos,
     tecnico,
-    loading,
-    error,
-    pagination,
-    listar,
-    obtener,
-    crear,
-    actualizar,
-    eliminar
+    // Métodos específicos
+    listarPorMunicipio
   }
 }

@@ -1,15 +1,21 @@
+import { computed } from 'vue'
 import { useAgenteBase } from './useAgenteBase'
-import * as queries from '../graphql/registroPropiedadQueries'
+import * as queries from '../graphql/registroPropiedadQueries.js'
 
 export function useRegistroPropiedad() {
-  const base = useAgenteBase('registrosPropiedad', queries, { conContacto: true })
+  const base = useAgenteBase('registrosPropiedad', queries)
 
-  const listarPorLocalidad = async (localidadId) => {
-    return base.listar({ localidadId })
+  const registrosPropiedad = computed(() => base.items.value)
+  const registroPropiedad = computed(() => base.item.value)
+
+  const listarPorMunicipio = async (municipioId) => {
+    return base.listar({ municipioId: { eq: municipioId } })
   }
 
   return {
     ...base,
-    listarPorLocalidad
+    registrosPropiedad,
+    registroPropiedad,
+    listarPorMunicipio
   }
 }

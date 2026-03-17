@@ -1,20 +1,92 @@
-import gql from 'graphql-tag'
+import { gql } from '@apollo/client/core'
 
-// Fragmento con campos comunes
-const COLEGIO_PROFESIONAL_BASE_FRAGMENT = gql`
-  fragment ColegioProfesionalBase on ColegioProfesional {
-    id
-    nombre
-    tipoIdentificacion
-    numeroIdentificacion
-    email
-    telefono
-    direccion
-    codigoPostal
-    localidad {
+/**
+ * Queries y Mutations para Colegios Profesionales usando Strawchemy
+ */
+
+// ========================================
+// QUERIES
+// ========================================
+
+export const LISTAR = gql`
+  query ListarColegiosProfesionales(
+    $filter: ColegioProfesionalFilterInput
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    colegiosProfesionales(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
-      provincia {
+      nombreResponsable
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
+        provincia {
+          id
+          nombre
+          comunidadAutonoma {
+            id
+            nombre
+          }
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const OBTENER = gql`
+  query ObtenerColegioProfesional(
+    $filter: ColegioProfesionalFilterInput!
+  ) {
+    colegiosProfesionales(filter: $filter, limit: 1) {
+      id
+      nombre
+      nombreResponsable
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
+        codigoIne
+        provincia {
+          id
+          nombre
+        }
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const BUSCAR = gql`
+  query BuscarColegiosProfesionales(
+    $search: String!
+    $limit: Int = 50
+  ) {
+    colegiosProfesionales(
+      filter: {
+        _or: [
+          { nombre: { ilike: $search } }
+          { nombreResponsable: { ilike: $search } }
+        ]
+      }
+      limit: $limit
+    ) {
+      id
+      nombre
+      nombreResponsable
+      email
+      telefono
+      municipio {
         id
         nombre
       }
@@ -22,30 +94,75 @@ const COLEGIO_PROFESIONAL_BASE_FRAGMENT = gql`
   }
 `
 
-// Listar colegios profesionales
-export const LISTAR_COLEGIOS_PROFESIONALES = gql`
-  query ListarColegiosProfesionales($filters: ColegioProfesionalFiltersInput, $pagination: PaginationInput) {
-    colegiosProfesionales(filters: $filters, pagination: $pagination) {
-      items {
-        ...ColegioProfesionalBase
+export const LISTAR_POR_MUNICIPIO = gql`
+  query ListarColegiosProfesionalesPorMunicipio(
+    $municipioId: ID!
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    colegiosProfesionales(
+      filter: { municipioId: { eq: $municipioId } }
+      offset: $offset
+      limit: $limit
+    ) {
+      id
+      nombre
+      nombreResponsable
+      direccion
+      telefono
+      municipio {
+        id
+        nombre
       }
-      total
-      totalPages
-      page
-      pageSize
     }
   }
-  ${COLEGIO_PROFESIONAL_BASE_FRAGMENT}
 `
 
-// Obtener un colegio profesional por ID
-export const OBTENER_COLEGIO_PROFESIONAL = gql`
-  query ObtenerColegioProfesional($id: ID!) {
-    colegioProfesional(id: $id) {
-      item {
-        ...ColegioProfesionalBase
+// ========================================
+// MUTATIONS
+// ========================================
+
+export const CREAR = gql`
+  mutation CrearColegioProfesional($data: ColegioProfesionalCreateInput!) {
+    createColegioProfesional(data: $data) {
+      id
+      nombre
+      nombreResponsable
+      email
+      telefono
+      municipio {
+        id
+        nombre
       }
+      createdAt
     }
   }
-  ${COLEGIO_PROFESIONAL_BASE_FRAGMENT}
+`
+
+export const ACTUALIZAR = gql`
+  mutation ActualizarColegioProfesional($data: ColegioProfesionalUpdateInput!) {
+    updateColegioProfesional(data: $data) {
+      id
+      nombre
+      nombreResponsable
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
+      }
+      updatedAt
+    }
+  }
+`
+
+export const ELIMINAR = gql`
+  mutation EliminarColegioProfesional($id: ID!) {
+    deleteColegiosProfesionales(filter: { id: { eq: $id } }) {
+      id
+      nombre
+    }
+  }
 `

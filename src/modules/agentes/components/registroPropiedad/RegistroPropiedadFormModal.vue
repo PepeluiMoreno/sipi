@@ -17,12 +17,24 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div class="md:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Nombre del registrador *
+              Nombre del Registro *
             </label>
-            <input 
-              v-model="form.nombreRegistrador"
+            <input
+              v-model="form.nombre"
               type="text"
               required
+              placeholder="Ej: Registro de la Propiedad nº 1 de Madrid"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            />
+          </div>
+
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Nombre del Registrador
+            </label>
+            <input
+              v-model="form.nombreRegistrador"
+              type="text"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
             />
           </div>
@@ -104,20 +116,20 @@
 
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
-              Localidad *
+              Municipio *
             </label>
-            <select 
-              v-model="form.localidadId"
+            <select
+              v-model="form.municipioId"
               required
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
             >
-              <option value="">Seleccione localidad</option>
-              <option 
-                v-for="localidad in localidades" 
-                :key="localidad.id" 
-                :value="localidad.id"
+              <option value="">Seleccione municipio</option>
+              <option
+                v-for="municipio in municipios"
+                :key="municipio.id"
+                :value="municipio.id"
               >
-                {{ localidad.nombre }}
+                {{ municipio.nombre }}
               </option>
             </select>
           </div>
@@ -162,7 +174,7 @@ const props = defineProps({
     type: Object,
     default: null
   },
-  localidades: {
+  municipios: {
     type: Array,
     default: () => []
   },
@@ -184,6 +196,7 @@ colegioService.listar().then(response => {
 
 const isEdit = ref(false)
 const form = ref({
+  nombre: '',
   nombreRegistrador: '',
   numeroIdentificacion: '',
   colegioProfesionalId: '',
@@ -191,25 +204,27 @@ const form = ref({
   telefono: '',
   direccion: '',
   codigoPostal: '',
-  localidadId: ''
+  municipioId: ''
 })
 
 watch(() => props.show, (newVal) => {
   if (newVal && props.registro) {
     isEdit.value = true
     form.value = {
+      nombre: props.registro.nombre || '',
       nombreRegistrador: props.registro.nombreRegistrador || '',
-      numeroIdentificacion: props.registro.numeroIdentificacion,
+      numeroIdentificacion: props.registro.numeroIdentificacion || '',
       colegioProfesionalId: props.registro.colegioProfesionalId || '',
       email: props.registro.email || '',
       telefono: props.registro.telefono || '',
       direccion: props.registro.direccion || '',
       codigoPostal: props.registro.codigoPostal || '',
-      localidadId: props.registro.localidadId || ''
+      municipioId: props.registro.municipio?.id || ''
     }
   } else if (newVal) {
     isEdit.value = false
     form.value = {
+      nombre: '',
       nombreRegistrador: '',
       numeroIdentificacion: '',
       colegioProfesionalId: '',
@@ -217,7 +232,7 @@ watch(() => props.show, (newVal) => {
       telefono: '',
       direccion: '',
       codigoPostal: '',
-      localidadId: ''
+      municipioId: ''
     }
   }
 })

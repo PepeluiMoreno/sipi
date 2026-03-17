@@ -1,4 +1,4 @@
-// src/modules/catalogos/graphql/localidadesQueries.js
+// src/modules/tipologias/graphql/localidadesQueries.js
 
 export const LOCALIDAD_QUERIES = {
   LISTAR: `

@@ -18,11 +18,11 @@
         ID: {{ registro.numeroIdentificacion }}
       </div>
       
-      <div class="flex items-center" v-if="registro.localidad">
+      <div class="flex items-center" v-if="registro.municipio">
         <MapPinIcon class="w-4 h-4 mr-2 text-gray-400" />
-        {{ registro.localidad.nombre }}
-        <span v-if="registro.localidad.provincia">
-          , {{ registro.localidad.provincia.nombre }}
+        {{ registro.municipio.nombre }}
+        <span v-if="registro.municipio.provincia">
+          , {{ registro.municipio.provincia.nombre }}
         </span>
       </div>
       

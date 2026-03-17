@@ -1,124 +1,217 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_TECNICOS = gql`
-  query ListarTecnicos($filters: TecnicoFilters, $pagination: PaginationInput) {
-    tecnicos(filters: $filters, pagination: $pagination) {
-      items {
+/**
+ * Queries y Mutations para Técnicos usando Strawchemy
+ */
+
+// ========================================
+// QUERIES
+// ========================================
+
+export const LISTAR = gql`
+  query ListarTecnicos(
+    $filter: TecnicoFilterInput
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    tecnicos(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      tipoIdentificacion
+      numeroIdentificacion
+      nombre
+      razonSocial
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
         id
-        tipoIdentificacion
-        numeroIdentificacion
         nombre
-        razonSocial
-        email
-        telefono
-        direccion
-        codigoPostal
-        localidadId
-        localidad {
+        provincia {
           id
           nombre
-          provincia {
+          comunidadAutonoma {
             id
             nombre
           }
         }
-        rolTecnicoId
-        rolTecnico {
-          id
-          nombre
-        }
-        colegioProfesionalId
-        colegioProfesional {
-          id
-          nombre
-        }
-        numeroColegiado
-        fechaColegiacion
-        createdAt
-        updatedAt
       }
-      total
-      totalPages
-      page
-      pageSize
-    }
-  }
-`
-
-export const OBTENER_TECNICO = gql`
-  query ObtenerTecnico($id: ID!) {
-    tecnico(id: $id) {
-      item {
-        id
-        tipoIdentificacion
-        numeroIdentificacion
-        nombre
-        razonSocial
-        email
-        telefono
-        direccion
-        codigoPostal
-        localidadId
-        localidad {
-          id
-          nombre
-          provincia {
-            id
-            nombre
-          }
-        }
-        rolTecnicoId
-        rolTecnico {
-          id
-          nombre
-        }
-        colegioProfesionalId
-        colegioProfesional {
-          id
-          nombre
-        }
-        numeroColegiado
-        fechaColegiacion
-        createdAt
-        updatedAt
-      }
-    }
-  }
-`
-
-export const CREAR_TECNICO = gql`
-  mutation CrearTecnico($input: TecnicoInput!) {
-    crearTecnico(input: $input) {
-      success
-      item {
+      rolTecnico {
         id
         nombre
-        numeroIdentificacion
       }
-      message
-    }
-  }
-`
-
-export const ACTUALIZAR_TECNICO = gql`
-  mutation ActualizarTecnico($id: ID!, $input: TecnicoInput!) {
-    actualizarTecnico(id: $id, input: $input) {
-      success
-      item {
+      colegioProfesional {
         id
         nombre
-        numeroIdentificacion
       }
-      message
+      numeroColegiado
+      fechaColegiacion
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const ELIMINAR_TECNICO = gql`
+export const OBTENER = gql`
+  query ObtenerTecnico(
+    $filter: TecnicoFilterInput!
+  ) {
+    tecnicos(filter: $filter, limit: 1) {
+      id
+      tipoIdentificacion
+      numeroIdentificacion
+      nombre
+      razonSocial
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
+        codigoIne
+        provincia {
+          id
+          nombre
+        }
+      }
+      rolTecnico {
+        id
+        nombre
+      }
+      colegioProfesional {
+        id
+        nombre
+      }
+      numeroColegiado
+      fechaColegiacion
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const BUSCAR = gql`
+  query BuscarTecnicos(
+    $search: String!
+    $limit: Int = 50
+  ) {
+    tecnicos(
+      filter: {
+        _or: [
+          { nombre: { ilike: $search } }
+          { razonSocial: { ilike: $search } }
+          { numeroIdentificacion: { contains: $search } }
+          { email: { ilike: $search } }
+        ]
+      }
+      limit: $limit
+    ) {
+      id
+      nombre
+      razonSocial
+      numeroIdentificacion
+      email
+      telefono
+      municipio {
+        id
+        nombre
+      }
+      rolTecnico {
+        id
+        nombre
+      }
+    }
+  }
+`
+
+export const LISTAR_POR_MUNICIPIO = gql`
+  query ListarTecnicosPorMunicipio(
+    $municipioId: ID!
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    tecnicos(
+      filter: { municipioId: { eq: $municipioId } }
+      offset: $offset
+      limit: $limit
+    ) {
+      id
+      nombre
+      razonSocial
+      direccion
+      telefono
+      municipio {
+        id
+        nombre
+      }
+      rolTecnico {
+        id
+        nombre
+      }
+    }
+  }
+`
+
+// ========================================
+// MUTATIONS
+// ========================================
+
+export const CREAR = gql`
+  mutation CrearTecnico($data: TecnicoCreateInput!) {
+    createTecnico(data: $data) {
+      id
+      nombre
+      razonSocial
+      numeroIdentificacion
+      email
+      telefono
+      municipio {
+        id
+        nombre
+      }
+      rolTecnico {
+        id
+        nombre
+      }
+      createdAt
+    }
+  }
+`
+
+export const ACTUALIZAR = gql`
+  mutation ActualizarTecnico($data: TecnicoUpdateInput!) {
+    updateTecnico(data: $data) {
+      id
+      nombre
+      razonSocial
+      numeroIdentificacion
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
+      }
+      rolTecnico {
+        id
+        nombre
+      }
+      colegioProfesional {
+        id
+        nombre
+      }
+      updatedAt
+    }
+  }
+`
+
+export const ELIMINAR = gql`
   mutation EliminarTecnico($id: ID!) {
-    eliminarTecnico(id: $id) {
-      success
-      message
+    deleteTecnicos(filter: { id: { eq: $id } }) {
+      id
+      nombre
     }
   }
 `

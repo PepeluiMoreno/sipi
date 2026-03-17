@@ -1,92 +1,171 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_AGENCIAS_INMOBILIARIAS = gql`
-  query ListarAgenciasInmobiliarias($filters: AgenciaInmobiliariaFilters, $pagination: PaginationInput) {
-    agenciasInmobiliarias(filters: $filters, pagination: $pagination) {
-      items {
+/**
+ * Queries y Mutations para Agencias Inmobiliarias usando Strawchemy
+ */
+
+// ========================================
+// QUERIES
+// ========================================
+
+export const LISTAR = gql`
+  query ListarAgenciasInmobiliarias(
+    $filter: AgenciaInmobiliariaFilterInput
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    agenciasInmobiliarias(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      nombreResponsable
+      numeroIdentificacion
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
         id
         nombre
-        email
-        telefono
-        direccion
-        codigoPostal
-        localidadId
-        localidad {
+        provincia {
           id
           nombre
-          provincia {
+          comunidadAutonoma {
             id
             nombre
           }
         }
-        createdAt
-        updatedAt
       }
-      total
-      totalPages
-      page
-      pageSize
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const OBTENER_AGENCIA_INMOBILIARIA = gql`
-  query ObtenerAgenciaInmobiliaria($id: ID!) {
-    agenciaInmobiliaria(id: $id) {
-      item {
+export const OBTENER = gql`
+  query ObtenerAgenciaInmobiliaria(
+    $filter: AgenciaInmobiliariaFilterInput!
+  ) {
+    agenciasInmobiliarias(filter: $filter, limit: 1) {
+      id
+      nombre
+      nombreResponsable
+      numeroIdentificacion
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
         id
         nombre
-        email
-        telefono
-        direccion
-        codigoPostal
-        localidadId
-        localidad {
+        codigoIne
+        provincia {
           id
           nombre
-          provincia {
-            id
-            nombre
-          }
         }
-        createdAt
-        updatedAt
       }
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const CREAR_AGENCIA_INMOBILIARIA = gql`
-  mutation CrearAgenciaInmobiliaria($input: AgenciaInmobiliariaInput!) {
-    crearAgenciaInmobiliaria(input: $input) {
-      success
-      item {
+export const BUSCAR = gql`
+  query BuscarAgenciasInmobiliarias(
+    $search: String!
+    $limit: Int = 50
+  ) {
+    agenciasInmobiliarias(
+      filter: {
+        _or: [
+          { nombre: { ilike: $search } }
+          { nombreResponsable: { ilike: $search } }
+          { numeroIdentificacion: { contains: $search } }
+        ]
+      }
+      limit: $limit
+    ) {
+      id
+      nombre
+      nombreResponsable
+      email
+      telefono
+      municipio {
         id
         nombre
       }
-      message
     }
   }
 `
 
-export const ACTUALIZAR_AGENCIA_INMOBILIARIA = gql`
-  mutation ActualizarAgenciaInmobiliaria($id: ID!, $input: AgenciaInmobiliariaInput!) {
-    actualizarAgenciaInmobiliaria(id: $id, input: $input) {
-      success
-      item {
+export const LISTAR_POR_MUNICIPIO = gql`
+  query ListarAgenciasInmobiliariasPorMunicipio(
+    $municipioId: ID!
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    agenciasInmobiliarias(
+      filter: { municipioId: { eq: $municipioId } }
+      offset: $offset
+      limit: $limit
+    ) {
+      id
+      nombre
+      nombreResponsable
+      direccion
+      telefono
+      municipio {
         id
         nombre
       }
-      message
     }
   }
 `
 
-export const ELIMINAR_AGENCIA_INMOBILIARIA = gql`
+// ========================================
+// MUTATIONS
+// ========================================
+
+export const CREAR = gql`
+  mutation CrearAgenciaInmobiliaria($data: AgenciaInmobiliariaCreateInput!) {
+    createAgenciaInmobiliaria(data: $data) {
+      id
+      nombre
+      nombreResponsable
+      email
+      telefono
+      municipio {
+        id
+        nombre
+      }
+      createdAt
+    }
+  }
+`
+
+export const ACTUALIZAR = gql`
+  mutation ActualizarAgenciaInmobiliaria($data: AgenciaInmobiliariaUpdateInput!) {
+    updateAgenciaInmobiliaria(data: $data) {
+      id
+      nombre
+      nombreResponsable
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
+      }
+      updatedAt
+    }
+  }
+`
+
+export const ELIMINAR = gql`
   mutation EliminarAgenciaInmobiliaria($id: ID!) {
-    eliminarAgenciaInmobiliaria(id: $id) {
-      success
-      message
+    deleteAgenciasInmobiliarias(filter: { id: { eq: $id } }) {
+      id
+      nombre
     }
   }
 `

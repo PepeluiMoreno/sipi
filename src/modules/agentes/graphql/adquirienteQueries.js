@@ -1,100 +1,136 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_ADQUIRIENTES = gql`
-  query ListarAdquirientes($filters: PersonaFilters, $pagination: PaginationInput) {
-    adquirientes(filters: $filters, pagination: $pagination) {
-      items {
+/**
+ * Queries y Mutations para Adquirientes usando Strawchemy
+ */
+
+// ========================================
+// QUERIES
+// ========================================
+
+export const LISTAR = gql`
+  query ListarAdquirientes(
+    $filter: AdquirienteFilterInput
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    adquirientes(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      tipoIdentificacion
+      numeroIdentificacion
+      nombre
+      apellidos
+      razonSocial
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
         id
-        tipoIdentificacion
-        numeroIdentificacion
         nombre
-        razonSocial
-        email
-        telefono
-        direccion
-        codigoPostal
-        localidadId
-        localidad {
+        provincia {
           id
           nombre
-          provincia {
-            id
-            nombre
-          }
         }
-        createdAt
-        updatedAt
       }
-      total
-      totalPages
-      page
-      pageSize
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const OBTENER_ADQUIRIENTE = gql`
-  query ObtenerAdquiriente($id: ID!) {
-    adquiriente(id: $id) {
-      item {
-        id
-        tipoIdentificacion
-        numeroIdentificacion
-        nombre
-        razonSocial
-        email
-        telefono
-        direccion
-        codigoPostal
-        localidadId
-        localidad {
-          id
-          nombre
-          provincia {
-            id
-            nombre
-          }
-        }
-        createdAt
-        updatedAt
-      }
-    }
-  }
-`
-
-export const CREAR_ADQUIRIENTE = gql`
-  mutation CrearAdquiriente($input: PersonaInput!) {
-    crearAdquiriente(input: $input) {
-      success
-      item {
+export const OBTENER = gql`
+  query ObtenerAdquiriente(
+    $filter: AdquirienteFilterInput!
+  ) {
+    adquirientes(filter: $filter, limit: 1) {
+      id
+      tipoIdentificacion
+      numeroIdentificacion
+      nombre
+      apellidos
+      razonSocial
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
         id
         nombre
-        numeroIdentificacion
+        codigoIne
       }
-      message
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const ACTUALIZAR_ADQUIRIENTE = gql`
-  mutation ActualizarAdquiriente($id: ID!, $input: PersonaInput!) {
-    actualizarAdquiriente(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        numeroIdentificacion
+export const BUSCAR = gql`
+  query BuscarAdquirientes(
+    $search: String!
+    $limit: Int = 50
+  ) {
+    adquirientes(
+      filter: {
+        _or: [
+          { nombre: { ilike: $search } }
+          { apellidos: { ilike: $search } }
+          { razonSocial: { ilike: $search } }
+          { numeroIdentificacion: { contains: $search } }
+        ]
       }
-      message
+      limit: $limit
+    ) {
+      id
+      nombre
+      apellidos
+      razonSocial
+      numeroIdentificacion
+      email
+      telefono
     }
   }
 `
 
-export const ELIMINAR_ADQUIRIENTE = gql`
+// ========================================
+// MUTATIONS
+// ========================================
+
+export const CREAR = gql`
+  mutation CrearAdquiriente($data: AdquirienteCreateInput!) {
+    createAdquiriente(data: $data) {
+      id
+      nombre
+      apellidos
+      razonSocial
+      numeroIdentificacion
+      email
+      createdAt
+    }
+  }
+`
+
+export const ACTUALIZAR = gql`
+  mutation ActualizarAdquiriente($data: AdquirienteUpdateInput!) {
+    updateAdquiriente(data: $data) {
+      id
+      nombre
+      apellidos
+      razonSocial
+      numeroIdentificacion
+      email
+      telefono
+      direccion
+      updatedAt
+    }
+  }
+`
+
+export const ELIMINAR = gql`
   mutation EliminarAdquiriente($id: ID!) {
-    eliminarAdquiriente(id: $id) {
-      success
-      message
+    deleteAdquirientes(filter: { id: { eq: $id } }) {
+      id
+      nombre
     }
   }
 `

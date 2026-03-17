@@ -1,74 +1,94 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_ADMINISTRACIONES_TITULARES = gql`
-  query ListarAdministracionTitulares($administracionId: ID!, $orderBy: [String!]) {
-    administracionTitulares(administracionId: $administracionId, orderBy: $orderBy) {
-      items {
+/**
+ * Queries y Mutations para Titulares de Administración con Strawchemy
+ */
+
+export const LISTAR = gql`
+  query ListarAdministracionTitulares(
+    $filter: AdministracionTitularFilterInput
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    administracionTitulares(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      apellidos
+      numeroIdentificacion
+      fechaInicio
+      fechaFin
+      cargo
+      administracion {
         id
-        administracionId
         nombre
-        cargo
-        fechaInicio
-        fechaFin
-        createdAt
-        updatedAt
       }
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const OBTENER_ADMINISTRACION_TITULAR = gql`
-  query ObtenerAdministracionTitular($id: ID!) {
-    administracionTitular(id: $id) {
-      item {
+export const OBTENER = gql`
+  query ObtenerAdministracionTitular(
+    $filter: AdministracionTitularFilterInput!
+  ) {
+    administracionTitulares(filter: $filter, limit: 1) {
+      id
+      nombre
+      apellidos
+      numeroIdentificacion
+      fechaInicio
+      fechaFin
+      cargo
+      administracion {
         id
-        administracionId
         nombre
-        cargo
-        fechaInicio
-        fechaFin
-        createdAt
-        updatedAt
       }
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const CREAR_ADMINISTRACION_TITULAR = gql`
-  mutation CrearAdministracionTitular($administracionId: ID!, $input: TitularInput!) {
-    crearAdministracionTitular(administracionId: $administracionId, input: $input) {
-      success
-      item {
+export const CREAR = gql`
+  mutation CrearAdministracionTitular($data: AdministracionTitularCreateInput!) {
+    createAdministracionTitular(data: $data) {
+      id
+      nombre
+      apellidos
+      numeroIdentificacion
+      fechaInicio
+      fechaFin
+      cargo
+      administracion {
         id
         nombre
-        cargo
-        fechaInicio
       }
-      message
+      createdAt
     }
   }
 `
 
-export const ACTUALIZAR_ADMINISTRACION_TITULAR = gql`
-  mutation ActualizarAdministracionTitular($id: ID!, $input: TitularInput!) {
-    actualizarAdministracionTitular(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        cargo
-        fechaInicio
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarAdministracionTitular($data: AdministracionTitularUpdateInput!) {
+    updateAdministracionTitular(data: $data) {
+      id
+      nombre
+      apellidos
+      numeroIdentificacion
+      fechaInicio
+      fechaFin
+      cargo
+      updatedAt
     }
   }
 `
 
-export const ELIMINAR_ADMINISTRACION_TITULAR = gql`
+export const ELIMINAR = gql`
   mutation EliminarAdministracionTitular($id: ID!) {
-    eliminarAdministracionTitular(id: $id) {
-      success
-      message
+    deleteAdministracionTitulares(filter: { id: { eq: $id } }) {
+      id
+      nombre
     }
   }
 `

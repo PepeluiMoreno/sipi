@@ -1,102 +1,194 @@
-import gql from 'graphql-tag'
+import { gql } from '@apollo/client/core'
 
-// Fragmento con campos comunes
-const NOTARIA_BASE_FRAGMENT = gql`
-  fragment NotariaBase on Notaria {
-    id
-    nombre
-    nombreNotario
-    numeroIdentificacion
-    email
-    telefono
-    direccion
-    codigoPostal
-    localidad {
+/**
+ * Queries y Mutations para Notarias usando Strawchemy
+ */
+
+// ========================================
+// QUERIES
+// ========================================
+
+export const LISTAR = gql`
+  query ListarNotarias(
+    $filter: NotariaFilterInput
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    notarias(filter: $filter, offset: $offset, limit: $limit) {
       id
       nombre
-      provincia {
+      nombreNotario
+      numeroIdentificacion
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
+        provincia {
+          id
+          nombre
+          comunidadAutonoma {
+            id
+            nombre
+          }
+        }
+      }
+      colegioProfesional {
+        id
+        nombre
+      }
+      titulares {
+        id
+        nombre
+        apellidos
+        fechaInicio
+        fechaFin
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const OBTENER = gql`
+  query ObtenerNotaria(
+    $filter: NotariaFilterInput!
+  ) {
+    notarias(filter: $filter, limit: 1) {
+      id
+      nombre
+      nombreNotario
+      numeroIdentificacion
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
+        codigoIne
+        provincia {
+          id
+          nombre
+        }
+      }
+      colegioProfesional {
+        id
+        nombre
+      }
+      titulares {
+        id
+        nombre
+        apellidos
+        numeroIdentificacion
+        fechaInicio
+        fechaFin
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+export const BUSCAR = gql`
+  query BuscarNotarias(
+    $search: String!
+    $limit: Int = 50
+  ) {
+    notarias(
+      filter: {
+        _or: [
+          { nombre: { ilike: $search } }
+          { nombreNotario: { ilike: $search } }
+          { numeroIdentificacion: { contains: $search } }
+        ]
+      }
+      limit: $limit
+    ) {
+      id
+      nombre
+      nombreNotario
+      email
+      telefono
+      municipio {
         id
         nombre
       }
     }
-    colegioProfesional {
+  }
+`
+
+export const LISTAR_POR_MUNICIPIO = gql`
+  query ListarNotariasPorMunicipio(
+    $municipioId: ID!
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    notarias(
+      filter: { municipioId: { eq: $municipioId } }
+      offset: $offset
+      limit: $limit
+    ) {
       id
       nombre
+      nombreNotario
+      direccion
+      telefono
+      municipio {
+        id
+        nombre
+      }
     }
-    titulares {
+  }
+`
+
+// ========================================
+// MUTATIONS
+// ========================================
+
+export const CREAR = gql`
+  mutation CrearNotaria($data: NotariaCreateInput!) {
+    createNotaria(data: $data) {
       id
       nombre
-      apellidos
-      fechaInicio
-      fechaFin
-    }
-    createdAt
-    updatedAt
-  }
-`
-
-// Listar notarías con paginación y filtros
-export const LISTAR_NOTARIAS = gql`
-  query ListarNotarias($filters: NotariaFiltersInput, $pagination: PaginationInput) {
-    notarias(filters: $filters, pagination: $pagination) {
-      items {
-        ...NotariaBase
+      nombreNotario
+      email
+      telefono
+      municipio {
+        id
+        nombre
       }
-      total
-      totalPages
-      page
-      pageSize
+      createdAt
     }
   }
-  ${NOTARIA_BASE_FRAGMENT}
 `
 
-// Obtener una notaria por ID
-export const OBTENER_NOTARIA = gql`
-  query ObtenerNotaria($id: ID!) {
-    notaria(id: $id) {
-      item {
-        ...NotariaBase
+export const ACTUALIZAR = gql`
+  mutation ActualizarNotaria($data: NotariaUpdateInput!) {
+    updateNotaria(data: $data) {
+      id
+      nombre
+      nombreNotario
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
+        id
+        nombre
       }
+      updatedAt
     }
   }
-  ${NOTARIA_BASE_FRAGMENT}
 `
 
-// Crear nueva notaría
-export const CREAR_NOTARIA = gql`
-  mutation CrearNotaria($input: NotariaInput!) {
-    crearNotaria(input: $input) {
-      item {
-        ...NotariaBase
-      }
-      success
-      message
-    }
-  }
-  ${NOTARIA_BASE_FRAGMENT}
-`
-
-// Actualizar notaría existente
-export const ACTUALIZAR_NOTARIA = gql`
-  mutation ActualizarNotaria($id: ID!, $input: NotariaInput!) {
-    actualizarNotaria(id: $id, input: $input) {
-      item {
-        ...NotariaBase
-      }
-      success
-      message
-    }
-  }
-  ${NOTARIA_BASE_FRAGMENT}
-`
-
-// Eliminar notaría
-export const ELIMINAR_NOTARIA = gql`
+export const ELIMINAR = gql`
   mutation EliminarNotaria($id: ID!) {
-    eliminarNotaria(id: $id) {
-      success
-      message
+    deleteNotarias(filter: { id: { eq: $id } }) {
+      id
+      nombre
     }
   }
 `

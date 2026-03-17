@@ -1,74 +1,94 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_DIOCESIS_TITULARES = gql`
-  query ListarDiocesisTitulares($diocesisId: ID!, $orderBy: [String!]) {
-    diocesisTitulares(diocesisId: $diocesisId, orderBy: $orderBy) {
-      items {
+/**
+ * Queries y Mutations para Titulares de Diócesis con Strawchemy
+ */
+
+export const LISTAR = gql`
+  query ListarDiocesisTitulares(
+    $filter: DiocesisTitularFilterInput
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    diocesisTitulares(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      nombre
+      apellidos
+      numeroIdentificacion
+      fechaInicio
+      fechaFin
+      cargo
+      diocesis {
         id
-        diocesisId
         nombre
-        cargo
-        fechaInicio
-        fechaFin
-        createdAt
-        updatedAt
       }
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const OBTENER_DIOCESIS_TITULAR = gql`
-  query ObtenerDiocesisTitular($id: ID!) {
-    diocesisTitular(id: $id) {
-      item {
+export const OBTENER = gql`
+  query ObtenerDiocesisTitular(
+    $filter: DiocesisTitularFilterInput!
+  ) {
+    diocesisTitulares(filter: $filter, limit: 1) {
+      id
+      nombre
+      apellidos
+      numeroIdentificacion
+      fechaInicio
+      fechaFin
+      cargo
+      diocesis {
         id
-        diocesisId
         nombre
-        cargo
-        fechaInicio
-        fechaFin
-        createdAt
-        updatedAt
       }
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const CREAR_DIOCESIS_TITULAR = gql`
-  mutation CrearDiocesisTitular($diocesisId: ID!, $input: TitularInput!) {
-    crearDiocesisTitular(diocesisId: $diocesisId, input: $input) {
-      success
-      item {
+export const CREAR = gql`
+  mutation CrearDiocesisTitular($data: DiocesisTitularCreateInput!) {
+    createDiocesisTitular(data: $data) {
+      id
+      nombre
+      apellidos
+      numeroIdentificacion
+      fechaInicio
+      fechaFin
+      cargo
+      diocesis {
         id
         nombre
-        cargo
-        fechaInicio
       }
-      message
+      createdAt
     }
   }
 `
 
-export const ACTUALIZAR_DIOCESIS_TITULAR = gql`
-  mutation ActualizarDiocesisTitular($id: ID!, $input: TitularInput!) {
-    actualizarDiocesisTitular(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        cargo
-        fechaInicio
-      }
-      message
+export const ACTUALIZAR = gql`
+  mutation ActualizarDiocesisTitular($data: DiocesisTitularUpdateInput!) {
+    updateDiocesisTitular(data: $data) {
+      id
+      nombre
+      apellidos
+      numeroIdentificacion
+      fechaInicio
+      fechaFin
+      cargo
+      updatedAt
     }
   }
 `
 
-export const ELIMINAR_DIOCESIS_TITULAR = gql`
+export const ELIMINAR = gql`
   mutation EliminarDiocesisTitular($id: ID!) {
-    eliminarDiocesisTitular(id: $id) {
-      success
-      message
+    deleteDiocesisTitulares(filter: { id: { eq: $id } }) {
+      id
+      nombre
     }
   }
 `

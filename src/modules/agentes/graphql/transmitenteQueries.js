@@ -1,100 +1,136 @@
 import { gql } from '@apollo/client/core'
 
-export const LISTAR_TRANSMITENTES = gql`
-  query ListarTransmitentes($filters: PersonaFilters, $pagination: PaginationInput) {
-    transmitentes(filters: $filters, pagination: $pagination) {
-      items {
+/**
+ * Queries y Mutations para Transmitentes usando Strawchemy
+ */
+
+// ========================================
+// QUERIES
+// ========================================
+
+export const LISTAR = gql`
+  query ListarTransmitentes(
+    $filter: TransmitenteFilterInput
+    $offset: Int = 0
+    $limit: Int = 50
+  ) {
+    transmitentes(filter: $filter, offset: $offset, limit: $limit) {
+      id
+      tipoIdentificacion
+      numeroIdentificacion
+      nombre
+      apellidos
+      razonSocial
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
         id
-        tipoIdentificacion
-        numeroIdentificacion
         nombre
-        razonSocial
-        email
-        telefono
-        direccion
-        codigoPostal
-        localidadId
-        localidad {
+        provincia {
           id
           nombre
-          provincia {
-            id
-            nombre
-          }
         }
-        createdAt
-        updatedAt
       }
-      total
-      totalPages
-      page
-      pageSize
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const OBTENER_TRANSMITENTE = gql`
-  query ObtenerTransmitente($id: ID!) {
-    transmitente(id: $id) {
-      item {
-        id
-        tipoIdentificacion
-        numeroIdentificacion
-        nombre
-        razonSocial
-        email
-        telefono
-        direccion
-        codigoPostal
-        localidadId
-        localidad {
-          id
-          nombre
-          provincia {
-            id
-            nombre
-          }
-        }
-        createdAt
-        updatedAt
-      }
-    }
-  }
-`
-
-export const CREAR_TRANSMITENTE = gql`
-  mutation CrearTransmitente($input: PersonaInput!) {
-    crearTransmitente(input: $input) {
-      success
-      item {
+export const OBTENER = gql`
+  query ObtenerTransmitente(
+    $filter: TransmitenteFilterInput!
+  ) {
+    transmitentes(filter: $filter, limit: 1) {
+      id
+      tipoIdentificacion
+      numeroIdentificacion
+      nombre
+      apellidos
+      razonSocial
+      email
+      telefono
+      direccion
+      codigoPostal
+      municipio {
         id
         nombre
-        numeroIdentificacion
+        codigoIne
       }
-      message
+      createdAt
+      updatedAt
     }
   }
 `
 
-export const ACTUALIZAR_TRANSMITENTE = gql`
-  mutation ActualizarTransmitente($id: ID!, $input: PersonaInput!) {
-    actualizarTransmitente(id: $id, input: $input) {
-      success
-      item {
-        id
-        nombre
-        numeroIdentificacion
+export const BUSCAR = gql`
+  query BuscarTransmitentes(
+    $search: String!
+    $limit: Int = 50
+  ) {
+    transmitentes(
+      filter: {
+        _or: [
+          { nombre: { ilike: $search } }
+          { apellidos: { ilike: $search } }
+          { razonSocial: { ilike: $search } }
+          { numeroIdentificacion: { contains: $search } }
+        ]
       }
-      message
+      limit: $limit
+    ) {
+      id
+      nombre
+      apellidos
+      razonSocial
+      numeroIdentificacion
+      email
+      telefono
     }
   }
 `
 
-export const ELIMINAR_TRANSMITENTE = gql`
+// ========================================
+// MUTATIONS
+// ========================================
+
+export const CREAR = gql`
+  mutation CrearTransmitente($data: TransmitenteCreateInput!) {
+    createTransmitente(data: $data) {
+      id
+      nombre
+      apellidos
+      razonSocial
+      numeroIdentificacion
+      email
+      createdAt
+    }
+  }
+`
+
+export const ACTUALIZAR = gql`
+  mutation ActualizarTransmitente($data: TransmitenteUpdateInput!) {
+    updateTransmitente(data: $data) {
+      id
+      nombre
+      apellidos
+      razonSocial
+      numeroIdentificacion
+      email
+      telefono
+      direccion
+      updatedAt
+    }
+  }
+`
+
+export const ELIMINAR = gql`
   mutation EliminarTransmitente($id: ID!) {
-    eliminarTransmitente(id: $id) {
-      success
-      message
+    deleteTransmitentes(filter: { id: { eq: $id } }) {
+      id
+      nombre
     }
   }
 `

@@ -1,14 +1,16 @@
+import { computed } from 'vue'
 import { useAgenteBase } from './useAgenteBase'
+import * as queries from '../graphql/agenciaInmobiliariaQueries.js'
 
 export function useAgenciaInmobiliaria() {
-  const base = useAgenteBase('agenciasInmobiliarias', { conContacto: true })
+  const base = useAgenteBase('agenciasInmobiliarias', queries)
 
-  const listarPorLocalidad = async (localidadId) => {
-    return base.listar({ localidadId })
-  }
+  const agenciasInmobiliarias = computed(() => base.items.value)
+  const agenciaInmobiliaria = computed(() => base.item.value)
 
   return {
     ...base,
-    listarPorLocalidad
+    agenciasInmobiliarias,
+    agenciaInmobiliaria
   }
 }
