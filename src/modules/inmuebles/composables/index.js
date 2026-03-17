@@ -1,15 +1,3 @@
 
 // modules/inmuebles/composables/index.js
 export { useInmueble } from './useInmueble.js'
-export { useInmuebleFilters } from './useInmuebleFilters.js'
-export { useInmuebleForms } from './useInmuebleForms.js'
-export { useInmuebleMapa } from './useInmuebleMapa.js'
-export { useInmuebleDenominaciones } from './useInmuebleDenominaciones.js'
-export { useInmuebleOSMExt } from './useInmuebleOSMExt.js'
-export { useInmuebleWDExt } from './useInmuebleWDExt.js'
-export { useInmuebleProteccion } from './useInmuebleProteccion.js'
-export { useInmuebleDocumentos } from './useInmuebleDocumentos.js'
-export { useInmuebleActuaciones } from './useInmuebleActuaciones.js'
-export { useInmuebleTransmisiones } from '/useInmuebleTransmisiones.js'
-export { useInmuebleEstadisticas } from './useInmuebleEstadisticas.js'
-export { useInmuebleCompleto } from './useInmuebleCompleto.js'

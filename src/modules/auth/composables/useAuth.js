@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import { useMutation, useQuery } from '@vue/apollo-composable'
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '../../core/stores/auth'
+import { useAuthStore } from '../../../stores/auth'
 import { 
   LOGIN_MUTATION, 
   LOGOUT_MUTATION, 

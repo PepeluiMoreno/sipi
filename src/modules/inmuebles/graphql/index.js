@@ -1,10 +1,2 @@
 // modules/inmuebles/graphql/index.js
 export * from './inmuebleQueries.js'
-export * from './inmuebleDenominacionQueries.js'
-export * from './inmuebleOSMExtQueries.js'
-export * from './inmuebleWDExtQueries.js'
-export * from './inmuebleProteccionQueries.js'
-export * from './inmuebleDocumentoQueries.js'
-export * from './inmuebleActuacionQueries.js'
-export * from './inmuebleTransmisionQueries.js'
-export * from './inmuebleEstadisticaQueries.js'

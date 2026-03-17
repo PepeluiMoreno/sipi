@@ -73,7 +73,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 // Importación CORREGIDA - core está dentro de modules
-import { useAuthStore } from '../stores/auth'
+import { useAuthStore } from '../../../stores/auth'
 import {
   BuildingOfficeIcon,
   HomeIcon,
