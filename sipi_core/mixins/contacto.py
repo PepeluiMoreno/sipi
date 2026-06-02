@@ -3,7 +3,7 @@ from typing import Optional
 from sqlalchemy import String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
-from mixins.direccion import DireccionMixin
+from sipi_core.mixins.direccion import DireccionMixin
 
 class ContactoMixin:
     email_personal: Mapped[Optional[str]] = mapped_column(String(255), index=True)

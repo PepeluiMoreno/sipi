@@ -14,8 +14,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.registry import Base, metadata
-from mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoMixin
+from sipi_core.db.registry import Base, metadata
+from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoMixin
 
 
 # Tabla de asociación muchos-a-muchos

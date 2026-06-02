@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, ForeignKey
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin, DocumentoMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin, DocumentoMixin
 
 if TYPE_CHECKING:
-    from models.inmuebles import Inmueble
-    from models.tipologias import TipoDocumento, TipoLicencia
-    from models.documentos import FuenteDocumental
+    from sipi_core.models.inmuebles import Inmueble
+    from sipi_core.models.tipologias import TipoDocumento, TipoLicencia
+    from sipi_core.models.documentos import FuenteDocumental
 
 
 class Documento(UUIDPKMixin, AuditMixin, DocumentoMixin, Base):

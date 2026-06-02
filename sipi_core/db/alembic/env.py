@@ -16,13 +16,13 @@ sys.path.insert(0, str(sipi_core_root))
 # ---------------------------------------------------------
 # IMPORT MODELS (CRÍTICO - registra todas las tablas en metadata)
 # ---------------------------------------------------------
-from models import *
+from sipi_core.models import *
 
 # ---------------------------------------------------------
 # IMPORT METADATA Y MANAGER
 # ---------------------------------------------------------
-from db.metadata import get_combined_metadata, ALEMBIC_SCHEMAS
-from db.sessions.manager import SyncDatabaseManager, DatabaseConfig
+from sipi_core.db.metadata import get_combined_metadata, ALEMBIC_SCHEMAS
+from sipi_core.db.sessions.manager import SyncDatabaseManager, DatabaseConfig
 
 # ---------------------------------------------------------
 # CONFIGURACIÓN ALEMBIC

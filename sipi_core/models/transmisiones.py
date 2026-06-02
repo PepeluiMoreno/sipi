@@ -6,15 +6,15 @@ from decimal import Decimal
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, Numeric, ForeignKey
 
-from mixins import UUIDPKMixin, AuditMixin
-from db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
 
 if TYPE_CHECKING:
-    from models.inmuebles import Inmueble
-    from models.notarios import Notaria
-    from models.registradores import RegistroPropiedad
-    from models.tipologias import TipoTransmision, TipoCertificacionPropiedad                     
-    from models.agencias import AgenciaInmobiliaria
+    from sipi_core.models.inmuebles import Inmueble
+    from sipi_core.models.notarios import Notaria
+    from sipi_core.models.registradores import RegistroPropiedad
+    from sipi_core.models.tipologias import TipoTransmision, TipoCertificacionPropiedad                     
+    from sipi_core.models.agencias import AgenciaInmobiliaria
 
 class Transmision(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "transmisiones"

@@ -7,20 +7,20 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, ForeignKey
 
-from db.registry import Base
-from mixins import (
+from sipi_core.db.registry import Base
+from sipi_core.mixins import (
     UUIDPKMixin,
     AuditMixin,
     IdentificacionMixin,
     ContactoDireccionMixin,
     TitularidadMixin,
 )
-from models.actores_base import TitularBase
+from sipi_core.models.actores_base import TitularBase
 
 if TYPE_CHECKING:
-    from models.geografia import Municipio
-    from models.inmuebles import Inmueble
-    from models.tipologias import TipoEntidadReligiosa
+    from sipi_core.models.geografia import Municipio
+    from sipi_core.models.inmuebles import Inmueble
+    from sipi_core.models.tipologias import TipoEntidadReligiosa
 
 
 class Diocesis(

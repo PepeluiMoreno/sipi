@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr
 from sqlalchemy.schema import ForeignKey
 
 if TYPE_CHECKING:
-    from models.users import Usuario
+    from sipi_core.models.users import Usuario
 
 class UUIDPKMixin:
     """Clave primaria UUID estándar"""

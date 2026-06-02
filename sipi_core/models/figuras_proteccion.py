@@ -6,11 +6,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, Boolean, Text, ForeignKey, Index, CheckConstraint, Enum as SQLEnum
 import strawberry
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from models.gis import ComunidadAutonoma
+    from sipi_core.models.geografia import ComunidadAutonoma
 
 @strawberry.enum
 class NivelProteccion(str, enum.Enum):

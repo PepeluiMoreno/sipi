@@ -5,16 +5,16 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, Boolean, Integer, ForeignKey
 
 
-from db.registry import Base
+from sipi_core.db.registry import Base
 
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from models.inmuebles import Inmueble, Inmatriculacion, InmuebleUso
-    from models.transmisiones import Transmision    
-    from models.tecnicos import Tecnico
-    from models.documentos import Documento     
-    from models.entidades_religiosas import EntidadReligiosa
+    from sipi_core.models.inmuebles import Inmueble, Inmatriculacion, InmuebleUso
+    from sipi_core.models.transmisiones import Transmision    
+    from sipi_core.models.tecnicos import Tecnico
+    from sipi_core.models.documentos import Documento     
+    from sipi_core.models.entidades_religiosas import EntidadReligiosa
 
 
 class  TipologiaBase(UUIDPKMixin, AuditMixin, Base):

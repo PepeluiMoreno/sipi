@@ -13,18 +13,18 @@ organized by domain and schema:
 # ============================================================================
 # BASE CLASSES (Primero siempre)
 # ============================================================================
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 # ============================================================================
 # USERS (DEBE IR PRIMERO - AuditMixin y muchos otros dependen de esto)
 # ============================================================================
-from models.users import Usuario, Rol
+from sipi_core.models.users import Usuario, Rol
 
 # ============================================================================
 # TYPOLOGIES (APP Schema - Sin dependencias de actores)
 # ============================================================================
-from models.tipologias import (
+from sipi_core.models.tipologias import (
     TipoEstadoConservacion, TipoEstadoTratamiento, TipoRolTecnico,
     TipoCertificacionPropiedad, TipoTituloPropiedad, TipoDocumento, 
     TipoInmueble, TipoMimeDocumento, TipoPersona, TipoTransmision, 
@@ -35,7 +35,7 @@ from models.tipologias import (
 # ============================================================================
 # GEOGRAPHY (APP Schema - Sin dependencias de actores)
 # ============================================================================
-from models.geografia import (
+from sipi_core.models.geografia import (
     ComunidadAutonoma, 
     Provincia, 
     Municipio
@@ -44,36 +44,36 @@ from models.geografia import (
 # ============================================================================
 # ACTORS BASE (Clases base abstractas sin dependencias)
 # ============================================================================
-from models.actores_base import PersonaMixin, TitularBase
+from sipi_core.models.actores_base import PersonaMixin, TitularBase
 
 # ============================================================================
 # ACTORS (APP Schema) - Ordenados por dependencias de Foreign Keys
 # ============================================================================
 
 # 1. Notarios (no tienen FK a otros actores)
-from models.notarios import Notaria, NotariaTitular  
+from sipi_core.models.notarios import Notaria, NotariaTitular  
 
 # 2. Registradores (no tienen FK a otros actores)
-from models.registradores import RegistroPropiedad, RegistroPropiedadTitular
+from sipi_core.models.registradores import RegistroPropiedad, RegistroPropiedadTitular
 
 # 3. Administraciones (tienen updated_by_id -> usuarios.id, ya importado arriba)
-from models.administraciones import Administracion, AdministracionTitular
+from sipi_core.models.administraciones import Administracion, AdministracionTitular
 
 # 4. Entidades Religiosas (Diocesis antes que EntidadReligiosa por FKs)
-from models.entidades_religiosas import Diocesis, DiocesisTitular
-from models.entidades_religiosas import EntidadReligiosa, EntidadReligiosaTitular
+from sipi_core.models.entidades_religiosas import Diocesis, DiocesisTitular
+from sipi_core.models.entidades_religiosas import EntidadReligiosa, EntidadReligiosaTitular
 
 # 5. Técnicos (pueden tener FK a tipologías y usuarios)
-from models.tecnicos import Tecnico, ColegioProfesional
+from sipi_core.models.tecnicos import Tecnico, ColegioProfesional
 
 # 6. Privados y Agencias (sin dependencias críticas)
-from models.privados import Privado
-from models.agencias import AgenciaInmobiliaria
+from sipi_core.models.privados import Privado
+from sipi_core.models.agencias import AgenciaInmobiliaria
 
 # ============================================================================
 # DOCUMENTS (APP Schema - Depende de actores)
 # ============================================================================
-from models.documentos import (
+from sipi_core.models.documentos import (
     Documento, 
     InmuebleDocumento
 )
@@ -81,7 +81,7 @@ from models.documentos import (
 # ============================================================================
 # PROPERTIES (APP Schema - Depende de documentos, geografía y actores)
 # ============================================================================
-from models.inmuebles import (
+from sipi_core.models.inmuebles import (
     Inmueble, 
     Inmatriculacion, 
     InmuebleDenominacion,
@@ -95,14 +95,14 @@ from models.inmuebles import (
 # ============================================================================
 # HISTORIOGRAPHY (APP Schema)
 # ============================================================================
-from models.historiografia import (
+from sipi_core.models.historiografia import (
     FuenteHistoriografica
 )
 
 # ============================================================================
 # PROTECTION FIGURES (APP Schema)
 # ============================================================================
-from models.figuras_proteccion import (
+from sipi_core.models.figuras_proteccion import (
     FiguraProteccion, 
     NivelProteccion
 )
@@ -110,7 +110,7 @@ from models.figuras_proteccion import (
 # ============================================================================
 # TRANSMISSIONS (APP Schema - Depende de inmuebles y actores)
 # ============================================================================
-from models.transmisiones import (
+from sipi_core.models.transmisiones import (
     Transmision, 
     TransmisionAnunciante
 )
@@ -118,7 +118,7 @@ from models.transmisiones import (
 # ============================================================================
 # INTERVENTIONS (APP Schema - Depende de inmuebles y técnicos)
 # ============================================================================
-from models.intervenciones import (
+from sipi_core.models.intervenciones import (
     Intervencion, 
     IntervencionTecnico
 )
@@ -126,7 +126,7 @@ from models.intervenciones import (
 # ============================================================================
 # SUBSIDIES (APP Schema - Depende de intervenciones y administraciones)
 # ============================================================================
-from models.subvenciones import (
+from sipi_core.models.subvenciones import (
     IntervencionSubvencion, 
     SubvencionAdministracion
 )
@@ -134,7 +134,7 @@ from models.subvenciones import (
 # ============================================================================
 # DISCOVERY (APP Schema)
 # ============================================================================
-from models.discovery import (
+from sipi_core.models.discovery import (
     InmuebleRaw, 
     DeteccionAnuncio
 )
@@ -142,7 +142,7 @@ from models.discovery import (
 # ============================================================================
 # OSM (GIS Schema - could be moved to geografia package)
 # ============================================================================
-from models.osm import (
+from sipi_core.models.osm import (
     OSMPlace
 )
 

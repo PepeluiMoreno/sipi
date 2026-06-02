@@ -19,11 +19,11 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from geoalchemy2 import Geometry
 
-from db.registry import Base
-from mixins import AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import AuditMixin
 
 if TYPE_CHECKING:
-    from models.inmuebles import Inmueble
+    from sipi_core.models.inmuebles import Inmueble
 
 
 class InmuebleRaw(Base, AuditMixin):

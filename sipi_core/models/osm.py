@@ -5,8 +5,8 @@ from sqlalchemy import String, Integer, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from geoalchemy2 import Geometry
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 class OSMPlace(UUIDPKMixin, AuditMixin, Base):
     """

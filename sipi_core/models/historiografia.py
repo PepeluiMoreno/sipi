@@ -4,11 +4,11 @@ from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, Boolean
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from models.inmuebles import InmuebleCita
+    from sipi_core.models.inmuebles import InmuebleCita
 
 
 class FuenteHistoriografica(UUIDPKMixin, AuditMixin, Base):
