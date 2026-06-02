@@ -5,3 +5,11 @@ env/
 # virtual environment
 venv/
  
+# Variables de entorno (usar .env.example como plantilla)
+.env
+.env.*
+!.env.example
+
+# Ficheros temporales / copias
+*.bak
+*.kk
