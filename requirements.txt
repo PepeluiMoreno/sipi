@@ -29,3 +29,9 @@ osmnx[all]~=2.0.7
 pydantic~=2.9.2
 pydantic-core~=2.23.2
 httpx[http2]~=0.24.1
+# Núcleo de dominio compartido (modelos SQLAlchemy). Ver docs/CONSOLIDACION_MODELOS.md
+# Descomentar tras mergear sipi-core@refactor/paquete-instalable y elegir estrategia de esquema.
+# Producción (fijar a un tag/commit cuando exista):
+# sipi-core @ git+https://github.com/PepeluiMoreno/sipi-core.git@main
+# Desarrollo local:
+# -e ../sipi-core
