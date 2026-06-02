@@ -79,3 +79,7 @@ Thumbs.db
 
 # Proyecto específico - Excluir carpeta ETL/preparacion
 ETL/preparacion/
+# Ficheros temporales / copias
+*.bak
+*.kk
+"* copy.py"
