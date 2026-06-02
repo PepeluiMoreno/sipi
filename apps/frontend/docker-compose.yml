@@ -1,0 +1,20 @@
+services:
+  sipi-frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: sipi-frontend-dev
+    ports:
+      - "5173:5173"
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=100
+    # Ejecuta como el usuario node (UID 1000)
+   
+
+volumes:
+  node_modules:

@@ -1,0 +1,198 @@
+.
+├── App.vue
+├── index.css
+├── main.js
+├── modules
+│   ├── agentes
+│   │   ├── composables
+│   │   │   ├── index.js
+│   │   │   ├── useAdministracion.js
+│   │   │   ├── useAdministracionTitular.js
+│   │   │   ├── useAdquiriente.js
+│   │   │   ├── useAgenciaInmobiliaria.js
+│   │   │   ├── useAgenteBase.js
+│   │   │   ├── useColegioProfesional.js
+│   │   │   ├── useDiocesis.js
+│   │   │   ├── useDiocesisTitular.js
+│   │   │   ├── useNotaria.js
+│   │   │   ├── useNotariaTitular.js
+│   │   │   ├── useRegistroPropiedad.js
+│   │   │   ├── useRegistroPropiedadTitular.js
+│   │   │   ├── useTecnico.js
+│   │   │   └── useTransmitente.js
+│   │   └── graphql
+│   │       ├── administracionQueries.js
+│   │       ├── administracionTitularQueries.js
+│   │       ├── adquirienteQueries.js
+│   │       ├── agenciaInmobiliariaQueries.js
+│   │       ├── colegioProfesionalQueries.js
+│   │       ├── diocesisQueries.js
+│   │       ├── diocesisTitularQueries.js
+│   │       ├── notariaQueries.js
+│   │       ├── notariaTitularQueries.js
+│   │       ├── registroPropiedadQueries.js
+│   │       ├── registroPropiedadTitularQueries.js
+│   │       ├── tecnicoQueries.js
+│   │       └── transmitenteQueries.js
+│   ├── auth
+│   │   ├── components
+│   │   │   ├── ForgotPasswordModal.vue
+│   │   │   └── RegisterModal.vue
+│   │   ├── composables
+│   │   │   ├── index.js
+│   │   │   └── useAuth.js
+│   │   ├── graphql
+│   │   │   ├── authQueries.js
+│   │   │   └── index.js
+│   │   └── views
+│   │       ├── ForgotPassword.vue
+│   │       ├── Login.vue
+│   │       └── ResetPassword.vue
+│   ├── catalogos
+│   │   ├── components
+│   │   │   ├── CatalogoManager.vue
+│   │   │   ├── ConfigCatalogs.vue
+│   │   │   └── Config.vue
+│   │   ├── composables
+│   │   │   ├── index.js
+│   │   │   ├── useCatalgs,.js
+│   │   │   ├── useCatalogoBase.js
+│   │   │   ├── useCatalogoGenerico.js
+│   │   │   ├── useEstadoConservacion.js
+│   │   │   ├── useEstadoTratamiento.js
+│   │   │   ├── useFiguraProteccion.js
+│   │   │   ├── useFuenteDocumental.js
+│   │   │   ├── useRolTecnico.js
+│   │   │   ├── useTipoCertificacionPropiedad.js
+│   │   │   ├── useTipoDocumento.js
+│   │   │   ├── useTipoInmueble.js
+│   │   │   ├── useTipoLicencia.js
+│   │   │   ├── useTipoMimeDocumento.js
+│   │   │   ├── useTipoPersona.js
+│   │   │   ├── useTipoTransmision.js
+│   │   │   └── useTipoVia.js
+│   │   ├── graphql
+│   │   │   ├── catalogoBaseQueries.js
+│   │   │   ├── estadoConservacionQueries.js
+│   │   │   ├── estadoTratamientoQueries.js
+│   │   │   ├── figuraProteccionQueries.js
+│   │   │   ├── fuenteDocumentalQueries.js
+│   │   │   ├── rolTecnicoQueries.js
+│   │   │   ├── tipoCertificacionPropiedadQueries.js
+│   │   │   ├── tipoDocumentoQueries.js
+│   │   │   ├── tipoInmuebleQueries.js
+│   │   │   ├── tipoLicenciaQueries.js
+│   │   │   ├── tipoMimeDocumentoQueries.js
+│   │   │   ├── tipoPersonaQueries.js
+│   │   │   ├── tipoTransmisionQueries.js
+│   │   │   └── tipoViaQueries.js
+│   │   └── views
+│   │       ├── ConfigCatalogos.vue
+│   │       └── Config.vue
+│   ├── core
+│   │   ├── assets
+│   │   │   └── vue.svg
+│   │   ├── components
+│   │   │   └── DashboardHeader.vue
+│   │   ├── layouts
+│   │   │   └── DashboardLayout.vue
+│   │   ├── router
+│   │   │   └── index.js
+│   │   ├── stores
+│   │   │   └── auth.js
+│   │   └── views
+│   │       ├── Dashboard.vue
+│   │       └── NotFound.vue
+│   ├── documentos
+│   │   ├── components
+│   │   │   ├── Docunentos.vue
+│   │   │   ├── FuenteDocumentalForm.vue
+│   │   │   └── TipoLicenciaForm.vue
+│   │   ├── composables
+│   │   │   ├── index.js
+│   │   │   ├── useDocumentoActuacion.js
+│   │   │   ├── useDocumentoInmueble.js
+│   │   │   ├── useDocumento.js
+│   │   │   └── useDocumentoTransmision.js
+│   │   ├── graphql
+│   │   │   ├── documentoActuacionQueries.js
+│   │   │   ├── documentoInmuebleQueries.js
+│   │   │   ├── documentoQueries.js
+│   │   │   └── documentoTransmisionQueries.js
+│   │   └── views
+│   │       ├── ConfigDocumentos.vue
+│   │       ├── DocumentosActuacion.vue
+│   │       ├── DocumentosInmueble.vue
+│   │       ├── DocumentosTransmision.vue
+│   │       ├── Documentos.vue
+│   │       └── GestionDocumentos.vue
+│   ├── inmuebles
+│   │   ├── components
+│   │   │   ├── InmuebleCard.vue
+│   │   │   ├── InmuebleDataGrid.vue
+│   │   │   ├── InmuebleFiltros.vue
+│   │   │   ├── InmuebleFormularioActuaciones.vue
+│   │   │   ├── InmuebleFormularioBasicos.vue
+│   │   │   ├── InmuebleFormularioInmatriculacion.vue
+│   │   │   ├── InmuebleFormularioOSM.vue
+│   │   │   ├── InmuebleFormularioTransmisiones.vue
+│   │   │   ├── InmuebleFormulario.vue
+│   │   │   ├── InmuebleFormularioWikidata.vue
+│   │   │   ├── InmuebleListaModal.vue
+│   │   │   ├── InmuebleMapa.vue
+│   │   │   └── ModalMapa.vue
+│   │   ├── composables
+│   │   │   ├── index.js
+│   │   │   ├── useInmuebleDenominacion.js
+│   │   │   ├── useInmueble.js
+│   │   │   ├── useInmuebleOSMExt.js
+│   │   │   └── useInmuebleWDExt.js
+│   │   ├── graphql
+│   │   │   ├── inmuebleDenominacionQueries.js
+│   │   │   ├── inmuebleOSMExtQueries.js
+│   │   │   ├── inmuebleQueries.js
+│   │   │   └── inmuebleWDExtQueries.js
+│   │   └── views
+│   │       └── InmuebleTratamiento.vue
+│   ├── transmisiones
+│   │   ├── composables
+│   │   │   ├── index.js
+│   │   │   ├── useInmatriculacion.js
+│   │   │   ├── useTransmisionAnunciante.js
+│   │   │   └── useTransmision.js
+│   │   └── graphql
+│   │       ├── inmatriculacionQueries.js
+│   │       ├── transmisionAnuncianteQueries.js
+│   │       └── transmisionQueries.js
+│   └── usuarios
+│       ├── components
+│       │   ├── AsignacionRolesModal.vue
+│       │   ├── DeleteConfirmationModal.vue
+│       │   ├── PhotoUploadModal.vue
+│       │   ├── RoleDetalles.vue
+│       │   ├── RoleFormModal.vue
+│       │   ├── RoleForm.vue
+│       │   ├── RolesList.vue
+│       │   ├── UsuarioCard.vue
+│       │   ├── UsuarioDetalles.vue
+│       │   ├── UsuarioDetalle.vue
+│       │   ├── UsuarioFormModal.vue
+│       │   ├── UsuarioForm.vue
+│       │   ├── UsuarioPhotoModal.vue
+│       │   ├── UsuariosSidebar.vue
+│       │   └── VerificacionPageModal.vue
+│       ├── composables
+│       │   ├── index.js
+│       │   ├── useRoles.js
+│       │   └── useUsuarios.js
+│       ├── graphql
+│       │   ├── index.js
+│       │   ├── rolQueries.js
+│       │   └── usuarioQueries.js
+│       └── views
+│           ├── ConfigUsuarios.vue
+│           └── VerificarEmail.vue
+├── style.css
+└── tree.txt
+
+40 directories, 156 files

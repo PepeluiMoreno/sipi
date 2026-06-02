@@ -1,0 +1,33 @@
+.
+├── components
+│   ├── AsignacionRolesModal.vue
+│   ├── DeleteConfirmationModal.vue
+│   ├── PhotoUploadModal.vue
+│   ├── RoleDetalles.vue
+│   ├── RoleFormModal.vue
+│   ├── RoleForm.vue
+│   ├── RolesList.vue
+│   ├── UsuarioCard.vue
+│   ├── UsuarioDetalles.vue
+│   ├── UsuarioDetalle.vue
+│   ├── UsuarioFormModal.vue
+│   ├── UsuarioForm.vue
+│   ├── UsuarioPhotoModal.vue
+│   ├── UsuariosSidebar.vue
+│   └── VerificacionPageModal.vue
+├── composables
+│   ├── index.js
+│   ├── useRoles.js
+│   └── useUsuarios.js
+├── graphql
+│   ├── index.js
+│   ├── rolQueries.js
+│   └── usuarioQueries.js
+├── mocks
+│   └── usuariosMocks,js
+├── subtree_usuarios.txt
+└── views
+    ├── ConfigUsuarios.vue
+    └── VerificarEmail.vue
+
+6 directories, 25 files

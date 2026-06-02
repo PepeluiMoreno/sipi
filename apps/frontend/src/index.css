@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .icon-lg {
+    @apply w-10 h-10;
+  }
+  .icon-sm {
+    @apply w-4 h-4;
+  }
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 antialiased;
+}

@@ -1,0 +1,7 @@
+services:
+  nginx:
+    build: .
+    container_name: sipi-frontend-nginx
+    ports:
+      - "8001:80"
+    restart: unless-stopped

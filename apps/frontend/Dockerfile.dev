@@ -1,0 +1,22 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# PASO 1: Crea directorio con permisos correctos ANTES de copiar
+RUN mkdir -p /app/node_modules && chown -R node:node /app
+
+# PASO 2: Cambia al usuario node ANTES de instalar
+USER node
+
+# PASO 3: Copia package files COMO node (así los crea con owner correcto)
+COPY --chown=node:node package*.json ./
+
+# PASO 4: Instala dependencias (ahora como node, sin conflictos)
+RUN npm ci
+
+# PASO 5: Copia código fuente (también como node)
+COPY --chown=node:node . .
+
+EXPOSE 5173
+
+CMD ["npm", "run", "dev"]
