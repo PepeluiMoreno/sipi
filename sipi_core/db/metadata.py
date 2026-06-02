@@ -2,7 +2,7 @@
 
 import os
 from sqlalchemy import MetaData
-from db.registry import Base, APP_SCHEMA, GIS_SCHEMA
+from sipi_core.db.registry import Base, APP_SCHEMA, GIS_SCHEMA
 
 # Schemas que Alembic debe gestionar (desde variable de entorno)
 # Ejemplo: DEFINED_SCHEMAS=app → solo gestiona app

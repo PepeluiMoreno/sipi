@@ -4,13 +4,13 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin, ContactoDireccionMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin, ContactoDireccionMixin
 from .actores_base import TitularBase
 
 if TYPE_CHECKING:
-    from models.geografia import Municipio
-    from models.transmisiones import Transmision
+    from sipi_core.models.geografia import Municipio
+    from sipi_core.models.transmisiones import Transmision
 
 class Notaria(UUIDPKMixin, AuditMixin, ContactoDireccionMixin, Base):
     __tablename__ = "notarias"

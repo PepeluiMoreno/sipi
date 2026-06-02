@@ -5,12 +5,12 @@ from decimal import Decimal
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, Numeric, ForeignKey
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from models.intervenciones import Intervencion
-    from models.administraciones import Administracion
+    from sipi_core.models.intervenciones import Intervencion
+    from sipi_core.models.administraciones import Administracion
 
 
 class IntervencionSubvencion(UUIDPKMixin, AuditMixin, Base):

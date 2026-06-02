@@ -8,8 +8,8 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.registry import Base
-from mixins import (
+from sipi_core.db.registry import Base
+from sipi_core.mixins import (
     UUIDPKMixin,
     AuditMixin,
     ContactoDireccionMixin,
@@ -18,8 +18,8 @@ from mixins import (
 from .actores_base import TitularBase
 
 if TYPE_CHECKING:
-    from models.geografia import ComunidadAutonoma, Provincia, Municipio
-    from models.subvenciones import SubvencionAdministracion
+    from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
+    from sipi_core.models.subvenciones import SubvencionAdministracion
 
 class Administracion(
     UUIDPKMixin,

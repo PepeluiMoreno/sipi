@@ -6,8 +6,8 @@ from decimal import Decimal
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, ForeignKey, Numeric
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 class Intervencion(UUIDPKMixin, AuditMixin, Base):
     """Intervenciones arquitectónicas realizadas sobre un inmueble"""

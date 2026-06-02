@@ -4,14 +4,14 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin, TitularidadMixin
-from models.actores_base import TitularBase
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin, TitularidadMixin
+from sipi_core.models.actores_base import TitularBase
 
 if TYPE_CHECKING:
-    from models.geografia import Municipio
-    from models.inmuebles import Inmatriculacion
-    from models.transmisiones import Transmision
+    from sipi_core.models.geografia import Municipio
+    from sipi_core.models.inmuebles import Inmatriculacion
+    from sipi_core.models.transmisiones import Transmision
 
 class RegistroPropiedad(
     UUIDPKMixin,

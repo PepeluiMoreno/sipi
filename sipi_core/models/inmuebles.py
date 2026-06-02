@@ -6,23 +6,23 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, Numeric, Boolean, ForeignKey
 from geoalchemy2 import Geometry
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:   
-    from models.geografia import ComunidadAutonoma, Provincia, Municipio
-    from models.tipologias import (
+    from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
+    from sipi_core.models.tipologias import (
         TipoInmueble,
         TipoEstadoConservacion,
         TipoEstadoTratamiento,
     )
-    from models.entidades_religiosas import Diocesis, EntidadReligiosa
-    from models.documentos import InmuebleDocumento
-    from models.transmisiones import Transmision
-    from models.intervenciones import Intervencion
-    from models.historiografia import InmuebleCita
+    from sipi_core.models.entidades_religiosas import Diocesis, EntidadReligiosa
+    from sipi_core.models.documentos import InmuebleDocumento
+    from sipi_core.models.transmisiones import Transmision
+    from sipi_core.models.intervenciones import Intervencion
+    from sipi_core.models.historiografia import InmuebleCita
     from registradores import RegistroPropiedad
-    from models.tipologias import TipoCertificacionPropiedad
+    from sipi_core.models.tipologias import TipoCertificacionPropiedad
 
 class Inmueble(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "inmuebles"

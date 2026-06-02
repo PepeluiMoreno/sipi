@@ -2,24 +2,24 @@
 
 from __future__ import annotations
 from typing import Optional, TYPE_CHECKING
-from models.administraciones import Administracion
+from sipi_core.models.administraciones import Administracion
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, ForeignKey, Index
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 #from models import Inmueble, FiguraProteccion, Administracion
 
 if TYPE_CHECKING:
-    from models.inmuebles import Inmueble
-    from models.figuras_proteccion import FiguraProteccion
-    from models.administraciones import Administracion
-    from models.privados import Privado
-    from models.tecnicos import Tecnico
+    from sipi_core.models.inmuebles import Inmueble
+    from sipi_core.models.figuras_proteccion import FiguraProteccion
+    from sipi_core.models.administraciones import Administracion
+    from sipi_core.models.privados import Privado
+    from sipi_core.models.tecnicos import Tecnico
     from notarios import Notaria
     from registradores import RegistroPropiedad, ColegioProfesional
-    from models.privados  import AgenciaInmobiliaria
-    from models.entidades_religiosas import Diocesis, EntidadReligiosa
+    from sipi_core.models.privados  import AgenciaInmobiliaria
+    from sipi_core.models.entidades_religiosas import Diocesis, EntidadReligiosa
   
 
 class ComunidadAutonoma(UUIDPKMixin, AuditMixin, Base):

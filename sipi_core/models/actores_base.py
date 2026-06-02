@@ -12,8 +12,8 @@ from typing import Optional
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, ForeignKey
 
-from db.registry import Base
-from mixins import (
+from sipi_core.db.registry import Base
+from sipi_core.mixins import (
     UUIDPKMixin, 
     AuditMixin, 
     IdentificacionMixin
