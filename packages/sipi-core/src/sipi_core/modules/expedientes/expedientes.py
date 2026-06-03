@@ -15,7 +15,8 @@ import enum
 from datetime import datetime, date
 from typing import TYPE_CHECKING, Optional
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Text, ForeignKey, Date, DateTime, Index, Enum as SQLEnum
+from decimal import Decimal
+from sqlalchemy import String, Text, Numeric, ForeignKey, Date, DateTime, Index, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
 import strawberry
 
@@ -66,6 +67,18 @@ class EstadoExpediente(str, enum.Enum):
     DESCARTADO = "descartado"    # rechazado en la validación
 
 
+@strawberry.enum
+class CertezaHallazgo(str, enum.Enum):
+    """Confianza del hallazgo (independiente del estado de workflow). Ver §2bis del diseño.
+
+    Resultado de la valoración (scoring) del pipeline de descubrimiento:
+    - CIERTO: alta confianza → auto-ratificable según política (umbral en configuracion).
+    - DUDOSO: baja confianza → cola de validación humana.
+    """
+    CIERTO = "cierto"
+    DUDOSO = "dudoso"
+
+
 class Expediente(UUIDPKMixin, AuditMixin, Base):
     """
     Expediente/bitácora: un evento del ciclo de vida de un inmueble con flujo de
@@ -104,6 +117,16 @@ class Expediente(UUIDPKMixin, AuditMixin, Base):
         index=True,
         nullable=False,
     )
+
+    # --- Confianza del hallazgo (independiente del workflow; ver §2bis) ---
+    certeza: Mapped[Optional[CertezaHallazgo]] = mapped_column(
+        SQLEnum(CertezaHallazgo, name="certeza_hallazgo",
+                values_callable=lambda x: [e.value for e in x]),
+        index=True, nullable=True,
+        comment="Resultado del scoring: CIERTO (auto-ratificable) | DUDOSO (validación humana)",
+    )
+    confianza: Mapped[Optional[Decimal]] = mapped_column(
+        Numeric(4, 3), comment="Puntuación de confianza 0.000–1.000 (scoring)")
 
     titulo: Mapped[Optional[str]] = mapped_column(String(255))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)

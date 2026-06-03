@@ -37,6 +37,13 @@ from sipi_core.modules.configuracion.configuracion import (
 )
 
 # ============================================================================
+# COMUNICACION (notificaciones de dominio)
+# ============================================================================
+from sipi_core.modules.comunicacion.notificacion import (
+    TipoNotificacion, Notificacion, PrioridadNotif,
+)
+
+# ============================================================================
 # TYPOLOGIES (APP Schema - Sin dependencias de actores)
 # ============================================================================
 from sipi_core.modules.catalogos.tipologias import (
@@ -158,6 +165,7 @@ from sipi_core.modules.expedientes.expedientes import (
     GeoQuality,
     TipoEventoExpediente,
     EstadoExpediente,
+    CertezaHallazgo,
 )
 
 # ============================================================================
@@ -199,6 +207,9 @@ __all__ = [
 
     # Configuración
     'Configuracion', 'HistorialConfiguracion', 'TipoDato', 'AmbitoConfig',
+
+    # Comunicación
+    'TipoNotificacion', 'Notificacion', 'PrioridadNotif',
 
     # Typologies
     'TipoEstadoConservacion', 'TipoEstadoTratamiento', 'TipoRolTecnico',
@@ -260,7 +271,7 @@ __all__ = [
     
     # Expedientes (ciclo de vida)
     'Expediente', 'EstadoCicloVida', 'GeoQuality',
-    'TipoEventoExpediente', 'EstadoExpediente',
+    'TipoEventoExpediente', 'EstadoExpediente', 'CertezaHallazgo',
 
     # Discovery
     'InmuebleRaw', 'DeteccionAnuncio',
