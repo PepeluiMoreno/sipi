@@ -19,7 +19,15 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin
 # ============================================================================
 # USERS (DEBE IR PRIMERO - AuditMixin y muchos otros dependen de esto)
 # ============================================================================
-from sipi_core.modules.usuarios.users import Usuario, Rol
+from sipi_core.modules.usuarios.users import Usuario, Rol, TipoRol
+
+# ============================================================================
+# ACCESO (RBAC: permisos por transacción) — depende de usuarios/roles
+# ============================================================================
+from sipi_core.modules.acceso.transaccion import Transaccion, TipoTransaccion
+from sipi_core.modules.acceso.funcionalidad import Funcionalidad, FuncionalidadTransaccion
+from sipi_core.modules.acceso.permisos import RolTransaccion, RolFuncionalidad
+from sipi_core.modules.acceso.auditoria import AuditoriaAcceso
 
 # ============================================================================
 # TYPOLOGIES (APP Schema - Sin dependencias de actores)
@@ -176,7 +184,11 @@ __all__ = [
     'UUIDPKMixin', 'AuditMixin',
 
     # User
-    'Usuario', 'Rol',
+    'Usuario', 'Rol', 'TipoRol',
+
+    # Acceso (RBAC)
+    'Transaccion', 'TipoTransaccion', 'Funcionalidad', 'FuncionalidadTransaccion',
+    'RolTransaccion', 'RolFuncionalidad', 'AuditoriaAcceso',
 
     # Typologies
     'TipoEstadoConservacion', 'TipoEstadoTratamiento', 'TipoRolTecnico',
