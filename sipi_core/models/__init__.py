@@ -135,10 +135,21 @@ from sipi_core.models.subvenciones import (
 )
 
 # ============================================================================
+# EXPEDIENTES (APP Schema - ciclo de vida del inmueble + validación)
+# ============================================================================
+from sipi_core.models.expedientes import (
+    Expediente,
+    EstadoCicloVida,
+    GeoQuality,
+    TipoEventoExpediente,
+    EstadoExpediente,
+)
+
+# ============================================================================
 # DISCOVERY (APP Schema)
 # ============================================================================
 from sipi_core.models.discovery import (
-    InmuebleRaw, 
+    InmuebleRaw,
     DeteccionAnuncio
 )
 
@@ -225,6 +236,10 @@ __all__ = [
     # Subsidies
     'IntervencionSubvencion', 'SubvencionAdministracion',
     
+    # Expedientes (ciclo de vida)
+    'Expediente', 'EstadoCicloVida', 'GeoQuality',
+    'TipoEventoExpediente', 'EstadoExpediente',
+
     # Discovery
     'InmuebleRaw', 'DeteccionAnuncio',
     

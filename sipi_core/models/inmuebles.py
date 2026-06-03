@@ -3,13 +3,15 @@ from datetime import datetime, date
 from typing import Optional, List, TYPE_CHECKING
 from decimal import Decimal
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Text, Numeric, Boolean, ForeignKey, Integer
+from sqlalchemy import String, Text, Numeric, Boolean, ForeignKey, Integer, Enum as SQLEnum
 from geoalchemy2 import Geometry
 
 from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
+from sipi_core.models.expedientes import EstadoCicloVida, GeoQuality
 
-if TYPE_CHECKING:   
+if TYPE_CHECKING:
+    from sipi_core.models.expedientes import Expediente
     from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
     from sipi_core.models.tipologias import (
         TipoInmueble,
@@ -73,8 +75,26 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     
     en_venta: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    
+
+    # --- Ciclo de vida (gestionado vía Expediente) ---
+    estado_ciclo_vida: Mapped[EstadoCicloVida] = mapped_column(
+        SQLEnum(EstadoCicloVida, name="estado_ciclo_vida",
+                values_callable=lambda x: [e.value for e in x]),
+        default=EstadoCicloVida.INMATRICULADO, index=True, nullable=False,
+    )
+    geo_quality: Mapped[GeoQuality] = mapped_column(
+        SQLEnum(GeoQuality, name="geo_quality",
+                values_callable=lambda x: [e.value for e in x]),
+        default=GeoQuality.MISSING, index=True, nullable=False,
+    )
+
     # Relaciones
+    # Bitácora de ciclo de vida (eventos detectados/ratificados)
+    expedientes: Mapped[List["Expediente"]] = relationship(
+        "Expediente", back_populates="inmueble",
+        foreign_keys="Expediente.inmueble_id",
+        cascade="all, delete-orphan",
+    )
     # Auto-relación para dependencias complementarias
     inmueble_principal: Mapped[Optional["Inmueble"]] = relationship(
         "Inmueble",
