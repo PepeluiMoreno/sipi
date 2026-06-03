@@ -8,12 +8,12 @@ from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, Integer, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.registry import Base, APP_SCHEMA
-from mixins import UUIDPKMixin, AuditMixin, ContactoDireccionMixin
+from sipi_core.db.registry import Base, APP_SCHEMA
+from sipi_core.mixins import UUIDPKMixin, AuditMixin, ContactoDireccionMixin
 
 if TYPE_CHECKING:
-    from models.geografia import Municipio, Provincia
-    from models.transmisiones import TransmisionAnunciante
+    from sipi_core.models.geografia import Municipio, Provincia
+    from sipi_core.models.transmisiones import TransmisionAnunciante
 
 
 class AgenciaInmobiliaria(UUIDPKMixin, AuditMixin, ContactoDireccionMixin, Base):

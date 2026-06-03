@@ -43,7 +43,7 @@ class DatabaseConfig:
     @staticmethod
     def get_defined_schemas() -> list[str]:
         """Obtiene la lista de schemas definidos"""
-        from db.metadata import APP_SCHEMA, GIS_SCHEMA
+        from sipi_core.db.metadata import APP_SCHEMA, GIS_SCHEMA
         schemas = os.getenv("DEFINED_SCHEMAS", f"{APP_SCHEMA},{GIS_SCHEMA}")
         return schemas.split(",")
 

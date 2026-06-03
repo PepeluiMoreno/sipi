@@ -138,3 +138,10 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# Variantes de entorno por nombre (mantener solo las plantillas .example)
+.env.*
+!.env.*.example
+
+# Configuracion local de herramientas de agente
+.claude/settings.local.json

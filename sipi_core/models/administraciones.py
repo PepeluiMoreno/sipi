@@ -8,8 +8,8 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, Boolean, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.registry import Base
-from mixins import (
+from sipi_core.db.registry import Base, APP_SCHEMA
+from sipi_core.mixins import (
     UUIDPKMixin,
     AuditMixin,
     ContactoDireccionMixin,
@@ -18,8 +18,8 @@ from mixins import (
 from .actores_base import TitularBase
 
 if TYPE_CHECKING:
-    from models.geografia import ComunidadAutonoma, Provincia, Municipio
-    from models.subvenciones import SubvencionAdministracion
+    from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
+    from sipi_core.models.subvenciones import SubvencionAdministracion
 
 class Administracion(
     UUIDPKMixin,
@@ -29,7 +29,7 @@ class Administracion(
     Base,
 ):
     __tablename__ = "administraciones"
-    __table_args__ = {"schema": "app"}  
+    __table_args__ = {"schema": APP_SCHEMA}  
 
     nombre: Mapped[str] = mapped_column(String(255), index=True)
     codigo_oficial: Mapped[Optional[str]] = mapped_column(
@@ -40,7 +40,7 @@ class Administracion(
     # Auto-referencia: usar schema explícito
     administracion_padre_id: Mapped[Optional[str]] = mapped_column(
         String(36),
-        ForeignKey("app.administraciones.id"),  # Schema explícito
+        ForeignKey(f"{APP_SCHEMA}.administraciones.id"),  # Schema explícito
         index=True,
     )
     
@@ -84,8 +84,8 @@ class Administracion(
 
     administracion_padre: Mapped[Optional["Administracion"]] = relationship(
         "Administracion",
-        remote_side="Administracion.id",
-        foreign_keys=[administracion_padre_id],
+        remote_side="[Administracion.id]",
+        foreign_keys="[Administracion.administracion_padre_id]",
         back_populates="subadministraciones",
     )
     subadministraciones: Mapped[list["Administracion"]] = relationship(
@@ -113,7 +113,7 @@ class AdministracionTitular(TitularBase, ContactoDireccionMixin, Base):
 
     administracion_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("app.administraciones.id"),
+        ForeignKey(f"{APP_SCHEMA}.administraciones.id"),
         index=True,
     )
 

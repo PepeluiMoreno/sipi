@@ -1,28 +1,31 @@
 from __future__ import annotations
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List, TYPE_CHECKING
 from decimal import Decimal
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy import String, Text, Numeric, Boolean, ForeignKey
+from sqlalchemy import String, Text, Numeric, Boolean, ForeignKey, Integer, Enum as SQLEnum
 from geoalchemy2 import Geometry
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.db.registry import Base, APP_SCHEMA
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
+from sipi_core.models.expedientes import EstadoCicloVida, GeoQuality
 
-if TYPE_CHECKING:   
-    from models.geografia import ComunidadAutonoma, Provincia, Municipio
-    from models.tipologias import (
+if TYPE_CHECKING:
+    from sipi_core.models.expedientes import Expediente
+    from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
+    from sipi_core.models.tipologias import (
         TipoInmueble,
         TipoEstadoConservacion,
         TipoEstadoTratamiento,
+        EstiloArquitectonico,
     )
-    from models.entidades_religiosas import Diocesis, EntidadReligiosa
-    from models.documentos import InmuebleDocumento
-    from models.transmisiones import Transmision
-    from models.intervenciones import Intervencion
-    from models.historiografia import InmuebleCita
-    from registradores import RegistroPropiedad
-    from models.tipologias import TipoCertificacionPropiedad
+    from sipi_core.models.entidades_religiosas import Diocesis, EntidadReligiosa, Sede
+    from sipi_core.models.documentos import InmuebleDocumento
+    from sipi_core.models.transmisiones import Transmision
+    from sipi_core.models.intervenciones import Intervencion
+    from sipi_core.models.historiografia import InmuebleCita
+    from sipi_core.models.registradores import RegistroPropiedad
+    from sipi_core.models.tipologias import TipoCertificacionPropiedad
 
 class Inmueble(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "inmuebles"
@@ -36,22 +39,23 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     enlace_web_visitas: Mapped[Optional[str]] = mapped_column(String(500))
 
     # --- Dependencias Complementarias (Auto-relación) ---
-    inmueble_principal_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
+    inmueble_principal_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
 
-    comunidad_autonoma_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.comunidades_autonomas.id"), index=True)
-    provincia_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.provincias.id"), index=True)
-    municipio_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.municipios.id"), index=True)
+    comunidad_autonoma_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.comunidades_autonomas.id"), index=True)
+    provincia_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.provincias.id"), index=True)
+    municipio_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), index=True)
     direccion: Mapped[Optional[str]] = mapped_column(String(500))
     coordenadas: Mapped[Optional[Geometry]] = mapped_column(Geometry(geometry_type='POINT', srid=4326))
     
-    tipo_inmueble_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.tipos_inmueble.id"), index=True)
+    tipo_inmueble_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_inmueble.id"), index=True)
     # figura_proteccion_id: Deprecado - usar InmuebleNivelProteccion
-    estado_conservacion_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.estados_conservacion.id"), index=True)
-    estado_tratamiento_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.estados_tratamiento.id"), index=True)
+    estado_conservacion_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.estados_conservacion.id"), index=True)
+    estado_tratamiento_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.estados_tratamiento.id"), index=True)
+    estilo_arquitectonico_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.estilos_arquitectonicos.id"), index=True)
 
     # --- Relaciones Eclesiásticas ---
-    diocesis_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.diocesis.id"), index=True)  # Demarcación geográfica
-    entidad_religiosa_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.entidades_religiosas.id"), index=True)  # Gestor/Custodio
+    diocesis_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.diocesis.id"), index=True)  # Demarcación geográfica
+    entidad_religiosa_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.entidades_religiosas.id"), index=True)  # Gestor/Custodio
 
     # --- Propietario actual (polimórfico) ---
     propietario_tipo_actor: Mapped[Optional[str]] = mapped_column(String(50), index=True)  # Código TipoActor
@@ -71,8 +75,26 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     
     en_venta: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
-    
+
+    # --- Ciclo de vida (gestionado vía Expediente) ---
+    estado_ciclo_vida: Mapped[EstadoCicloVida] = mapped_column(
+        SQLEnum(EstadoCicloVida, name="estado_ciclo_vida",
+                values_callable=lambda x: [e.value for e in x]),
+        default=EstadoCicloVida.INMATRICULADO, index=True, nullable=False,
+    )
+    geo_quality: Mapped[GeoQuality] = mapped_column(
+        SQLEnum(GeoQuality, name="geo_quality",
+                values_callable=lambda x: [e.value for e in x]),
+        default=GeoQuality.MISSING, index=True, nullable=False,
+    )
+
     # Relaciones
+    # Bitácora de ciclo de vida (eventos detectados/ratificados)
+    expedientes: Mapped[List["Expediente"]] = relationship(
+        "Expediente", back_populates="inmueble",
+        foreign_keys="Expediente.inmueble_id",
+        cascade="all, delete-orphan",
+    )
     # Auto-relación para dependencias complementarias
     inmueble_principal: Mapped[Optional["Inmueble"]] = relationship(
         "Inmueble",
@@ -97,10 +119,12 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     # figura_proteccion: Deprecado - usar niveles_proteccion
     estado_conservacion: Mapped[Optional["TipoEstadoConservacion"]] = relationship("TipoEstadoConservacion", back_populates="inmuebles")
     estado_tratamiento: Mapped[Optional["TipoEstadoTratamiento"]] = relationship("TipoEstadoTratamiento", back_populates="inmuebles")
+    estilo_arquitectonico: Mapped[Optional["EstiloArquitectonico"]] = relationship("EstiloArquitectonico", back_populates="inmuebles")
 
     # Relaciones eclesiásticas (geográfica y funcional)
     diocesis: Mapped[Optional["Diocesis"]] = relationship("Diocesis", back_populates="inmuebles")
     entidad_religiosa: Mapped[Optional["EntidadReligiosa"]] = relationship("EntidadReligiosa", back_populates="inmuebles")
+    sedes: Mapped[List["Sede"]] = relationship("Sede", back_populates="inmueble", cascade="all, delete-orphan")
 
     # Relaciones agregadas
     denominaciones: Mapped[List["InmuebleDenominacion"]] = relationship("InmuebleDenominacion", back_populates="inmueble", cascade="all, delete-orphan")
@@ -111,6 +135,9 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
 
     # Documentos
     documentos: Mapped[List["InmuebleDocumento"]] = relationship("InmuebleDocumento", back_populates="inmueble", cascade="all, delete-orphan")
+
+    # Fotografías
+    fotografias: Mapped[List["InmuebleFotografia"]] = relationship("InmuebleFotografia", back_populates="inmueble", cascade="all, delete-orphan")
 
     # Transmisiones e intervenciones
     transmisiones: Mapped[List["Transmision"]] = relationship("Transmision", back_populates="inmueble", foreign_keys="[Transmision.inmueble_id]", cascade="all, delete-orphan")
@@ -229,9 +256,9 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
 class Inmatriculacion(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "inmatriculaciones"
 
-    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
-    registro_propiedad_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.registros_propiedad.id"), index=True)
-    tipo_certificacion_propiedad_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.tipos_certificacion_propiedad.id"), index=True)
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
+    registro_propiedad_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.registros_propiedad.id"), index=True)
+    tipo_certificacion_propiedad_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_certificacion_propiedad.id"), index=True)
 
     fecha_inmatriculacion: Mapped[Optional[datetime]]
     numero_finca: Mapped[Optional[str]] = mapped_column(String(50), index=True)
@@ -250,7 +277,7 @@ class Inmatriculacion(UUIDPKMixin, AuditMixin, Base):
 class InmuebleDenominacion(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "inmuebles_denominaciones"
     
-    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
     denominacion: Mapped[str] = mapped_column(String(255), index=True)
     es_principal: Mapped[bool] = mapped_column(Boolean, default=False)
     
@@ -260,7 +287,7 @@ class InmuebleDenominacion(UUIDPKMixin, AuditMixin, Base):
 class InmuebleOSMExt(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "inmuebles_osm_ext"
     
-    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
     osm_type: Mapped[str] = mapped_column(String(10))
     osm_id: Mapped[str] = mapped_column(String(50), index=True)
     osm_tags: Mapped[Optional[str]] = mapped_column(Text)
@@ -271,7 +298,7 @@ class InmuebleOSMExt(UUIDPKMixin, AuditMixin, Base):
 class InmuebleWDExt(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "inmuebles_wd_ext"
     
-    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
     wikidata_qid: Mapped[str] = mapped_column(String(32), unique=True, index=True)
     wikipedia_url: Mapped[Optional[str]] = mapped_column(String(500))
     
@@ -282,8 +309,8 @@ class InmuebleCita(UUIDPKMixin, AuditMixin, Base):
     """Cita bibliografica de un inmueble en una fuente"""
     __tablename__ = "citas_bibliograficas"
 
-    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
-    fuente_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.fuentes_historiograficas.id"), index=True)
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
+    fuente_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.fuentes_historiograficas.id"), index=True)
     referencia: Mapped[str] = mapped_column(String(500))
     pagina: Mapped[Optional[str]] = mapped_column(String(50))
     fecha: Mapped[Optional[datetime]]
@@ -301,8 +328,8 @@ class InmuebleUso(UUIDPKMixin, AuditMixin, Base):
     """
     __tablename__ = "inmuebles_usos"
 
-    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
-    tipo_uso_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.tipos_uso_inmueble.id"), index=True)
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
+    tipo_uso_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_uso_inmueble.id"), index=True)
 
     fecha_desde: Mapped[datetime] = mapped_column(index=True)
     fecha_hasta: Mapped[Optional[datetime]] = mapped_column(index=True)  # NULL = uso actual
@@ -323,8 +350,8 @@ class InmuebleNivelProteccion(UUIDPKMixin, AuditMixin, Base):
     """
     __tablename__ = "inmuebles_niveles_proteccion"
 
-    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
-    figura_proteccion_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.tipos_figura_proteccion.id"), index=True)
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
+    figura_proteccion_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_figura_proteccion.id"), index=True)
 
     fecha_desde: Mapped[datetime] = mapped_column(index=True)
     fecha_hasta: Mapped[Optional[datetime]] = mapped_column(index=True)  # NULL = protección actual
@@ -352,8 +379,8 @@ class InmuebleNivelProteccion(UUIDPKMixin, AuditMixin, Base):
 #     """
 #     __tablename__ = "inmuebles_eventos"
 #
-#     inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
-#     tipo_evento_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.eventos_registrables.id"), index=True)
+#     inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
+#     tipo_evento_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.eventos_registrables.id"), index=True)
 #     fecha_evento: Mapped[datetime]
 #     detalles: Mapped[Optional[dict]] = mapped_column(JSONB)
 #     descripcion: Mapped[Optional[str]] = mapped_column(Text)
@@ -361,3 +388,35 @@ class InmuebleNivelProteccion(UUIDPKMixin, AuditMixin, Base):
 #
 #     inmueble: Mapped["Inmueble"] = relationship("Inmueble", back_populates="historial")
 #     tipo_evento: Mapped["EventoRegistrable"] = relationship("EventoRegistrable", back_populates="eventos")
+
+
+class Fotografia(UUIDPKMixin, AuditMixin, Base):
+    """Fotografía de un inmueble u otro elemento del patrimonio."""
+    __tablename__ = "fotografias"
+
+    url: Mapped[str] = mapped_column(String(1000))
+    titulo: Mapped[Optional[str]] = mapped_column(String(255))
+    descripcion: Mapped[Optional[str]] = mapped_column(Text)
+    autor: Mapped[Optional[str]] = mapped_column(String(255))
+    fecha: Mapped[Optional[date]]
+    fuente: Mapped[Optional[str]] = mapped_column(String(255))  # ej. "Wikimedia Commons", "Archivo propio"
+    mime_type: Mapped[Optional[str]] = mapped_column(String(100))
+    tamano_bytes: Mapped[Optional[int]] = mapped_column(Integer)
+    ancho: Mapped[Optional[int]] = mapped_column(Integer)
+    alto: Mapped[Optional[int]] = mapped_column(Integer)
+
+    inmuebles: Mapped[List["InmuebleFotografia"]] = relationship("InmuebleFotografia", back_populates="fotografia", cascade="all, delete-orphan")
+
+
+class InmuebleFotografia(UUIDPKMixin, AuditMixin, Base):
+    """Pivote entre Inmueble y Fotografia."""
+    __tablename__ = "inmuebles_fotografias"
+
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
+    fotografia_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.fotografias.id"), index=True)
+    es_principal: Mapped[bool] = mapped_column(Boolean, default=False)
+    orden: Mapped[int] = mapped_column(Integer, default=0)
+    caption: Mapped[Optional[str]] = mapped_column(String(500))
+
+    inmueble: Mapped["Inmueble"] = relationship("Inmueble", back_populates="fotografias")
+    fotografia: Mapped["Fotografia"] = relationship("Fotografia", back_populates="inmuebles")

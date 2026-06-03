@@ -5,9 +5,10 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr
 from sqlalchemy.schema import ForeignKey
+from sipi_core.db.registry import APP_SCHEMA
 
 if TYPE_CHECKING:
-    from models.users import Usuario
+    from sipi_core.models.users import Usuario
 
 class UUIDPKMixin:
     """Clave primaria UUID estándar"""
@@ -41,15 +42,15 @@ class AuditMixin:
     @declared_attr
     def created_by_id(cls) -> Mapped[Optional[str]]:
         # Usar string con schema explícito para evitar problemas de orden
-        return mapped_column(String(36), ForeignKey("app.usuarios.id"), index=True)
+        return mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.usuarios.id"), index=True)
     
     @declared_attr
     def updated_by_id(cls) -> Mapped[Optional[str]]:
-        return mapped_column(String(36), ForeignKey("app.usuarios.id"), index=True)
+        return mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.usuarios.id"), index=True)
     
     @declared_attr
     def deleted_by_id(cls) -> Mapped[Optional[str]]:
-        return mapped_column(String(36), ForeignKey("app.usuarios.id"), index=True)
+        return mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.usuarios.id"), index=True)
     
     # Relaciones
     @declared_attr

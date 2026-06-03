@@ -1,140 +1,89 @@
-# sipi-core/config.py
 """
-Configuracion centralizada SIPI.
-Todos los componentes importan desde aqui.
+sipi_core/config.py — Configuración centralizada SIPI
+
+Todos los módulos Python (SIPI-API, SIPI-ETL, SIPI-WATCHERS) importan desde aquí.
+Carga automática desde el root del proyecto (SIPI/.env).
+Las variables de entorno del sistema tienen prioridad sobre el archivo .env.
 
 Uso:
-  - Establecer ENVIRONMENT=development o ENVIRONMENT=production
-  - Se cargara automaticamente .env.development o .env.production
+    from sipi_core.config import get_settings
+    s = get_settings()
+    print(s.database_url)
+    print(s.sync_dsn)   # para asyncpg directo
 """
 
-import os
+from functools import lru_cache
 from pathlib import Path
-from dataclasses import dataclass
-from typing import Dict
-from dotenv import load_dotenv
 
-# Rutas base
-CONFIG_DIR = Path(__file__).parent.resolve()
-WORKSPACE_ROOT = CONFIG_DIR.parent
+from pydantic import computed_field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Cargar configuracion una sola vez
-_loaded = False
+# SIPI-CORE/sipi_core/ -> SIPI-CORE/ -> SIPI/
+_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
-def _load():
-    global _loaded
-    if _loaded:
-        return
-
-    # Determinar entorno: variable de sistema > .env base
-    env = os.getenv("ENVIRONMENT")
-
-    if not env:
-        # Intentar cargar .env base para obtener ENVIRONMENT
-        base_env = CONFIG_DIR / ".env"
-        if base_env.exists():
-            load_dotenv(dotenv_path=base_env)
-            env = os.getenv("ENVIRONMENT", "development")
-        else:
-            env = "development"
-
-    # Seleccionar archivo segun entorno
-    env_file = CONFIG_DIR / f".env.{env}"
-
-    if not env_file.exists():
-        raise FileNotFoundError(f"Archivo de configuracion no encontrado: {env_file}")
-
-    # Cargar archivo de entorno
-    load_dotenv(dotenv_path=env_file, override=True)
-    os.environ["ENVIRONMENT"] = env
-
-    _loaded = True
-
-
-@dataclass(frozen=True)
-class Config:
-    """Configuracion del proyecto SIPI"""
-
-    def __post_init__(self):
-        _load()
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(_ROOT / ".env"),
+        env_file_encoding="utf-8",
+        extra="allow",
+        case_sensitive=False,
+    )
 
     # Base de datos
-    @property
-    def DATABASE_URL(self) -> str:
-        return os.getenv("DATABASE_URL", "")
+    database_url: str = "postgresql+asyncpg://sipi:sipi@localhost:5432/sipi"
+    database_schema: str = "sipi"
+    defined_schemas: str = "sipi"
 
-    @property
-    def DATABASE_SCHEMA(self) -> str:
-        return os.getenv("DATABASE_SCHEMA", "sipi")
-
-    # API Backend
-    @property
-    def API_HOST(self) -> str:
-        return os.getenv("API_HOST", "0.0.0.0")
-
-    @property
-    def API_PORT(self) -> int:
-        return int(os.getenv("API_PORT", "8040"))
-
-    @property
-    def API_URL(self) -> str:
-        return os.getenv("API_URL", f"http://{self.API_HOST}:{self.API_PORT}/graphql")
+    # GraphQL
+    graphql_host: str = "0.0.0.0"
+    graphql_port: int = 8040
+    graphql_max_depth: int = 10
 
     # SQLAlchemy
-    @property
-    def SQLALCHEMY_ECHO(self) -> bool:
-        return os.getenv("SQLALCHEMY_ECHO", "false").lower() == "true"
-
-    @property
-    def POOL_SIZE(self) -> int:
-        return int(os.getenv("POOL_SIZE", "20"))
-
-    @property
-    def POOL_MAX_OVERFLOW(self) -> int:
-        return int(os.getenv("POOL_MAX_OVERFLOW", "10"))
-
-    @property
-    def POOL_TIMEOUT(self) -> int:
-        return int(os.getenv("POOL_TIMEOUT", "30"))
+    sqlalchemy_echo: bool = False
+    pool_size: int = 20
+    pool_max_overflow: int = 10
+    pool_timeout: int = 30
 
     # Entorno
+    environment: str = "development"
+
+    # MinIO
+    minio_bucket: str = "sipi-media"
+    minio_endpoint: str = "http://minio:9000"
+    minio_endpoint_external: str = "http://localhost:9000"
+    minio_root_user: str = "sipi"
+    minio_root_password: str = "CHANGE_ME_IN_PRODUCTION"
+
+    @computed_field
     @property
-    def ENVIRONMENT(self) -> str:
-        return os.getenv("ENVIRONMENT", "development")
+    def debug(self) -> bool:
+        return self.environment == "development"
 
+    @computed_field
     @property
-    def DEBUG(self) -> bool:
-        return self.ENVIRONMENT == "development"
+    def sync_dsn(self) -> str:
+        """URL para asyncpg directo (sin prefijo SQLAlchemy)."""
+        return (
+            self.database_url
+            .replace("postgresql+asyncpg://", "postgresql://")
+            .replace("postgresql+psycopg2://", "postgresql://")
+        )
 
-    # Rutas del proyecto
+    @computed_field
     @property
-    def PATHS(self) -> Dict[str, Path]:
-        return {
-            "core": CONFIG_DIR,
-            "api": WORKSPACE_ROOT / "sipi-api",
-            "frontend": WORKSPACE_ROOT / "sipi-frontend",
-        }
+    def async_dsn(self) -> str:
+        """URL normalizada para SQLAlchemy async."""
+        url = self.database_url
+        if url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        if url.startswith("postgresql+psycopg2://"):
+            return url.replace("postgresql+psycopg2://", "postgresql+asyncpg://", 1)
+        return url
 
 
-# Instancia global
-CONFIG = Config()
-
-
-# Funciones de conveniencia
-def get_db_url() -> str:
-    return CONFIG.DATABASE_URL
-
-def get_db_schema() -> str:
-    return CONFIG.DATABASE_SCHEMA
-
-def get_api_url() -> str:
-    return CONFIG.API_URL
-
-
-if __name__ == "__main__":
-    _load()
-    print(f"ENVIRONMENT: {CONFIG.ENVIRONMENT}")
-    print(f"DATABASE_URL: {CONFIG.DATABASE_URL[:50]}...")
-    print(f"DATABASE_SCHEMA: {CONFIG.DATABASE_SCHEMA}")
-    print(f"API: {CONFIG.API_HOST}:{CONFIG.API_PORT}")
+@lru_cache
+def get_settings() -> Settings:
+    """Singleton con cache. En tests: get_settings.cache_clear() para reiniciar."""
+    return Settings()

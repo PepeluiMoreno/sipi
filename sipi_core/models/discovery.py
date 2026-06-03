@@ -19,11 +19,11 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB
 from geoalchemy2 import Geometry
 
-from db.registry import Base
-from mixins import AuditMixin
+from sipi_core.db.registry import Base, APP_SCHEMA
+from sipi_core.mixins import AuditMixin
 
 if TYPE_CHECKING:
-    from models.inmuebles import Inmueble
+    from sipi_core.models.inmuebles import Inmueble
 
 
 class InmuebleRaw(Base, AuditMixin):
@@ -70,13 +70,13 @@ class DeteccionAnuncio(Base, AuditMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     inmueble_id: Mapped[int] = mapped_column(
         Integer,
-        ForeignKey("app.portals_inmuebles_raw.id"),
+        ForeignKey(f"{APP_SCHEMA}.portals_inmuebles_raw.id"),
         index=True,
     )
 
     inmueble_core_id: Mapped[Optional[str]] = mapped_column(
         String(36),
-        ForeignKey("app.inmuebles.id"),
+        ForeignKey(f"{APP_SCHEMA}.inmuebles.id"),
         index=True,
     )
 

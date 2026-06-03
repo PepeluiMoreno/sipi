@@ -5,16 +5,16 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, Boolean, Integer, ForeignKey
 
 
-from db.registry import Base
+from sipi_core.db.registry import Base, APP_SCHEMA
 
-from mixins import UUIDPKMixin, AuditMixin
+from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from models.inmuebles import Inmueble, Inmatriculacion, InmuebleUso
-    from models.transmisiones import Transmision    
-    from models.tecnicos import Tecnico
-    from models.documentos import Documento     
-    from models.entidades_religiosas import EntidadReligiosa
+    from sipi_core.models.inmuebles import Inmueble, Inmatriculacion, InmuebleUso  # noqa: F401
+    from sipi_core.models.transmisiones import Transmision    
+    from sipi_core.models.tecnicos import Tecnico
+    from sipi_core.models.documentos import Documento     
+    from sipi_core.models.entidades_religiosas import EntidadReligiosa
 
 
 class  TipologiaBase(UUIDPKMixin, AuditMixin, Base):
@@ -59,6 +59,10 @@ class TipoInmueble( TipologiaBase):
     __tablename__ = "tipos_inmueble"
     inmuebles: Mapped[list["Inmueble"]] = relationship("Inmueble", back_populates="tipo_inmueble")
 
+class EstiloArquitectonico(TipologiaBase):
+    __tablename__ = "estilos_arquitectonicos"
+    inmuebles: Mapped[list["Inmueble"]] = relationship("Inmueble", back_populates="estilo_arquitectonico")
+
 class TipoMimeDocumento(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "tipos_mime_documento"
     tipo_mime: Mapped[str] = mapped_column(String(100), unique=True, index=True)
@@ -70,6 +74,8 @@ class TipoPersona( TipologiaBase):
 
 class TipoTransmision( TipologiaBase):
     __tablename__ = "tipos_transmision"
+    denominacion_transmitente: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    denominacion_adquiriente: Mapped[str | None] = mapped_column(String(100), nullable=True)
     transmisiones: Mapped[list["Transmision"]] = relationship("Transmision", back_populates="tipo_transmision")
 
 class TipoVia( TipologiaBase):
@@ -164,7 +170,7 @@ class FuenteDocumental(UUIDPKMixin, AuditMixin, Base):
     es_externa: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
     requiere_url_externa: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     permite_metadata_extra: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    licencia_predeterminada_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("app.tipos_licencia.id"), nullable=True)
+    licencia_predeterminada_id: Mapped[str | None] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_licencia.id"), nullable=True)
     categoria: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     soporta_sincronizacion: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     frecuencia_sync_dias: Mapped[int | None] = mapped_column(Integer, nullable=True)

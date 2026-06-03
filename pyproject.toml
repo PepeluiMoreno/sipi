@@ -6,15 +6,16 @@ build-backend = "hatchling.build"
 name = "sipi-core"
 version = "0.1.0"
 description = "Core domain models and logic for SIPI"
+readme = "README.md"
+requires-python = ">=3.10"
 dependencies = [
     "sqlalchemy[asyncio]~=2.0.36",
     "GeoAlchemy2~=0.15.2",
     "pydantic~=2.9.2",
+    "pydantic-settings>=2.0.0",
     "python-dotenv~=1.0.1",
     "strawberry-graphql[asgi]~=0.243.0",
-    "streamlit~=1.29.0"
 ]
-requires-python = ">=3.10"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/sipi"]
+packages = ["sipi_core"]
