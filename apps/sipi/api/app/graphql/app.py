@@ -199,7 +199,7 @@ async def odm_webhook(request: Request):
         return JSONResponse({"error": "missing required fields"}, status_code=400)
 
     try:
-        from models.odmgr_notifications import OdmgrNotification
+        from sipi_core.models import OdmgrNotification
 
         notif = OdmgrNotification(
             id=str(uuid.uuid4()),
@@ -230,7 +230,7 @@ async def notifications_list(request: Request):
     estado = request.query_params.get("estado", "pendiente")  # pendiente | tratada | all
 
     try:
-        from models.odmgr_notifications import OdmgrNotification
+        from sipi_core.models import OdmgrNotification
 
         async with async_session_maker() as session:
             stmt = select(OdmgrNotification)
@@ -273,7 +273,7 @@ async def notifications_list(request: Request):
 async def notifications_unread_count(request: Request):
     """GET /api/notifications/unread_count — solo cuenta las ready sin leer"""
     try:
-        from models.odmgr_notifications import OdmgrNotification
+        from sipi_core.models import OdmgrNotification
 
         async with async_session_maker() as session:
             stmt = select(func.count()).select_from(OdmgrNotification).where(
@@ -294,7 +294,7 @@ async def notification_mark_read(request: Request):
     notif_id = request.path_params.get("id", "")
 
     try:
-        from models.odmgr_notifications import OdmgrNotification
+        from sipi_core.models import OdmgrNotification
 
         async with async_session_maker() as session:
             stmt = (
@@ -313,7 +313,7 @@ async def notification_mark_read(request: Request):
 async def notifications_mark_all_read(request: Request):
     """POST /api/notifications/read_all"""
     try:
-        from models.odmgr_notifications import OdmgrNotification
+        from sipi_core.models import OdmgrNotification
 
         async with async_session_maker() as session:
             stmt = (
@@ -337,7 +337,7 @@ async def notification_changes_list(request: Request):
     change_type = request.query_params.get("change_type", "all")
 
     try:
-        from models.odmgr_notification_changes import OdmgrNotificationChange
+        from sipi_core.models import OdmgrNotificationChange
 
         async with async_session_maker() as session:
             stmt = select(OdmgrNotificationChange).where(
@@ -398,7 +398,7 @@ async def notification_change_review(request: Request):
     new_status = "accepted" if action == "accept" else "rejected"
 
     try:
-        from models.odmgr_notification_changes import OdmgrNotificationChange
+        from sipi_core.models import OdmgrNotificationChange
 
         async with async_session_maker() as session:
             stmt = (
@@ -428,7 +428,7 @@ async def notification_changes_review_all(request: Request):
     new_status = "accepted" if action == "accept_all" else "rejected"
 
     try:
-        from models.odmgr_notification_changes import OdmgrNotificationChange
+        from sipi_core.models import OdmgrNotificationChange
 
         async with async_session_maker() as session:
             stmt = (
@@ -457,8 +457,8 @@ async def notification_apply(request: Request):
     notif_id = request.path_params.get("id", "")
 
     try:
-        from models.odmgr_notifications import OdmgrNotification
-        from models.odmgr_notification_changes import OdmgrNotificationChange
+        from sipi_core.models import OdmgrNotification
+        from sipi_core.models import OdmgrNotificationChange
 
         now = datetime.now(timezone.utc)
 
@@ -494,7 +494,7 @@ async def notification_dismiss(request: Request):
     notif_id = request.path_params.get("id", "")
 
     try:
-        from models.odmgr_notifications import OdmgrNotification
+        from sipi_core.models import OdmgrNotification
 
         async with async_session_maker() as session:
             stmt = (
