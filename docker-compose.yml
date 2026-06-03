@@ -53,7 +53,7 @@ services:
     volumes:
       - ./apps/sipi/api/app:/code/app:ro
       # packages/sipi-core es la única fuente de modelos
-      - ./packages/sipi-core/sipi_core:/code/sipi_core:ro
+      - ./packages/sipi-core/src/sipi_core:/code/sipi_core:ro
 
   frontend:
     build:
