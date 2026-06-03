@@ -4,6 +4,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 from sqlalchemy import String, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, declared_attr
+from db.registry import APP_SCHEMA
 
 if TYPE_CHECKING:
     from sipi_core.models.geografia import Provincia, Municipio, ComunidadAutonoma
@@ -33,7 +34,7 @@ class DireccionMixin:
     """
     
     # Componentes de dirección
-    tipo_via_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.tipos_via.id"), index=True)
+    tipo_via_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_via.id"), index=True)
     nombre_via: Mapped[Optional[str]] = mapped_column(String(255))
     numero: Mapped[Optional[str]] = mapped_column(String(10))
     bloque: Mapped[Optional[str]] = mapped_column(String(10))
@@ -43,9 +44,9 @@ class DireccionMixin:
     codigo_postal: Mapped[Optional[str]] = mapped_column(String(10), index=True)
     
     # Referencias geográficas - SOLO FKs
-    comunidad_autonoma_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.comunidades_autonomas.id"), index=True)
-    provincia_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.provincias.id"), index=True)
-    municipio_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.municipios.id"), index=True)  # ✅ CORREGIDO: municipios.id (minúscula)
+    comunidad_autonoma_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.comunidades_autonomas.id"), index=True)
+    provincia_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.provincias.id"), index=True)
+    municipio_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), index=True)  # ✅ CORREGIDO: municipios.id (minúscula)
     
     # Coordenadas
     latitud: Mapped[Optional[Decimal]] = mapped_column(Float(precision=10, asdecimal=True), nullable=True)

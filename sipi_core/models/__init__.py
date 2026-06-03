@@ -59,8 +59,8 @@ from sipi_core.models.registradores import RegistroPropiedad, RegistroPropiedadT
 # 3. Administraciones (tienen updated_by_id -> usuarios.id, ya importado arriba)
 from sipi_core.models.administraciones import Administracion, AdministracionTitular
 
-# 4. Entidades Religiosas (Diocesis antes que EntidadReligiosa por FKs)
-from sipi_core.models.entidades_religiosas import Diocesis, DiocesisTitular
+# 4. Entidades Religiosas (ProvinciaEclesiastica → Diocesis → Parroquia por FKs)
+from sipi_core.models.entidades_religiosas import ProvinciaEclesiastica, Diocesis, DiocesisTitular, Parroquia
 from sipi_core.models.entidades_religiosas import EntidadReligiosa, EntidadReligiosaTitular
 
 # 5. Técnicos (pueden tener FK a tipologías y usuarios)
@@ -69,6 +69,9 @@ from sipi_core.models.tecnicos import Tecnico, ColegioProfesional
 # 6. Privados y Agencias (sin dependencias críticas)
 from sipi_core.models.privados import Privado
 from sipi_core.models.agencias import AgenciaInmobiliaria
+
+# 7. Actores de transmisión (Transmitente y Adquiriente — polimórficos)
+from sipi_core.models.actores_transmision import Transmitente, Adquiriente
 
 # ============================================================================
 # DOCUMENTS (APP Schema - Depende de actores)
@@ -147,6 +150,12 @@ from sipi_core.models.osm import (
 )
 
 # ============================================================================
+# ODMGR NOTIFICATIONS (notificaciones de actualización de datasets ODMGR)
+# ============================================================================
+from sipi_core.models.odmgr_notifications import OdmgrNotification
+from sipi_core.models.odmgr_notification_changes import OdmgrNotificationChange
+
+# ============================================================================
 # EXPORTS
 # ============================================================================
 
@@ -181,7 +190,7 @@ __all__ = [
     'Administracion', 'AdministracionTitular',
     
     # Religious Entities
-    'Diocesis', 'DiocesisTitular',
+    'ProvinciaEclesiastica', 'Diocesis', 'DiocesisTitular', 'Parroquia',
     'EntidadReligiosa', 'EntidadReligiosaTitular',
     
     # Technical Professionals
@@ -189,6 +198,9 @@ __all__ = [
     
     # Private Actors
     'Privado', 'AgenciaInmobiliaria',
+
+    # Transmission Actors
+    'Transmitente', 'Adquiriente',
     
     # Documents
     'Documento', 'InmuebleDocumento',
@@ -218,4 +230,8 @@ __all__ = [
     
     # OSM
     'OSMPlace',
+
+    # ODMGR Notifications
+    'OdmgrNotification',
+    'OdmgrNotificationChange',
 ]

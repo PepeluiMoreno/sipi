@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
 
-from sipi_core.db.registry import Base
+from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin, ContactoDireccionMixin
 from .actores_base import TitularBase
 
@@ -39,7 +39,7 @@ class Notaria(UUIDPKMixin, AuditMixin, ContactoDireccionMixin, Base):
 class NotariaTitular(TitularBase):
     __tablename__ = "notarias_titulares"
 
-    notaria_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.notarias.id"), index=True)
+    notaria_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.notarias.id"), index=True)
 
     notaria: Mapped["Notaria"] = relationship(
         "Notaria",

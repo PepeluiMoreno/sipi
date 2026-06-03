@@ -6,7 +6,7 @@ from datetime import datetime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
 
-from sipi_core.db.registry import Base
+from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin
 
 if TYPE_CHECKING:
@@ -19,12 +19,12 @@ class Tecnico(UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMix
 
     rol_tecnico_id: Mapped[Optional[str]] = mapped_column(
         String(36),
-        ForeignKey("app.roles_tecnico.id"),
+        ForeignKey(f"{APP_SCHEMA}.roles_tecnico.id"),
         index=True,
     )
     colegio_profesional_id: Mapped[Optional[str]] = mapped_column(
         String(36),
-        ForeignKey("app.colegios_profesionales.id"),
+        ForeignKey(f"{APP_SCHEMA}.colegios_profesionales.id"),
         index=True,
     )
     numero_colegiado: Mapped[Optional[str]] = mapped_column(String(50), index=True)

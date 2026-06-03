@@ -12,7 +12,7 @@ from typing import Optional
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, ForeignKey
 
-from sipi_core.db.registry import Base
+from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import (
     UUIDPKMixin, 
     AuditMixin, 
@@ -28,7 +28,7 @@ class PersonaMixin(IdentificacionMixin):
     """
     tipo_persona_id: Mapped[Optional[str]] = mapped_column(
         String(36), 
-        ForeignKey("app.tipos_persona.id"), 
+        ForeignKey(f"{APP_SCHEMA}.tipos_persona.id"), 
         index=True,
         comment="Reference to person type (physical/legal)"
     )

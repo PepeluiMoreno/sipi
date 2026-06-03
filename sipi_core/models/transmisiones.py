@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Text, Numeric, ForeignKey
 
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
-from sipi_core.db.registry import Base
+from sipi_core.db.registry import Base, APP_SCHEMA
 
 if TYPE_CHECKING:
     from sipi_core.models.inmuebles import Inmueble
@@ -19,14 +19,14 @@ if TYPE_CHECKING:
 class Transmision(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "transmisiones"
     
-    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.inmuebles.id"), index=True)
-    # TODO: Transmitente y Adquiriente serán modelados como Actores genéricos
-    # transmitente_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.transmitentes.id"), index=True)
-    # adquiriente_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.adquirientes.id"), index=True)
-    notaria_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.notarias.id"), index=True)
-    registro_propiedad_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.registros_propiedad.id"), index=True)
-    tipo_transmision_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.tipos_transmision.id"), index=True)
-    tipo_certificacion_propiedad_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.tipos_certificacion_propiedad.id"), index=True)
+    inmueble_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True)
+    transmitente_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.transmitentes.id"), index=True)
+    adquiriente_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.adquirientes.id"), index=True)
+    notaria_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.notarias.id"), index=True)
+    registro_propiedad_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.registros_propiedad.id"), index=True)
+    tipo_transmision_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_transmision.id"), index=True)
+    tipo_certificacion_propiedad_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_certificacion_propiedad.id"), index=True)
+    agencia_inmobiliaria_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.agencias_inmobiliarias.id"), index=True)
     
     fecha_transmision: Mapped[Optional[datetime]] = mapped_column(index=True)
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
@@ -34,9 +34,9 @@ class Transmision(UUIDPKMixin, AuditMixin, Base):
     
     # Relaciones
     inmueble: Mapped["Inmueble"] = relationship("Inmueble", back_populates="transmisiones", foreign_keys=[inmueble_id])
-    # TODO: Los modelos Transmitente y Adquiriente no existen, se modelarán via Proceso
-    # transmitente: Mapped[Optional["Transmitente"]] = relationship("Transmitente", back_populates="transmisiones")
-    # adquiriente: Mapped[Optional["Adquiriente"]] = relationship("Adquiriente", back_populates="transmisiones")
+    transmitente: Mapped[Optional["Transmitente"]] = relationship("Transmitente", back_populates="transmisiones", foreign_keys=[transmitente_id])
+    adquiriente: Mapped[Optional["Adquiriente"]] = relationship("Adquiriente", back_populates="transmisiones", foreign_keys=[adquiriente_id])
+    agencia_inmobiliaria: Mapped[Optional["AgenciaInmobiliaria"]] = relationship("AgenciaInmobiliaria")
     notaria: Mapped[Optional["Notaria"]] = relationship("Notaria", back_populates="transmisiones")
     registro_propiedad: Mapped[Optional["RegistroPropiedad"]] = relationship("RegistroPropiedad", back_populates="transmisiones")
     tipo_transmision: Mapped[Optional["TipoTransmision"]] = relationship("TipoTransmision", back_populates="transmisiones")
@@ -48,8 +48,8 @@ class Transmision(UUIDPKMixin, AuditMixin, Base):
 class TransmisionAnunciante(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "transmision_anunciantes"
     
-    transmision_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.transmisiones.id"), index=True)
-    agencia_inmobiliaria_id: Mapped[str] = mapped_column(String(36), ForeignKey("app.agencias_inmobiliarias.id"), index=True)
+    transmision_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.transmisiones.id"), index=True)
+    agencia_inmobiliaria_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.agencias_inmobiliarias.id"), index=True)
     
     # Relaciones
     transmision: Mapped["Transmision"] = relationship("Transmision", back_populates="anunciantes")

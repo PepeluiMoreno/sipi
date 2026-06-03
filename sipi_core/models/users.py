@@ -14,16 +14,16 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from sipi_core.db.registry import Base, metadata
+from sipi_core.db.registry import Base, metadata, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoMixin
 
 
 # Tabla de asociación muchos-a-muchos
 usuario_rol = Table(
     "usuario_rol",
-    metadata,  # ← metadata del registry, no Base.metadata
-    Column("usuario_id", String(36), ForeignKey("app.usuarios.id"), primary_key=True),
-    Column("rol_id", String(36), ForeignKey("app.roles.id"), primary_key=True),
+    metadata,
+    Column("usuario_id", String(36), ForeignKey(f"{APP_SCHEMA}.usuarios.id"), primary_key=True),
+    Column("rol_id", String(36), ForeignKey(f"{APP_SCHEMA}.roles.id"), primary_key=True),
     Column(
         "fecha_asignacion",
         DateTime,
@@ -32,7 +32,7 @@ usuario_rol = Table(
     Column(
         "asignado_por",
         String(36),
-        ForeignKey("app.usuarios.id"),
+        ForeignKey(f"{APP_SCHEMA}.usuarios.id"),
         nullable=True,
     ),
 )
@@ -44,10 +44,14 @@ class Usuario(UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoMixin, Base)
     nombre_usuario: Mapped[str] = mapped_column(String(100))
     hashed_contrasena: Mapped[str] = mapped_column(Text)
     email_verificado: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Usuarios de sistema (etluser, admin_seed…) — protegidos contra borrado
+    is_sistema: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     roles: Mapped[list["Rol"]] = relationship(
         "Rol",
         secondary=usuario_rol,
+        primaryjoin=lambda: Usuario.id == usuario_rol.c.usuario_id,
+        secondaryjoin=lambda: Rol.id == usuario_rol.c.rol_id,
         back_populates="usuarios",
     )
 
@@ -61,5 +65,7 @@ class Rol(UUIDPKMixin, AuditMixin, Base):
     usuarios: Mapped[list["Usuario"]] = relationship(
         "Usuario",
         secondary=usuario_rol,
+        primaryjoin=lambda: Rol.id == usuario_rol.c.rol_id,
+        secondaryjoin=lambda: Usuario.id == usuario_rol.c.usuario_id,
         back_populates="roles",
     )

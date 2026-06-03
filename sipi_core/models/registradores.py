@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
 
-from sipi_core.db.registry import Base
+from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin, TitularidadMixin
 from sipi_core.models.actores_base import TitularBase
 
@@ -52,7 +52,7 @@ class RegistroPropiedadTitular(TitularBase, Base):
 
     registro_propiedad_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("app.registros_propiedad.id"),
+        ForeignKey(f"{APP_SCHEMA}.registros_propiedad.id"),
         index=True,
     )
 
