@@ -1,0 +1,77 @@
+# Orquestación raíz del monorepo SIPI.
+# Reusa el volumen de datos existente `sipi_pgdata` (no se pierde nada).
+# Esquema B: todo en `sipi` (APP_SCHEMA=GIS_SCHEMA=DEFAULT_SCHEMA=sipi).
+services:
+  db:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile.postgres
+    container_name: sipi-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sipi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sipi}
+      POSTGRES_DB: ${POSTGRES_DB:-sipi}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C.UTF-8"
+    volumes:
+      - sipi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sipi} -d ${POSTGRES_DB:-sipi}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    ports:
+      - "5433:5432"
+    restart: unless-stopped
+    networks: [sipi-network]
+    shm_size: 256mb
+
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    container_name: sipi-api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://sipi:sipi@db:5432/sipi}
+      # Esquema B: todo en sipi
+      APP_SCHEMA: sipi
+      GIS_SCHEMA: sipi
+      DEFAULT_SCHEMA: sipi
+      DATABASE_SCHEMA: sipi
+      DEFINED_SCHEMAS: sipi
+      GRAPHQL_HOST: ${GRAPHQL_HOST:-0.0.0.0}
+      GRAPHQL_PORT: ${GRAPHQL_PORT:-8040}
+      PYTHONPATH: /code:/code/sipi_core
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${GRAPHQL_HOST_PORT:-8040}:${GRAPHQL_PORT:-8040}"
+    restart: unless-stopped
+    networks: [sipi-network]
+    volumes:
+      - ./apps/api/app:/code/app:ro
+      # packages/sipi-core es la única fuente de modelos
+      - ./packages/sipi-core/sipi_core:/code/sipi_core:ro
+
+  frontend:
+    build:
+      context: ./apps/frontend
+    container_name: sipi-frontend
+    depends_on: [api]
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8040/graphql}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    restart: unless-stopped
+    networks: [sipi-network]
+
+networks:
+  sipi-network:
+    driver: bridge
+
+volumes:
+  sipi_pgdata:
+    name: sipi_pgdata
+    external: true
