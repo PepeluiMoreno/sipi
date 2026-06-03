@@ -60,9 +60,10 @@ operador-vigilancia, consulta).
 
 ## 2. Módulo `comunicacion` (comunicación interna) — estilo SIGA
 
-**Concepto**: notificaciones de **dominio al usuario** (distintas de las
-`odmgr_notifications` del ETL, que son monitorización). Catálogo de tipos +
-instancias por usuario, multi-canal (in-app primero; email después).
+**Concepto**: notificaciones de **dominio al usuario** (catálogo de tipos +
+instancias por usuario, multi-canal, in-app primero). **NO está separado de ODMGR**:
+las `odmgr_notifications` son una **señal de entrada** (el modelo ya prevé
+`notification_type = data_update | search_finding | …`) que se bifurca (ver §2bis).
 
 ### Modelos (`modules/comunicacion/models/`)
 | Modelo | Tabla | Campos clave |
@@ -88,6 +89,47 @@ instancias por usuario, multi-canal (in-app primero; email después).
 `notificaciones(soloNoLeidas)`, `marcarLeida`, contador no leídas; suscripción
 (fase 2). La **bandeja de validación** del frontend se alimenta de
 `expedientes(estado: PROPUESTO)` + estas notificaciones.
+
+---
+
+## 2bis. ODMGR como señal: bifurcación a comunicación y/o disparador del pipeline
+
+Una `OdmgrNotification` (actualización de dataset o `search_finding` de
+OpenDataManager) **no es solo monitorización**: es un **evento** que un router
+(`comunicacion/services/odmgr_router.py`) bifurca según el tipo y la política:
+
+```
+OdmgrNotification (data_update | search_finding)
+        │
+        ├─(a) Notificación de dominio ──► comunicacion.notificar(
+        │      a los roles implicados        tipo, rol/ámbito, contexto)
+        │      (p. ej. "BDNS actualizado: 12 altas en tu provincia")
+        │
+        └─(b) Trigger del pipeline (apps/sipi-survey / services/discovery):
+               extracción → análisis → VALORACIÓN (scoring) → materialización
+                                                   │
+                          ┌────────────────────────┴───────────────────────┐
+                   caso CIERTO (alta confianza)              caso DUDOSO (baja confianza)
+                   Expediente (propuesto, certeza=CIERTO,    Expediente (propuesto, certeza=DUDOSO)
+                     auto-ratificable según política)          → cola de validación humana
+                          └────────────────► comunicacion.notificar(rol/ámbito) ◄──────┘
+```
+
+**Implicación en el modelo `Expediente`** (aditivo): añadir una dimensión de
+**confianza** independiente del estado de workflow:
+- `certeza: Enum(CIERTO, DUDOSO)` (o `confianza: Numeric` 0–1 + umbral configurable
+  en `configuracion`).
+- Política (en `configuracion`): umbral de auto-ratificación de casos ciertos,
+  qué `notification_type`/`change_type` disparan pipeline vs solo notifican.
+
+**Quién hace qué**:
+- `comunicacion/services/odmgr_router.py` — recibe (vía el webhook `/odm_webhook`
+  ya existente) y decide (a)/(b) según `notification_type`, `version_type` y la
+  config.
+- El **pipeline** (b) vive en `services/discovery` y lo orquesta `apps/sipi-survey`;
+  escribe `Expediente` con `certeza` y dispara la notificación de cierre.
+- `OdmgrNotificationChange` (altas/modificaciones/bajas) son el detalle por
+  registro que alimenta extracción/análisis.
 
 ---
 
