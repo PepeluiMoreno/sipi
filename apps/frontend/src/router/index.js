@@ -16,6 +16,10 @@ import RegistrosPropiedadView from '../modules/agentes/views/RegistrosPropiedadV
 import InmueblesView from '../modules/inmuebles/views/InmueblesView.vue'
 import InmuebleDetalleView from '../modules/inmuebles/views/InmuebleDetalleView.vue'
 
+// Expedientes (ciclo de vida del inmueble)
+import InmuebleExpedientes from '../modules/expedientes/views/InmuebleExpedientes.vue'
+import ValidacionHallazgos from '../modules/expedientes/views/ValidacionHallazgos.vue'
+
 // Documentos
 import Documentos from '../modules/documentos/views/Documentos.vue'
 
@@ -85,6 +89,17 @@ const routes = [
         path: '/inmuebles/:id',
         name: 'InmuebleDetalle',
         component: InmuebleDetalleView
+      },
+      // EXPEDIENTES (ciclo de vida)
+      {
+        path: '/inmuebles/:id/expedientes',
+        name: 'InmuebleExpedientes',
+        component: InmuebleExpedientes
+      },
+      {
+        path: '/validacion-hallazgos',
+        name: 'ValidacionHallazgos',
+        component: ValidacionHallazgos
       },
       // DOCUMENTOS
       {
