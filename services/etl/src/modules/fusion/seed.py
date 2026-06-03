@@ -21,6 +21,7 @@ from dataclasses import dataclass, asdict, field
 
 from .matcher import match_cee_osm
 from .sources import load_cee, load_osm
+import uuid
 
 __all__ = ["FusedEntity", "run_fusion"]
 
@@ -45,6 +46,35 @@ class FusedEntity:
     geo_confirmado: bool = False  # municipio CEE == municipio OSM (point-in-polygon)
     municipio_con_cee: bool = None  # SOLO_OSM: si el municipio tiene registros CEE (señal fuerte de hallazgo)
     fuentes: list = field(default_factory=list)  # ['CEE','OSM']
+    clave_natural: str = None      # clave estable de procedencia (idempotencia)
+    id_determinista: str = None    # uuid5(clave_natural): PK reproducible para upsert
+
+    def __post_init__(self):
+        if self.clave_natural is None:
+            if self.cee_registro:
+                self.clave_natural = f"CEE:{self.cee_registro}"
+            elif self.osm_id:
+                self.clave_natural = f"OSM:{self.osm_id}"
+        if self.clave_natural and not self.id_determinista:
+            self.id_determinista = str(uuid.uuid5(_NS_INMUEBLE, self.clave_natural))
+
+
+# Namespace estable para ids deterministas de inmueble (idempotencia de ingesta).
+_NS_INMUEBLE = uuid.uuid5(uuid.NAMESPACE_URL, "https://sipi/inmueble")
+_ORDEN_CONF = {"ALTA": 4, "MEDIA": 3, "SOLO_CEE": 2, "SOLO_OSM": 1}
+
+
+def _dedup(entidades):
+    """Colapsa entidades que comparten clave_natural (datos de origen duplicados),
+    quedándose con la de mayor confianza. Las que no tienen clave se conservan."""
+    mejor, sin_clave = {}, []
+    for e in entidades:
+        if not e.clave_natural:
+            sin_clave.append(e); continue
+        prev = mejor.get(e.clave_natural)
+        if prev is None or _ORDEN_CONF.get(e.confianza, 0) > _ORDEN_CONF.get(prev.confianza, 0):
+            mejor[e.clave_natural] = e
+    return list(mejor.values()) + sin_clave
 
 
 def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None):
@@ -114,6 +144,9 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None
             municipio_con_cee=con_cee, fuentes=["OSM"]))
         counts["SOLO_OSM"] += 1
 
+    _n_antes = len(entidades)
+    entidades = _dedup(entidades)
+
     resumen = {
         "cee_total": len(cee),
         "osm_total": len(osm),
@@ -122,6 +155,7 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None
         "solo_cee": counts["SOLO_CEE"],
         "solo_osm": counts["SOLO_OSM"],
         "entidades_total": len(entidades),
+        "entidades_deduplicadas": _n_antes - len(entidades),
         "hallazgos_osm_no_cee": counts["SOLO_OSM"],
         "hallazgos_osm_no_cee_prioritarios": sum(
             1 for e in entidades if e.confianza == "SOLO_OSM" and e.municipio_con_cee),
