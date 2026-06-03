@@ -219,3 +219,4 @@ __all__ = [
     # OSM
     'OSMPlace',
 ]
+from .geografia import EntidadPoblacion

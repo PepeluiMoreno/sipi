@@ -10,7 +10,7 @@ from sipi_core.db.registry import Base
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:   
-    from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
+    from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio, EntidadPoblacion
     from sipi_core.models.tipologias import (
         TipoInmueble,
         TipoEstadoConservacion,
@@ -41,8 +41,10 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     comunidad_autonoma_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.comunidades_autonomas.id"), index=True)
     provincia_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.provincias.id"), index=True)
     municipio_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.municipios.id"), index=True)
+    entidad_poblacion_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.entidades_poblacion.id"), index=True)
     direccion: Mapped[Optional[str]] = mapped_column(String(500))
     coordenadas: Mapped[Optional[Geometry]] = mapped_column(Geometry(geometry_type='POINT', srid=4326))
+    fuente_coordenadas: Mapped[Optional[str]] = mapped_column(String(20), index=True)  # MANUAL|OSM|CATASTRO|WIKIDATA|GEOCODER|PEDANIA
     
     tipo_inmueble_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("app.tipos_inmueble.id"), index=True)
     # figura_proteccion_id: Deprecado - usar InmuebleNivelProteccion
@@ -91,6 +93,7 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     comunidad_autonoma: Mapped[Optional["ComunidadAutonoma"]] = relationship("ComunidadAutonoma", back_populates="inmuebles")
     provincia: Mapped[Optional["Provincia"]] = relationship("Provincia", back_populates="inmuebles")
     municipio: Mapped[Optional["Municipio"]] = relationship("Municipio", back_populates="inmuebles")
+    entidad_poblacion: Mapped[Optional["EntidadPoblacion"]] = relationship("EntidadPoblacion", back_populates="inmuebles")
 
     # Relaciones tipológicas y de estado
     tipo_inmueble: Mapped[Optional["TipoInmueble"]] = relationship("TipoInmueble", back_populates="inmuebles")

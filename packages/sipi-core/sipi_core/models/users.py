@@ -49,6 +49,8 @@ class Usuario(UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoMixin, Base)
         "Rol",
         secondary=usuario_rol,
         back_populates="usuarios",
+        # usuario_rol tiene un 2º FK a usuarios (asignado_por); fijamos el join
+        foreign_keys=[usuario_rol.c.usuario_id, usuario_rol.c.rol_id],
     )
 
 
@@ -62,4 +64,5 @@ class Rol(UUIDPKMixin, AuditMixin, Base):
         "Usuario",
         secondary=usuario_rol,
         back_populates="roles",
+        foreign_keys=[usuario_rol.c.usuario_id, usuario_rol.c.rol_id],
     )
