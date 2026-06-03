@@ -35,3 +35,6 @@ httpx[http2]~=0.24.1
 # sipi-core @ git+https://github.com/PepeluiMoreno/sipi-core.git@main
 # Desarrollo local:
 # -e ../sipi-core
+
+# MODELO UNICO: modelo canonico del monorepo (workspace)
+-e ../../packages/sipi-core
