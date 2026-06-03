@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from sipi_core.models.documentos import InmuebleDocumento
     from sipi_core.models.transmisiones import Transmision
     from sipi_core.models.intervenciones import Intervencion
+    from sipi_core.models.expedientes import Expediente
     from sipi_core.models.historiografia import InmuebleCita
     from registradores import RegistroPropiedad
     from sipi_core.models.tipologias import TipoCertificacionPropiedad
@@ -71,6 +72,10 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     
     en_venta: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     activo: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    # Estado del ciclo de vida, derivado del último expediente relevante y
+    # materializado aquí para consulta/filtrado/mapa (p. ej. EN_USO_RELIGIOSO,
+    # DESAFECTADO, ENAJENADO, USO_CIVIL, EN_RUINA, DESAPARECIDO).
+    estado_actual: Mapped[Optional[str]] = mapped_column(String(50), index=True)
     
     # Relaciones
     # Auto-relación para dependencias complementarias
@@ -115,6 +120,10 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     # Transmisiones e intervenciones
     transmisiones: Mapped[List["Transmision"]] = relationship("Transmision", back_populates="inmueble", foreign_keys="[Transmision.inmueble_id]", cascade="all, delete-orphan")
     intervenciones: Mapped[List["Intervencion"]] = relationship("Intervencion", back_populates="inmueble", cascade="all, delete-orphan")
+    # Ciclo de vida unificado: cada episodio (inmatriculación, secularización,
+    # enajenación, subvención, actuación, cambio de uso, ruina, detección...) es
+    # un Expediente. El historial = estos expedientes ordenados por fecha.
+    expedientes: Mapped[List["Expediente"]] = relationship("Expediente", back_populates="inmueble", cascade="all, delete-orphan")
 
     # Usos del inmueble a lo largo del tiempo
     usos: Mapped[List["InmuebleUso"]] = relationship("InmuebleUso", back_populates="inmueble", cascade="all, delete-orphan")

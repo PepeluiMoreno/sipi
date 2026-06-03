@@ -147,6 +147,13 @@ from sipi_core.models.osm import (
 )
 
 # ============================================================================
+# EXPEDIENTES (ciclo de vida del inmueble)
+# ============================================================================
+from sipi_core.models.expedientes import (
+    TipoExpediente, Expediente, ExpedienteActor, ExpedienteDocumento
+)
+
+# ============================================================================
 # EXPORTS
 # ============================================================================
 
@@ -218,4 +225,7 @@ __all__ = [
     
     # OSM
     'OSMPlace',
+
+    # Expedientes (ciclo de vida)
+    'TipoExpediente', 'Expediente', 'ExpedienteActor', 'ExpedienteDocumento',
 ]
