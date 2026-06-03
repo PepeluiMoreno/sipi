@@ -39,9 +39,14 @@ def _create_graphql_assets():
             from strawberry.asgi import GraphQL
             from app.graphql.auth import get_context
 
+            class SipiGraphQL(GraphQL):
+                # Esta versión de strawberry no acepta context_getter=; se sobreescribe.
+                async def get_context(self, request, response=None):
+                    return await get_context(request)
+
             print("[FIX] Creating schema GraphQL (lazy)...")
             _schema = create_schema()
-            _graphql_asgi = GraphQL(_schema, graphiql=True, context_getter=get_context)
+            _graphql_asgi = SipiGraphQL(_schema, graphiql=True)
             _schema_created = True
             print("OK Schema GraphQL created")
             return _schema, _graphql_asgi

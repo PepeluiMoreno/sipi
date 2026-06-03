@@ -16,7 +16,7 @@ const pinia = createPinia()
 const httpLink = createHttpLink({
   // Mismo origen por defecto (/graphql lo reenvía el dev server a la API).
   // Override con VITE_API_URL si se necesita un endpoint absoluto.
-  uri: import.meta.env.VITE_API_URL || '/graphql',
+  uri: import.meta.env.VITE_API_URL || '/graphql/',
 })
 
 const authLink = setContext((_, { headers }) => {

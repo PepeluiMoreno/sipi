@@ -50,13 +50,16 @@ services:
     networks: [internal]
 
   frontend:
-    image: node:20-alpine
+    image: node:22-alpine
     container_name: sipi-frontend
     working_dir: /app
-    command: sh -c "corepack enable && pnpm install && pnpm dev --host 0.0.0.0 --port 5173"
+    # Usamos npm (el frontend trae package-lock.json y npm ejecuta los postinstall
+    # de esbuild por defecto; pnpm daba problemas con los build scripts).
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
     environment:
-      # GraphQL en el mismo origen (lo reenvía el proxy de Vite a la API)
-      VITE_API_URL: /graphql
+      # GraphQL en el mismo origen (lo reenvía el proxy de Vite a la API).
+      # Barra final para evitar el 307 de la API (/graphql -> /graphql/).
+      VITE_API_URL: /graphql/
       VITE_API_TARGET: http://api:8040
     volumes:
       - ./apps/sipi/frontend:/app
@@ -67,14 +70,14 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_public"
       # HTTP
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev.entrypoints=web"
-      - "traefik.http.services.${APP_PREFIX:-sipi}-dev.loadbalancer.server.port=5173"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}.entrypoints=web"
+      - "traefik.http.services.${APP_PREFIX:-sipi}.loadbalancer.server.port=5173"
       # HTTPS (cert auto-firmado de Traefik)
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.entrypoints=websecure"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.tls=true"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.service=${APP_PREFIX:-sipi}-dev"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.entrypoints=websecure"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.tls=true"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.service=${APP_PREFIX:-sipi}"
 
 networks:
   internal:
