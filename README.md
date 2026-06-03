@@ -78,6 +78,22 @@ alembic upgrade head
 docker compose up -d        # db + api (GraphQL en :8040/graphql) + frontend (:5173)
 ```
 
+### Acceso vía Traefik (dev, estilo SIGA)
+
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+Expone el frontend tras el Traefik compartido (red `traefik_public`) en
+**https://sipi.optiplex-790** (HTTP y HTTPS con cert auto-firmado). La API y la BD
+quedan en la red interna; el frontend reenvía `/graphql` a `api:8040` (proxy de
+Vite, mismo origen, sin CORS). El dominio es configurable:
+
+```bash
+# .env (raíz)
+APP_DEV_DOMAIN=sipi.optiplex-790   # debe resolver al host (Traefik enruta por Host)
+APP_PREFIX=sipi
+```
+
 ## Documentación
 
 - [docs/DISENO_MODULOS_NUEVOS.md](docs/DISENO_MODULOS_NUEVOS.md) — diseño de los módulos
