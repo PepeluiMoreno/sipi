@@ -15,12 +15,12 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, ForeignKey
 
-from db.registry import Base
-from mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin
 
 if TYPE_CHECKING:
-    from models.geografia import Municipio
-    from models.transmisiones import Transmision
+    from sipi_core.models.geografia import Municipio
+    from sipi_core.models.transmisiones import Transmision
 
 # Valores permitidos para tipo_actor
 TIPO_ACTOR_ENTIDAD_RELIGIOSA = "entidad_religiosa"

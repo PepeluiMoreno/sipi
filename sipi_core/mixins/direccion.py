@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 from sqlalchemy import String, ForeignKey, Float
 from sqlalchemy.orm import Mapped, mapped_column, declared_attr
-from db.registry import APP_SCHEMA
+from sipi_core.db.registry import APP_SCHEMA
 
 if TYPE_CHECKING:
     from sipi_core.models.geografia import Provincia, Municipio, ComunidadAutonoma

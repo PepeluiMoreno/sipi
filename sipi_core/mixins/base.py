@@ -5,7 +5,7 @@ from typing import Optional, TYPE_CHECKING
 from sqlalchemy import String, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship, declared_attr
 from sqlalchemy.schema import ForeignKey
-from db.registry import APP_SCHEMA
+from sipi_core.db.registry import APP_SCHEMA
 
 if TYPE_CHECKING:
     from sipi_core.models.users import Usuario

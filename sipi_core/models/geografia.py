@@ -17,7 +17,7 @@ if TYPE_CHECKING:
     from sipi_core.models.privados import Privado
     from sipi_core.models.tecnicos import Tecnico
     from notarios import Notaria
-    from registradores import RegistroPropiedad, ColegioProfesional
+    from sipi_core.models.registradores import RegistroPropiedad, ColegioProfesional
     from sipi_core.models.privados  import AgenciaInmobiliaria
     from sipi_core.models.entidades_religiosas import Diocesis, EntidadReligiosa
   

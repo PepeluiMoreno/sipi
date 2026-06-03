@@ -16,8 +16,8 @@ from typing import Optional, List
 from sqlalchemy import String, Text, Boolean, Integer, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from db.registry import Base
-from mixins import UUIDPKMixin
+from sipi_core.db.registry import Base
+from sipi_core.mixins import UUIDPKMixin
 
 
 class OdmgrNotification(UUIDPKMixin, Base):
