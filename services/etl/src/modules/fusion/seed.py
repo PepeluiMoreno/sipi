@@ -47,13 +47,16 @@ class FusedEntity:
     fuentes: list = field(default_factory=list)  # ['CEE','OSM']
 
 
-def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None):
+def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None, config=None):
     """Ejecuta la fusión y devuelve (entidades, resumen).
 
+    `config` (DiscoveryConfig) externaliza pesos/umbrales para investigación.
     Si `osm_boundaries` (JSON Overpass admin_level=8 o GeoJSON de municipios) se
     indica, se asigna municipio a cada bien OSM por point-in-polygon y el
     emparejamiento se bloquea por municipio (mayor precisión).
     """
+    from .config import DiscoveryConfig
+    cfg = config or DiscoveryConfig()
     cee = load_cee(csv_dir, provincia=provincia, ccaa=ccaa)
     osm = load_osm(osm_json)
 
@@ -63,9 +66,9 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None
         idx = (MunicipioIndex.from_geojson(osm_boundaries)
                if osm_boundaries.endswith(".geojson")
                else MunicipioIndex.from_overpass_json(osm_boundaries))
-        cobertura_geo = idx.asignar(osm)
+        cobertura_geo = idx.asignar(osm, nearest_tol_deg=cfg.tolerancia_proximidad_grados)
 
-    matches, matched_osm = match_cee_osm(cee, osm, use_geo=bool(osm_boundaries))
+    matches, matched_osm = match_cee_osm(cee, osm, use_geo=bool(osm_boundaries), config=cfg)
 
     from .geo import norm_municipio
     cee_munis = {norm_municipio(c.municipio) for c in cee if c.municipio}
@@ -128,6 +131,7 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None
     }
     if cobertura_geo is not None:
         resumen["cobertura_geo"] = cobertura_geo
+    resumen["config"] = cfg.to_dict()
     return entidades, resumen
 
 
