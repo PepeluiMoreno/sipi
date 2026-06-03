@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, asc, desc
 from sqlalchemy.exc import NoResultFound
 from datetime import datetime, timezone  # ✅ IMPORT CORREGIDO
-from app.graphql.types import FilterInput, SortInput, PaginationInput, PaginatedResult, PageInfo
+from app.graphql.types import FilterInput, SortInput, PaginationInput, PaginatedResult
 
 class CRUDResolver:
     def __init__(self, model: Type, mapper):
@@ -25,34 +25,24 @@ class CRUDResolver:
                    sort: Optional[List[SortInput]] = None,
                    pagination: Optional[PaginationInput] = None) -> PaginatedResult:
         stmt = select(self.model)
-        
+
         if filters:
             stmt = self._apply_filters(stmt, filters)
-        
+
         count_stmt = select(func.count()).select_from(stmt.subquery())
         total = await session.scalar(count_stmt) or 0
-        
+
         if sort:
             stmt = self._apply_sort(stmt, sort)
-        
-        page = pagination.page if pagination else 1
-        page_size = pagination.page_size if pagination else 20
-        stmt = stmt.offset((page - 1) * page_size).limit(page_size)
-        
+
+        limit = pagination.limit if pagination else 20
+        offset = pagination.offset if pagination else 0
+        stmt = stmt.offset(offset).limit(limit)
+
         result = await session.execute(stmt)
         items = list(result.scalars().all())
-        
-        total_pages = (total + page_size - 1) // page_size
-        
-        return PaginatedResult(
-            items=items,
-            page_info=PageInfo(
-                page=page, page_size=page_size, total=total,
-                total_pages=total_pages,
-                has_next=page < total_pages,
-                has_prev=page > 1
-            )
-        )
+
+        return PaginatedResult(items=items, total=total)
     
     def _apply_filters(self, stmt, filters: List[FilterInput]):
         for f in filters:

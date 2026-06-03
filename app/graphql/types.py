@@ -2,22 +2,12 @@ import strawberry
 from typing import List, Optional, Generic, TypeVar
 from enum import Enum
 
-# PageInfo SIN decorador (se registra en schema.py)
-class PageInfo:
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_next: bool
-    has_previous: bool
-
-# PaginatedResult genérico para uso interno
 T = TypeVar('T')
 
 class PaginatedResult(Generic[T]):
-    def __init__(self, items: List[T], page_info: PageInfo):
+    def __init__(self, items: List[T], total: int):
         self.items = items
-        self.page_info = page_info
+        self.total = total
 
 @strawberry.enum
 class FilterOperator(Enum):
@@ -48,5 +38,5 @@ class SortInput:
 
 @strawberry.input
 class PaginationInput:
-    page: int = 1
-    page_size: int = 20
+    limit: int = 20
+    offset: int = 0
