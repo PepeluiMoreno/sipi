@@ -219,3 +219,5 @@ __all__ = [
     # OSM
     'OSMPlace',
 ]
+
+from .configuracion_descubrimiento import ConfiguracionDescubrimiento
