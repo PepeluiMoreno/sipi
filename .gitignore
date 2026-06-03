@@ -22,3 +22,8 @@ dist/
 # Agentes
 .agent/
 .claude/
+
+# Legacy (repos antiguos preservados hasta confirmar borrado)
+_legacy/
+Taxonomia
+Taxonomia*
