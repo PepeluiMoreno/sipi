@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+# Node / frontend
+node_modules/
+.pnpm-store/
+dist/
+.vite/
+# Entornos / secretos
+.env
+.env.*
+!.env.example
+*.local
+# Editores
+.vscode/
+.idea/
+.DS_Store
+# Agentes
+.agent/
+.claude/
