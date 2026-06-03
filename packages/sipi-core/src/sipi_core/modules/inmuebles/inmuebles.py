@@ -8,7 +8,7 @@ from geoalchemy2 import Geometry
 
 from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
-from sipi_core.modules.expedientes.expedientes import EstadoCicloVida, GeoQuality
+from sipi_core.modules.expedientes.expedientes import EstadoCicloVida, GeoQuality, FuenteCoordenadas
 
 if TYPE_CHECKING:
     from sipi_core.modules.expedientes.expedientes import Expediente
@@ -45,8 +45,18 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     provincia_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.provincias.id"), index=True)
     municipio_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), index=True)
     direccion: Mapped[Optional[str]] = mapped_column(String(500))
+    # Referencia catastral (20 caracteres). Llave a Catastro (uso/superficie/titular).
+    # El CEE no la trae; se descubre/enriquece (cascada de geolocalización).
+    referencia_catastral: Mapped[Optional[str]] = mapped_column(String(20), index=True)
     coordenadas: Mapped[Optional[Geometry]] = mapped_column(Geometry(geometry_type='POINT', srid=4326))
-    
+    # Origen de las coordenadas (jerarquía de calidad para idempotencia):
+    # MANUAL > OSM/WIKIDATA > CATASTRO > GEOCODER.
+    fuente_coordenadas: Mapped[Optional[FuenteCoordenadas]] = mapped_column(
+        SQLEnum(FuenteCoordenadas, name="fuente_coordenadas",
+                values_callable=lambda x: [e.value for e in x]),
+        index=True, nullable=True,
+    )
+
     tipo_inmueble_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.tipos_inmueble.id"), index=True)
     # figura_proteccion_id: Deprecado - usar InmuebleNivelProteccion
     estado_conservacion_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.estados_conservacion.id"), index=True)

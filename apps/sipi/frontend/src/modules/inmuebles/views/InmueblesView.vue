@@ -1,7 +1,7 @@
-<!-- InmueblesView.vue -->
+<!-- InmueblesView.vue — lista de inmuebles a altura completa, sin scroll de página -->
 <template>
-  <div class="flex h-screen bg-gray-50">
-    <InmueblesSidebar 
+  <div class="flex h-full min-h-0 bg-zinc-100">
+    <InmueblesSidebar
       v-model:filters="filters"
       :estados="catalogos.estados"
       :tipos-inmueble="catalogos.tiposInmueble"
@@ -12,29 +12,29 @@
       @clear="limpiarFiltros"
     />
 
-    <div class="flex-1 flex flex-col overflow-hidden">
+    <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
       <InmuebleToolbar
         v-model:view="vistaActiva"
         :total="filteredCount"
         @nuevo="irANuevo"
       />
 
-      <div class="flex-1 overflow-auto p-6">
-        <div v-if="loading" class="flex items-center justify-center h-full">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        </div>
+      <div class="flex-1 min-h-0 overflow-auto p-4">
+        <UiEmptyState v-if="loading" loading loading-text="Cargando inmuebles…" />
 
-        <div v-else-if="isEmpty" class="flex flex-col items-center justify-center h-full text-gray-500">
-          <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-          </svg>
-          <p class="text-lg font-medium">No hay inmuebles</p>
-          <button @click="irANuevo" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-            Crear primer inmueble
-          </button>
-        </div>
+        <UiEmptyState
+          v-else-if="isEmpty"
+          icon="inmueble"
+          title="No hay inmuebles"
+          description="Aún no hay inmuebles que coincidan con los filtros."
+        >
+          <template #action>
+            <UiButton variant="primary" icon="plus" @click="irANuevo">Crear inmueble</UiButton>
+          </template>
+        </UiEmptyState>
 
-        <div v-else-if="vistaActiva === 'cards'" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div v-else-if="vistaActiva === 'cards'"
+             class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <InmuebleCard
             v-for="inmueble in inmuebles"
             :key="inmueble.id"

@@ -35,7 +35,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRegistroPropiedad } from '../composables/useRegistroPropiedad'
-import { useGeografiaStore } from '../../core/stores/geografia'
+import { useGeografiaStore } from '@/stores/geografia'
 import RegistroPropiedadFiltros from '../components/registroPropiedad/RegistroPropiedadFiltros.vue'
 import RegistroPropiedadDataGrid from '../components/registroPropiedad/RegistroPropiedadDataGrid.vue'
 import RegistroPropiedadFormModal from '../components/registroPropiedad/RegistroPropiedadFormModal.vue'

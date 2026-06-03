@@ -78,6 +78,30 @@ class CertezaHallazgo(str, enum.Enum):
     DUDOSO = "dudoso"   # baja confianza → comprobación humana
 
 
+@strawberry.enum
+class TipoExpediente(str, enum.Enum):
+    """Asunto/tipo de un expediente (dosier) del inmueble. Cada expediente tiene
+    sus propios datos (`datos`) y sus documentos colgados."""
+    CATASTRAL = "catastral"            # información catastral (RC, uso, superficie…)
+    ENAJENACION = "enajenacion"        # venta/transmisión
+    INMATRICULACION = "inmatriculacion"
+    PROTECCION = "proteccion"          # BIC/figuras de protección
+    INTERVENCION = "intervencion"      # obras/rehabilitación
+    HISTORICO = "historico"            # historiografía/bibliografía
+    OTRO = "otro"
+
+
+@strawberry.enum
+class FuenteCoordenadas(str, enum.Enum):
+    """Origen de las coordenadas del inmueble. Jerarquía de calidad para la
+    idempotencia: MANUAL > OSM/WIKIDATA > CATASTRO > GEOCODER."""
+    MANUAL = "manual"
+    OSM = "osm"
+    WIKIDATA = "wikidata"
+    CATASTRO = "catastro"
+    GEOCODER = "geocoder"
+
+
 class Expediente(UUIDPKMixin, AuditMixin, Base):
     """Dosier de un inmueble: su estado de ciclo de vida + bitácora de hallazgos
     comprobados. Se abre cuando se verifica el primer hallazgo, o manualmente."""
@@ -88,13 +112,24 @@ class Expediente(UUIDPKMixin, AuditMixin, Base):
         index=True, nullable=False,
         comment="Inmueble del que este expediente es el dosier",
     )
+    # Asunto del dosier: cada expediente es de un tipo (catastral, enajenación…)
+    tipo: Mapped[TipoExpediente] = mapped_column(
+        SQLEnum(TipoExpediente, name="tipo_expediente",
+                values_callable=lambda x: [e.value for e in x]),
+        default=TipoExpediente.OTRO, index=True, nullable=False,
+    )
     titulo: Mapped[Optional[str]] = mapped_column(String(255))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
-    estado_actual: Mapped[EstadoCicloVida] = mapped_column(
+    # Datos específicos del tipo de expediente (catastral: RC/uso/sup.; enajenación:
+    # comprador/precio/fecha/notaría; etc.). Esquema flexible por tipo.
+    datos: Mapped[Optional[dict]] = mapped_column(JSONB)
+    # Estado de ciclo de vida — relevante sobre todo para el dosier de inmatriculación;
+    # nullable porque un dosier catastral/enajenación no tiene "ciclo de vida" propio.
+    estado_actual: Mapped[Optional[EstadoCicloVida]] = mapped_column(
         SQLEnum(EstadoCicloVida, name="estado_ciclo_vida",
                 values_callable=lambda x: [e.value for e in x], create_type=False),
-        default=EstadoCicloVida.INMATRICULADO, index=True, nullable=False,
-        comment="Estado de ciclo de vida vigente (se actualiza al verificar hallazgos)",
+        index=True, nullable=True,
+        comment="Estado de ciclo de vida vigente (dosier de inmatriculación)",
     )
     fecha_apertura: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, nullable=False)
@@ -108,9 +143,13 @@ class Expediente(UUIDPKMixin, AuditMixin, Base):
         "Usuario", foreign_keys=[abierto_por_id], viewonly=True)
     hallazgos: Mapped[List["Hallazgo"]] = relationship(
         "Hallazgo", back_populates="expediente", foreign_keys="Hallazgo.expediente_id")
+    # Documentos colgados de este expediente (vía InmuebleDocumento.expediente_id)
+    documentos: Mapped[List["InmuebleDocumento"]] = relationship(
+        "InmuebleDocumento", back_populates="expediente",
+        foreign_keys="InmuebleDocumento.expediente_id")
 
     def __repr__(self) -> str:
-        return f"<Expediente inmueble={self.inmueble_id} estado={self.estado_actual}>"
+        return f"<Expediente {self.tipo} inmueble={self.inmueble_id}>"
 
 
 class Hallazgo(UUIDPKMixin, AuditMixin, Base):

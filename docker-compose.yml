@@ -50,46 +50,37 @@ services:
     ports:
       - "${GRAPHQL_HOST_PORT:-8040}:${GRAPHQL_PORT:-8040}"
     restart: unless-stopped
-    networks: [sipi-network, traefik_public]
+    # La API no se expone en Traefik: el frontend (vite) reenvía /graphql a api:8040
+    # por la red interna (proxy en vite.config.js). Puerto 8040 publicado solo para debug.
+    networks: [sipi-network]
     volumes:
       - ./apps/sipi/api/app:/code/app:ro
       # packages/sipi-core es la única fuente de modelos
       - ./packages/sipi-core/src/sipi_core:/code/sipi_core:ro
-    labels:
-      - "traefik.enable=true"
-      - "traefik.docker.network=traefik_public"
-      # La API responde bajo el mismo host en /graphql, /api, /health, /odm_webhook
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`) && (PathPrefix(`/graphql`) || PathPrefix(`/api`) || PathPrefix(`/health`) || PathPrefix(`/odm_webhook`))"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.entrypoints=web"
-      - "traefik.http.services.${APP_PREFIX:-sipi}-api.loadbalancer.server.port=8040"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-api-tls.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`) && (PathPrefix(`/graphql`) || PathPrefix(`/api`) || PathPrefix(`/health`) || PathPrefix(`/odm_webhook`))"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-api-tls.entrypoints=websecure"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-api-tls.tls=true"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-api-tls.service=${APP_PREFIX:-sipi}-api"
 
   frontend:
     build:
       context: ./apps/sipi/frontend
       dockerfile: Dockerfile.dev
     container_name: sipi-frontend
-    depends_on: [api]
     environment:
-      # El navegador llama a la API a través de Traefik (mismo host, /graphql)
-      VITE_API_URL: ${VITE_API_URL:-https://${APP_DEV_DOMAIN:-sipi.optiplex-790}/graphql}
+      # Mismo origen: el navegador llama a /graphql y vite lo reenvía a la API.
+      VITE_API_URL: ${VITE_API_URL:-/graphql/}
+      VITE_API_TARGET: ${VITE_API_TARGET:-http://api:8040}
     restart: unless-stopped
     networks: [sipi-network, traefik_public]
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_public"
       # HTTP (catch-all del host → frontend Vite)
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev.entrypoints=web"
-      - "traefik.http.services.${APP_PREFIX:-sipi}-dev.loadbalancer.server.port=5173"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}.entrypoints=web"
+      - "traefik.http.services.${APP_PREFIX:-sipi}.loadbalancer.server.port=5173"
       # HTTPS (cert auto-firmado de Traefik, sin Let's Encrypt)
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.entrypoints=websecure"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.tls=true"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.service=${APP_PREFIX:-sipi}-dev"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.entrypoints=websecure"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.tls=true"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.service=${APP_PREFIX:-sipi}"
 
 networks:
   sipi-network:

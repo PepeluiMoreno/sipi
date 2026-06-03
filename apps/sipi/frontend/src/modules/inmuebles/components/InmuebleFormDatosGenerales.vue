@@ -1,339 +1,188 @@
-<!-- InmuebleFormDatosGenerales.vue -->
+<!-- InmuebleFormDatosGenerales.vue — formulario compacto, cuadrícula multicolumna -->
 <template>
-  <div class="bg-white rounded-lg border border-gray-200 p-6">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Columna izquierda -->
-      <div class="space-y-6">
-        <!-- Denominación principal -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Denominación principal *
-          </label>
-          <input
-            :value="modelValue.denominacion_principal"
-            @input="updateField('denominacion_principal', $event.target.value)"
-            type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            :class="{ 'border-red-500': errores.denominacion_principal }"
-          />
-          <p v-if="errores.denominacion_principal" class="mt-1 text-sm text-red-600">
-            {{ errores.denominacion_principal }}
-          </p>
-        </div>
+  <div class="card p-4 max-w-5xl mx-auto">
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-3">
+      <!-- Identificación -->
+      <p class="ui-section">Identificación</p>
 
-        <!-- Tipo inmueble -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Tipo de inmueble *
-          </label>
-          <Listbox :modelValue="modelValue.tipo_inmueble" @update:modelValue="updateField('tipo_inmueble', $event)">
-            <div class="relative">
-              <ListboxButton class="relative w-full px-3 py-2 text-left bg-white border border-gray-300 rounded-lg">
-                <span class="block truncate">{{ modelValue.tipo_inmueble || 'Seleccionar...' }}</span>
-              </ListboxButton>
-              <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
-                <ListboxOption
-                  v-for="tipo in catalogos.tiposInmueble"
-                  :key="tipo"
-                  :value="tipo"
-                  v-slot="{ active, selected }"
-                >
-                  <li :class="['px-3 py-2 cursor-pointer', active ? 'bg-blue-50' : '']">
-                    <span :class="[selected ? 'font-semibold' : '']">{{ tipo }}</span>
-                  </li>
-                </ListboxOption>
-              </ListboxOptions>
-            </div>
-          </Listbox>
-        </div>
+      <div class="col-span-2 lg:col-span-2">
+        <label class="label">Denominación principal *</label>
+        <input :value="modelValue.denominacion_principal"
+               @input="updateField('denominacion_principal', $event.target.value)"
+               type="text" class="input" :class="{ '!border-red-500': errores.denominacion_principal }" />
+        <p v-if="errores.denominacion_principal" class="mt-1 text-xs text-red-600">{{ errores.denominacion_principal }}</p>
+      </div>
 
-        <!-- Estado -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-          <Listbox :modelValue="modelValue.estado" @update:modelValue="updateField('estado', $event)">
-            <div class="relative">
-              <ListboxButton class="relative w-full px-3 py-2 text-left bg-white border border-gray-300 rounded-lg">
-                <span class="block truncate">{{ getEstadoLabel(modelValue.estado) || 'Seleccionar...' }}</span>
-              </ListboxButton>
-              <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
-                <ListboxOption
-                  v-for="estado in catalogos.estados"
-                  :key="estado.value"
-                  :value="estado.value"
-                  v-slot="{ active, selected }"
-                >
-                  <li :class="['px-3 py-2 cursor-pointer', active ? 'bg-blue-50' : '']">
-                    <span :class="[selected ? 'font-semibold' : '']">{{ estado.label }}</span>
-                  </li>
-                </ListboxOption>
-              </ListboxOptions>
-            </div>
-          </Listbox>
-        </div>
-                <!-- Estado Conservación -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Estado de conservación</label>
-          <Listbox :modelValue="modelValue.estado_conservacion" @update:modelValue="updateField('estado_conservacion', $event)">
-            <div class="relative">
-              <ListboxButton class="relative w-full px-3 py-2 text-left bg-white border border-gray-300 rounded-lg">
-                <span class="block truncate">{{ getConservacionLabel(modelValue.estado_conservacion) || 'Seleccionar...' }}</span>
-              </ListboxButton>
-              <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
-                <ListboxOption
-                  v-for="conservacion in catalogos.estadosConservacion"
-                  :key="conservacion.value"
-                  :value="conservacion.value"
-                  v-slot="{ active, selected }"
-                >
-                  <li :class="['px-3 py-2 cursor-pointer', active ? 'bg-blue-50' : '']">
-                    <span :class="[selected ? 'font-semibold' : '']">{{ conservacion.label }}</span>
-                  </li>
-                </ListboxOption>
-              </ListboxOptions>
-            </div>
-          </Listbox>
-        </div> 
+      <div>
+        <label class="label">Tipo de inmueble *</label>
+        <Listbox :modelValue="modelValue.tipo_inmueble" @update:modelValue="updateField('tipo_inmueble', $event)">
+          <div class="relative">
+            <ListboxButton class="select text-left truncate">{{ modelValue.tipo_inmueble || 'Seleccionar…' }}</ListboxButton>
+            <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto card py-1">
+              <ListboxOption v-for="tipo in catalogos.tiposInmueble" :key="tipo" :value="tipo" v-slot="{ active, selected }">
+                <li :class="optClass(active, selected)">{{ tipo }}</li>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
+      </div>
 
+      <div>
+        <label class="label">Código BIC</label>
+        <input :value="modelValue.codigo_bien_interes_cultural"
+               @input="updateField('codigo_bien_interes_cultural', $event.target.value)" type="text" class="input" />
+      </div>
 
+      <div>
+        <label class="label">Estado</label>
+        <Listbox :modelValue="modelValue.estado" @update:modelValue="updateField('estado', $event)">
+          <div class="relative">
+            <ListboxButton class="select text-left truncate">{{ getEstadoLabel(modelValue.estado) || 'Seleccionar…' }}</ListboxButton>
+            <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto card py-1">
+              <ListboxOption v-for="estado in catalogos.estados" :key="estado.value" :value="estado.value" v-slot="{ active, selected }">
+                <li :class="optClass(active, selected)">{{ estado.label }}</li>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
+      </div>
 
+      <div>
+        <label class="label">Estado de conservación</label>
+        <Listbox :modelValue="modelValue.estado_conservacion" @update:modelValue="updateField('estado_conservacion', $event)">
+          <div class="relative">
+            <ListboxButton class="select text-left truncate">{{ getConservacionLabel(modelValue.estado_conservacion) || 'Seleccionar…' }}</ListboxButton>
+            <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto card py-1">
+              <ListboxOption v-for="c in catalogos.estadosConservacion" :key="c.value" :value="c.value" v-slot="{ active, selected }">
+                <li :class="optClass(active, selected)">{{ c.label }}</li>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
+      </div>
 
-        <!-- Dirección -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
-          <input
-            :value="modelValue.direccion"
-            @input="updateField('direccion', $event.target.value)"
-            type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      <!-- Ubicación -->
+      <p class="ui-section">Ubicación</p>
 
-        <!-- Código postal -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Código postal</label>
-          <input
-            :value="modelValue.codigo_postal"
-            @input="updateField('codigo_postal', $event.target.value)"
-            type="text"
-            maxlength="5"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      <div class="col-span-2 lg:col-span-2">
+        <label class="label">Dirección</label>
+        <input :value="modelValue.direccion" @input="updateField('direccion', $event.target.value)" type="text" class="input" />
+      </div>
+      <div>
+        <label class="label">Código postal</label>
+        <input :value="modelValue.codigo_postal" @input="updateField('codigo_postal', $event.target.value)"
+               type="text" maxlength="5" class="input" />
+      </div>
+      <div>
+        <label class="label">Comunidad Autónoma</label>
+        <Listbox :modelValue="modelValue.comunidad_autonoma" @update:modelValue="updateField('comunidad_autonoma', $event)">
+          <div class="relative">
+            <ListboxButton class="select text-left truncate">{{ modelValue.comunidad_autonoma || 'Seleccionar…' }}</ListboxButton>
+            <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto card py-1">
+              <ListboxOption v-for="ccaa in catalogos.comunidadesAutonomas" :key="ccaa" :value="ccaa" v-slot="{ active, selected }">
+                <li :class="optClass(active, selected)">{{ ccaa }}</li>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
+      </div>
 
-        <!-- Comunidad Autónoma -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Comunidad Autónoma</label>
-          <Listbox :modelValue="modelValue.comunidad_autonoma" @update:modelValue="updateField('comunidad_autonoma', $event)">
-            <div class="relative">
-              <ListboxButton class="relative w-full px-3 py-2 text-left bg-white border border-gray-300 rounded-lg">
-                <span class="block truncate">{{ modelValue.comunidad_autonoma || 'Seleccionar...' }}</span>
-              </ListboxButton>
-              <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
-                <ListboxOption
-                  v-for="ccaa in catalogos.comunidadesAutonomas"
-                  :key="ccaa"
-                  :value="ccaa"
-                  v-slot="{ active, selected }"
-                >
-                  <li :class="['px-3 py-2 cursor-pointer', active ? 'bg-blue-50' : '']">
-                    <span :class="[selected ? 'font-semibold' : '']">{{ ccaa }}</span>
-                  </li>
-                </ListboxOption>
-              </ListboxOptions>
-            </div>
-          </Listbox>
-        </div>
+      <div v-if="modelValue.comunidad_autonoma">
+        <label class="label">Provincia</label>
+        <Listbox :modelValue="modelValue.provincia" @update:modelValue="updateField('provincia', $event)">
+          <div class="relative">
+            <ListboxButton class="select text-left truncate">{{ modelValue.provincia || 'Seleccionar…' }}</ListboxButton>
+            <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto card py-1">
+              <ListboxOption v-for="prov in provinciasFiltered" :key="prov" :value="prov" v-slot="{ active, selected }">
+                <li :class="optClass(active, selected)">{{ prov }}</li>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
+      </div>
 
-        <!-- Provincia -->
-        <div v-if="modelValue.comunidad_autonoma">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Provincia</label>
-          <Listbox :modelValue="modelValue.provincia" @update:modelValue="updateField('provincia', $event)">
-            <div class="relative">
-              <ListboxButton class="relative w-full px-3 py-2 text-left bg-white border border-gray-300 rounded-lg">
-                <span class="block truncate">{{ modelValue.provincia || 'Seleccionar...' }}</span>
-              </ListboxButton>
-              <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
-                <ListboxOption
-                  v-for="prov in provinciasFiltered"
-                  :key="prov"
-                  :value="prov"
-                  v-slot="{ active, selected }"
-                >
-                  <li :class="['px-3 py-2 cursor-pointer', active ? 'bg-blue-50' : '']">
-                    <span :class="[selected ? 'font-semibold' : '']">{{ prov }}</span>
-                  </li>
-                </ListboxOption>
-              </ListboxOptions>
-            </div>
-          </Listbox>
-        </div>
-
-        <!-- Localidad -->
-        <div v-if="modelValue.provincia">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Localidad</label>
-          <Combobox :modelValue="modelValue.localidad" @update:modelValue="updateField('localidad', $event)">
-            <ComboboxInput
-              @change="queryLocalidad = $event.target.value"
-              :displayValue="(l) => l"
-              placeholder="Buscar..."
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
-            <ComboboxOptions class="absolute z-10 mt-1 max-h-60 overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
-              <ComboboxOption
-                v-for="localidad in localidadesFiltered"
-                :key="localidad"
-                :value="localidad"
-                v-slot="{ active, selected }"
-              >
-                <li :class="['px-3 py-2 cursor-pointer', active ? 'bg-blue-50' : '']">
-                  <span :class="[selected ? 'font-semibold' : '']">{{ localidad }}</span>
-                </li>
+      <div v-if="modelValue.provincia">
+        <label class="label">Localidad</label>
+        <Combobox :modelValue="modelValue.localidad" @update:modelValue="updateField('localidad', $event)">
+          <div class="relative">
+            <ComboboxInput @change="queryLocalidad = $event.target.value" :displayValue="(l) => l" placeholder="Buscar…" class="input" />
+            <ComboboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto card py-1">
+              <ComboboxOption v-for="loc in localidadesFiltered" :key="loc" :value="loc" v-slot="{ active, selected }">
+                <li :class="optClass(active, selected)">{{ loc }}</li>
               </ComboboxOption>
             </ComboboxOptions>
-          </Combobox>
-        </div>
+          </div>
+        </Combobox>
+      </div>
 
-        <!-- Coordenadas -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Latitud</label>
-            <input
-              :value="modelValue.latitud"
-              @input="updateField('latitud', parseFloat($event.target.value))"
-              type="number"
-              step="0.000001"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Longitud</label>
-            <input
-              :value="modelValue.longitud"
-              @input="updateField('longitud', parseFloat($event.target.value))"
-              type="number"
-              step="0.000001"
-              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+      <div class="col-span-2 lg:col-span-2">
+        <label class="label">Coordenadas</label>
+        <div class="flex items-center gap-2">
+          <input :value="modelValue.latitud" @input="updateField('latitud', parseFloat($event.target.value))"
+                 type="number" step="0.000001" placeholder="Latitud" class="input w-28" />
+          <input :value="modelValue.longitud" @input="updateField('longitud', parseFloat($event.target.value))"
+                 type="number" step="0.000001" placeholder="Longitud" class="input w-28" />
+          <UiButton variant="secondary" icon="map-pin" :loading="geolocalizando"
+                    class="whitespace-nowrap" @click="intentarGeolocalizacion">
+            Intentar geolocalización
+          </UiButton>
         </div>
       </div>
 
-      <!-- Columna derecha -->
-      <div class="space-y-6">
-        <!-- Fecha construcción -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Fecha construcción</label>
-          <input
-            :value="modelValue.fecha_construccion"
-            @input="updateField('fecha_construccion', $event.target.value)"
-            type="date"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <!-- Superficie construida -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Superficie construida (m²)</label>
-          <input
-            :value="modelValue.superficie_construida"
-            @input="updateField('superficie_construida', parseFloat($event.target.value))"
-            type="number"
-            step="0.01"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <!-- Superficie parcela -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Superficie parcela (m²)</label>
-          <input
-            :value="modelValue.superficie_parcela"
-            @input="updateField('superficie_parcela', parseFloat($event.target.value))"
-            type="number"
-            step="0.01"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <!-- Código BIC -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Código BIC</label>
-          <input
-            :value="modelValue.codigo_bien_interes_cultural"
-            @input="updateField('codigo_bien_interes_cultural', $event.target.value)"
-            type="text"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <!-- Inmatriculación -->
-        <div class="border-t pt-6">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Inmatriculación</h3>
-          
-          <div class="space-y-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Fecha inmatriculación</label>
-              <input
-                :value="modelValue.fecha_inmatriculacion"
-                @input="updateField('fecha_inmatriculacion', $event.target.value)"
-                type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Registro de la propiedad</label>
-              <Listbox :modelValue="modelValue.registro_propiedad" @update:modelValue="updateField('registro_propiedad', $event)">
-                <div class="relative">
-                  <ListboxButton class="relative w-full px-3 py-2 text-left bg-white border border-gray-300 rounded-lg">
-                    <span class="block truncate">{{ modelValue.registro_propiedad || 'Seleccionar...' }}</span>
-                  </ListboxButton>
-                  <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto bg-white border border-gray-300 rounded-lg shadow-lg">
-                    <ListboxOption
-                      v-for="registro in catalogos.registrosPropiedad"
-                      :key="registro"
-                      :value="registro"
-                      v-slot="{ active, selected }"
-                    >
-                      <li :class="['px-3 py-2 cursor-pointer', active ? 'bg-blue-50' : '']">
-                        <span :class="[selected ? 'font-semibold' : '']">{{ registro }}</span>
-                      </li>
-                    </ListboxOption>
-                  </ListboxOptions>
-                </div>
-              </Listbox>
-            </div>
-
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Número de finca</label>
-              <input
-                :value="modelValue.numero_finca"
-                @input="updateField('numero_finca', $event.target.value)"
-                type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-
-        <!-- Descripción -->
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-          <textarea
-            :value="modelValue.descripcion"
-            @input="updateField('descripcion', $event.target.value)"
-            rows="4"
-            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      <!-- Características -->
+      <p class="ui-section">Características</p>
+      <div>
+        <label class="label">Fecha construcción</label>
+        <input :value="modelValue.fecha_construccion" @input="updateField('fecha_construccion', $event.target.value)" type="date" class="input" />
       </div>
-    </div>
+      <div>
+        <label class="label">Superficie construida (m²)</label>
+        <input :value="modelValue.superficie_construida" @input="updateField('superficie_construida', parseFloat($event.target.value))"
+               type="number" step="0.01" class="input" />
+      </div>
+      <div>
+        <label class="label">Superficie parcela (m²)</label>
+        <input :value="modelValue.superficie_parcela" @input="updateField('superficie_parcela', parseFloat($event.target.value))"
+               type="number" step="0.01" class="input" />
+      </div>
 
-    <!-- Mapa -->
-    <div v-if="modelValue.latitud && modelValue.longitud" class="mt-6 border-t pt-6">
-      <h3 class="text-lg font-medium text-gray-900 mb-4">Ubicación</h3>
-      <div class="h-96 rounded-lg overflow-hidden border border-gray-300">
-        <InmuebleMapa :inmuebles="[modelValue]" />
+      <!-- Inmatriculación -->
+      <p class="ui-section">Inmatriculación</p>
+      <div>
+        <label class="label">Fecha inmatriculación</label>
+        <input :value="modelValue.fecha_inmatriculacion" @input="updateField('fecha_inmatriculacion', $event.target.value)" type="date" class="input" />
+      </div>
+      <div>
+        <label class="label">Registro de la propiedad</label>
+        <Listbox :modelValue="modelValue.registro_propiedad" @update:modelValue="updateField('registro_propiedad', $event)">
+          <div class="relative">
+            <ListboxButton class="select text-left truncate">{{ modelValue.registro_propiedad || 'Seleccionar…' }}</ListboxButton>
+            <ListboxOptions class="absolute z-10 mt-1 max-h-60 w-full overflow-auto card py-1">
+              <ListboxOption v-for="r in catalogos.registrosPropiedad" :key="r" :value="r" v-slot="{ active, selected }">
+                <li :class="optClass(active, selected)">{{ r }}</li>
+              </ListboxOption>
+            </ListboxOptions>
+          </div>
+        </Listbox>
+      </div>
+      <div>
+        <label class="label">Número de finca</label>
+        <input :value="modelValue.numero_finca" @input="updateField('numero_finca', $event.target.value)" type="text" class="input" />
+      </div>
+
+      <!-- Descripción -->
+      <p class="ui-section">Descripción</p>
+      <div class="col-span-full">
+        <textarea :value="modelValue.descripcion" @input="updateField('descripcion', $event.target.value)"
+                  rows="2" class="input resize-y" />
+      </div>
+
+      <!-- Mapa (compacto, solo si hay coords) -->
+      <div v-if="modelValue.latitud && modelValue.longitud" class="col-span-full">
+        <label class="label">Ubicación</label>
+        <div class="h-56 rounded overflow-hidden border border-zinc-200">
+          <InmuebleMapa :inmuebles="[modelValue]" />
+        </div>
       </div>
     </div>
   </div>
@@ -359,9 +208,34 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'geolocalizar'])
 
 const queryLocalidad = ref('')
+const geolocalizando = ref(false)
+
+/**
+ * Lanza un intento de geolocalización (cascada del backend: fusión OSM → geocoder
+ * con validación point-in-polygon). NO inventa coordenadas: si el servicio no
+ * acierta con confianza, el inmueble queda "pendiente de geolocalizar".
+ * Emite el contexto de dirección para que la vista invoque el servicio.
+ */
+const intentarGeolocalizacion = () => {
+  emit('geolocalizar', {
+    direccion: props.modelValue.direccion,
+    codigo_postal: props.modelValue.codigo_postal,
+    localidad: props.modelValue.localidad,
+    provincia: props.modelValue.provincia,
+    comunidad_autonoma: props.modelValue.comunidad_autonoma,
+    denominacion: props.modelValue.denominacion_principal,
+  })
+}
+
+// Clase austera para las opciones de Listbox/Combobox (DRY).
+const optClass = (active, selected) => [
+  'px-3 py-1.5 text-sm cursor-pointer',
+  active ? 'bg-zinc-100' : '',
+  selected ? 'font-semibold text-primary-700' : 'text-zinc-700',
+]
 
 const updateField = (field, value) => {
   emit('update:modelValue', {

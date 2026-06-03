@@ -167,6 +167,8 @@ from sipi_core.modules.expedientes.expedientes import (
     TipoEventoExpediente,
     EstadoHallazgo,
     CertezaHallazgo,
+    TipoExpediente,
+    FuenteCoordenadas,
 )
 
 # ============================================================================
@@ -273,6 +275,7 @@ __all__ = [
     # Expedientes (dosier) y Hallazgos (detecciones verificables)
     'Expediente', 'Hallazgo', 'EstadoCicloVida', 'GeoQuality',
     'TipoEventoExpediente', 'EstadoHallazgo', 'CertezaHallazgo',
+    'TipoExpediente', 'FuenteCoordenadas',
 
     # Discovery
     'InmuebleRaw', 'DeteccionAnuncio',

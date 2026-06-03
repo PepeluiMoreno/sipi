@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from sipi_core.modules.inmuebles.inmuebles import Inmueble
     from sipi_core.modules.catalogos.tipologias import TipoDocumento, TipoLicencia
     from sipi_core.modules.documentos.documentos import FuenteDocumental
+    from sipi_core.modules.expedientes.expedientes import Expediente
 
 
 class Documento(UUIDPKMixin, AuditMixin, DocumentoMixin, Base):
@@ -67,6 +68,13 @@ class InmuebleDocumento(UUIDPKMixin, AuditMixin, Base):
         ForeignKey(f"{APP_SCHEMA}.documentos.id", ondelete="CASCADE"),
         index=True,
     )
+    # Expediente (dosier) al que se cuelga el documento. NULL = documento a nivel
+    # de inmueble, sin asignar a un expediente concreto.
+    expediente_id: Mapped[Optional[str]] = mapped_column(
+        String(36),
+        ForeignKey(f"{APP_SCHEMA}.expedientes.id", ondelete="SET NULL"),
+        index=True, nullable=True,
+    )
     descripcion: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
     inmueble: Mapped["Inmueble"] = relationship(
@@ -76,4 +84,9 @@ class InmuebleDocumento(UUIDPKMixin, AuditMixin, Base):
     documento: Mapped["Documento"] = relationship(
         "Documento",
         back_populates="inmuebles",
+    )
+    expediente: Mapped[Optional["Expediente"]] = relationship(
+        "Expediente",
+        back_populates="documentos",
+        foreign_keys=[expediente_id],
     )

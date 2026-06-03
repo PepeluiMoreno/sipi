@@ -10,6 +10,7 @@ import { setContext } from '@apollo/client/link/context'
 import App from './App.vue'
 import router from './router'  // ✅ CORREGIDO
 import { createPinia } from 'pinia'
+import { registerUi } from './modules/core/components/ui'
 
 const pinia = createPinia()
 
@@ -48,6 +49,7 @@ const app = createApp(App)
 app.use(router)
 app.use(pinia)
 app.use(apolloProvider)
+registerUi(app)   // widgets base del sistema de diseño (UiButton, UiPanel, PageShell…)
 
 app.mount('#app')
 

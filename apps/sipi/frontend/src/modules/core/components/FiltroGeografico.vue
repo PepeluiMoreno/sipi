@@ -74,7 +74,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { MapIcon, MapPinIcon, BuildingOffice2Icon } from '@heroicons/vue/24/outline'
-import { useGeografiaStore } from '../stores/geografia'
+import { useGeografiaStore } from '@/stores/geografia'
 
 const props = defineProps({
   modelValue: {

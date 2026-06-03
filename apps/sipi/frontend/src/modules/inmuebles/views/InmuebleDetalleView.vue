@@ -1,167 +1,60 @@
-<!-- InmuebleDetalleView.vue -->
+<!-- InmuebleDetalleView.vue — detalle a altura completa, pestañas sin scroll de página -->
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <!-- Header fijo con info del inmueble -->
-    <InmuebleDetailHeader v-if="inmueble" :inmueble="inmueble" />
-
-    <!-- Header acciones -->
-    <div class="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
-      <div class="max-w-7xl mx-auto flex items-center justify-between">
-        <button @click="volver" class="flex items-center space-x-2 text-gray-600 hover:text-gray-900">
-          <ArrowLeftIcon class="w-5 h-5" />
-          <span>Volver</span>
-        </button>
-
-        <div class="flex items-center space-x-3">
-          <button
-            v-if="!isNuevo"
-            @click="confirmarEliminar"
-            class="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50"
-          >
-            Eliminar
-          </button>
-          <button
-            @click="volver"
-            class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-          >
-            Cancelar
-          </button>
-          <button
-            @click="guardar"
-            :disabled="loading"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {{ loading ? 'Guardando...' : 'Guardar' }}
-          </button>
-        </div>
+  <div class="h-full min-h-0 flex flex-col bg-zinc-100">
+    <!-- Barra de acciones -->
+    <header class="shrink-0 h-12 bg-white border-b border-zinc-200 px-4 flex items-center justify-between">
+      <UiButton variant="ghost" icon="atras" @click="volver">Volver</UiButton>
+      <div class="flex items-center gap-2">
+        <UiButton v-if="!isNuevo" variant="danger" icon="borrar" @click="confirmarEliminar">Eliminar</UiButton>
+        <UiButton variant="secondary" @click="volver">Cancelar</UiButton>
+        <UiButton variant="primary" icon="check" :loading="loading" @click="guardar">Guardar</UiButton>
       </div>
-    </div>
+    </header>
 
-    <!-- Contenido -->
-    <div class="max-w-7xl mx-auto px-6 py-8">
-      <TabGroup @change="cambiarTab">
-        <TabList class="flex space-x-1 bg-white rounded-lg p-1 border border-gray-200 mb-6">
-          <Tab v-slot="{ selected }" as="template">
-            <button
-              :class="[
-                'w-full py-2.5 text-sm font-medium rounded-lg transition-colors',
-                selected
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              ]"
-            >
-              Datos Generales
-            </button>
-          </Tab>
-          <Tab v-slot="{ selected }" as="template">
-            <button
-              :class="[
-                'w-full py-2.5 text-sm font-medium rounded-lg transition-colors',
-                selected
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              ]"
-            >
-              Documentos
-            </button>
-          </Tab>
-          <Tab v-slot="{ selected }" as="template">
-            <button
-              :class="[
-                'w-full py-2.5 text-sm font-medium rounded-lg transition-colors',
-                selected
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              ]"
-            >
-              Hemeroteca
-            </button>
-          </Tab>
-          <Tab v-slot="{ selected }" as="template">
-            <button
-              :class="[
-                'w-full py-2.5 text-sm font-medium rounded-lg transition-colors',
-                selected
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-700 hover:bg-gray-100'
-              ]"
-            >
-              Bibliografía
-            </button>
-          </Tab>
-        </TabList>
+    <!-- Cabecera con info del inmueble -->
+    <InmuebleDetailHeader v-if="inmueble" :inmueble="inmueble" class="shrink-0" />
 
-        <TabPanels>
-          <TabPanel>
-            <InmuebleFormDatosGenerales
-              :modelValue="formData"
-              @update:modelValue="formData = $event"
-              :catalogos="catalogos"
-              :errores="errores"
-            />
-          </TabPanel>
-          <TabPanel>
-            <InmuebleFormDocumentos
-              :inmueble-id="inmuebleId"
-            />
-          </TabPanel>
-          <TabPanel>
-            <InmuebleFormHemeroteca
-              :inmueble-id="inmuebleId"
-            />
-          </TabPanel>
-          <TabPanel>
-            <InmuebleFormBibliografia
-              :inmueble-id="inmuebleId"
-            />
-          </TabPanel>
-        </TabPanels>
-      </TabGroup>
-    </div>
+    <!-- Pestañas (la barra es fija; solo scrollea el panel) -->
+    <TabGroup as="div" class="flex-1 min-h-0 flex flex-col" @change="cambiarTab">
+      <TabList class="shrink-0 flex items-center gap-1 px-4 bg-white border-b border-zinc-200">
+        <Tab v-for="t in tabs" :key="t" v-slot="{ selected }" as="template">
+          <button :class="['tab', selected && 'is-active']">{{ t }}</button>
+        </Tab>
+      </TabList>
+
+      <TabPanels class="flex-1 min-h-0 overflow-auto p-4">
+        <TabPanel>
+          <InmuebleFormDatosGenerales
+            :modelValue="formData"
+            @update:modelValue="formData = $event"
+            :catalogos="catalogos"
+            :errores="errores"
+          />
+        </TabPanel>
+        <TabPanel><InmuebleFormDocumentos :inmueble-id="inmuebleId" /></TabPanel>
+        <TabPanel><InmuebleFormHemeroteca :inmueble-id="inmuebleId" /></TabPanel>
+        <TabPanel><InmuebleFormBibliografia :inmueble-id="inmuebleId" /></TabPanel>
+      </TabPanels>
+    </TabGroup>
 
     <!-- Modal confirmación eliminar -->
     <TransitionRoot :show="mostrarConfirmEliminar" as="template">
-      <Dialog @close="mostrarConfirmEliminar = false">
-        <TransitionChild
-          enter="duration-300 ease-out"
-          enter-from="opacity-0"
-          enter-to="opacity-100"
-          leave="duration-200 ease-in"
-          leave-from="opacity-100"
-          leave-to="opacity-0"
-        >
-          <div class="fixed inset-0 bg-black/30" />
+      <Dialog @close="mostrarConfirmEliminar = false" class="relative z-50">
+        <TransitionChild enter="duration-200 ease-out" enter-from="opacity-0" enter-to="opacity-100"
+                         leave="duration-150 ease-in" leave-from="opacity-100" leave-to="opacity-0">
+          <div class="fixed inset-0 bg-zinc-900/40" />
         </TransitionChild>
-
         <div class="fixed inset-0 flex items-center justify-center p-4">
-          <TransitionChild
-            enter="duration-300 ease-out"
-            enter-from="opacity-0 scale-95"
-            enter-to="opacity-100 scale-100"
-            leave="duration-200 ease-in"
-            leave-from="opacity-100 scale-100"
-            leave-to="opacity-0 scale-95"
-          >
-            <DialogPanel class="bg-white rounded-lg p-6 max-w-md w-full">
-              <DialogTitle class="text-lg font-semibold text-gray-900 mb-2">
-                ¿Eliminar inmueble?
-              </DialogTitle>
-              <DialogDescription class="text-sm text-gray-600 mb-6">
+          <TransitionChild enter="duration-200 ease-out" enter-from="opacity-0 scale-95" enter-to="opacity-100 scale-100"
+                           leave="duration-150 ease-in" leave-from="opacity-100 scale-100" leave-to="opacity-0 scale-95">
+            <DialogPanel class="card p-5 max-w-md w-full">
+              <DialogTitle class="text-base font-semibold text-zinc-900 mb-1">¿Eliminar inmueble?</DialogTitle>
+              <DialogDescription class="text-sm text-zinc-500 mb-5">
                 Esta acción no se puede deshacer. Se eliminarán todos los datos asociados.
               </DialogDescription>
-              <div class="flex justify-end space-x-3">
-                <button
-                  @click="mostrarConfirmEliminar = false"
-                  class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Cancelar
-                </button>
-                <button
-                  @click="eliminar"
-                  class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  Eliminar
-                </button>
+              <div class="flex justify-end gap-2">
+                <UiButton variant="secondary" @click="mostrarConfirmEliminar = false">Cancelar</UiButton>
+                <UiButton variant="danger" icon="borrar" @click="eliminar">Eliminar</UiButton>
               </div>
             </DialogPanel>
           </TransitionChild>
@@ -175,8 +68,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { TabGroup, TabList, Tab, TabPanels, TabPanel, Dialog, DialogPanel, DialogTitle, DialogDescription, TransitionRoot, TransitionChild } from '@headlessui/vue'
-import { ArrowLeftIcon } from '@heroicons/vue/24/outline'
 import { useInmueble } from '../composables/useInmueble'
+
+const tabs = ['Datos Generales', 'Documentos', 'Hemeroteca', 'Bibliografía']
 import InmuebleDetailHeader from '../components/InmuebleDetailHeader.vue'
 import InmuebleFormDatosGenerales from '../components/InmuebleFormDatosGenerales.vue'
 import InmuebleFormDocumentos from '../components/InmuebleFormDocumentos.vue'
