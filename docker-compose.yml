@@ -4,7 +4,7 @@
 services:
   db:
     build:
-      context: ./apps/api
+      context: ./apps/sipi/api
       dockerfile: Dockerfile.postgres
     container_name: sipi-db
     environment:
@@ -28,7 +28,7 @@ services:
 
   api:
     build:
-      context: ./apps/api
+      context: ./apps/sipi/api
       dockerfile: Dockerfile
     container_name: sipi-api
     environment:
@@ -51,13 +51,13 @@ services:
     restart: unless-stopped
     networks: [sipi-network]
     volumes:
-      - ./apps/api/app:/code/app:ro
+      - ./apps/sipi/api/app:/code/app:ro
       # packages/sipi-core es la única fuente de modelos
       - ./packages/sipi-core/sipi_core:/code/sipi_core:ro
 
   frontend:
     build:
-      context: ./apps/frontend
+      context: ./apps/sipi/frontend
     container_name: sipi-frontend
     depends_on: [api]
     environment:
