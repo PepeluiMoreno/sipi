@@ -30,6 +30,13 @@ from sipi_core.modules.acceso.permisos import RolTransaccion, RolFuncionalidad
 from sipi_core.modules.acceso.auditoria import AuditoriaAcceso
 
 # ============================================================================
+# CONFIGURACION (parámetros tipados por ámbito)
+# ============================================================================
+from sipi_core.modules.configuracion.configuracion import (
+    Configuracion, HistorialConfiguracion, TipoDato, AmbitoConfig,
+)
+
+# ============================================================================
 # TYPOLOGIES (APP Schema - Sin dependencias de actores)
 # ============================================================================
 from sipi_core.modules.catalogos.tipologias import (
@@ -189,6 +196,9 @@ __all__ = [
     # Acceso (RBAC)
     'Transaccion', 'TipoTransaccion', 'Funcionalidad', 'FuncionalidadTransaccion',
     'RolTransaccion', 'RolFuncionalidad', 'AuditoriaAcceso',
+
+    # Configuración
+    'Configuracion', 'HistorialConfiguracion', 'TipoDato', 'AmbitoConfig',
 
     # Typologies
     'TipoEstadoConservacion', 'TipoEstadoTratamiento', 'TipoRolTecnico',
