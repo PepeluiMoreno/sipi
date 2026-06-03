@@ -9,7 +9,7 @@ Se serializa a/desde JSON para registrar cada ejecución con su configuración y
 para lanzar barridos de parámetros desde el banco de experimentos (experimento.py).
 """
 import json
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, asdict, field, fields
 
 __all__ = ["DiscoveryConfig"]
 
@@ -51,6 +51,17 @@ class DiscoveryConfig:
     def to_json(self, path: str) -> None:
         with open(path, "w", encoding="utf-8") as f:
             json.dump(asdict(self), f, ensure_ascii=False, indent=2)
+
+    @classmethod
+    def from_mapping(cls, data: dict) -> "DiscoveryConfig":
+        """Construye desde un dict (p. ej. el JSONB del perfil de BD).
+
+        Ignora claves desconocidas y respeta los defaults para las ausentes.
+        DB-first: el servicio de descubrimiento carga el perfil activo y lo pasa
+        por aqui; si no hay perfil, usa DiscoveryConfig() (defaults del codigo).
+        """
+        validos = {f.name for f in fields(cls)}
+        return cls(**{k: v for k, v in (data or {}).items() if k in validos})
 
     @classmethod
     def from_json(cls, path: str) -> "DiscoveryConfig":
