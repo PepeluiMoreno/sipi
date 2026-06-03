@@ -87,24 +87,66 @@ class MunicipioIndex:
                 continue
         return cls(polys, names)
 
-    def municipio_de(self, lat, lon):
+    def municipio_de(self, lat, lon, nearest_tol_deg=None):
+        """Municipio que contiene el punto (point-in-polygon).
+
+        Si no lo contiene ningún polígono y `nearest_tol_deg` se indica, devuelve
+        el municipio del polígono más cercano dentro de esa tolerancia (en grados)
+        junto a la marca de que fue por proximidad. Devuelve (nombre, proximidad).
+        """
         if self._tree is None or lat is None or lon is None:
-            return None
+            return (None, False)
         from shapely.geometry import Point
         p = Point(lon, lat)
         for i in self._tree.query(p):
             idx = int(i)
             if self._polys[idx].contains(p):
-                return self._names[idx]
-        return None
+                return (self._names[idx], False)
+        # Fallback por proximidad: punto fuera de todo polígono (borde mal trazado,
+        # polígono que es casco urbano y no término, coords ligeramente desplazadas...)
+        if nearest_tol_deg:
+            try:
+                j = int(self._tree.nearest(p))
+                if self._polys[j].distance(p) <= nearest_tol_deg:
+                    return (self._names[j], True)
+            except Exception:
+                pass
+        return (None, False)
 
-    def asignar(self, osm_records):
-        """Asigna `.municipio` y `.municipio_norm` a cada OSMRecord in situ."""
-        n = 0
+    def asignar(self, osm_records, nearest_tol_deg=0.03):
+        """Asigna municipio a cada OSMRecord. Devuelve un informe de cobertura.
+
+        `nearest_tol_deg` (~3 km) rescata por proximidad los puntos que caen
+        fuera de todo polígono, para no perder inmuebles rurales cuando los
+        límites no cubren bien el término. Marca `.municipio_proximidad`.
+        """
+        dentro = proximidad = sin = 0
         for o in osm_records:
-            m = self.municipio_de(o.lat, o.lon)
+            m, prox = self.municipio_de(o.lat, o.lon, nearest_tol_deg=nearest_tol_deg)
             o.municipio = m
             o.municipio_norm = norm_municipio(m) if m else None
-            if m:
-                n += 1
-        return n
+            o.municipio_proximidad = prox
+            if m and not prox:
+                dentro += 1
+            elif m and prox:
+                proximidad += 1
+            else:
+                sin += 1
+        total = max(1, len(osm_records))
+        informe = {
+            "total": len(osm_records), "dentro": dentro,
+            "por_proximidad": proximidad, "sin_asignar": sin,
+            "cobertura_pct": round(100 * (dentro + proximidad) / total, 1),
+            "area_mediana_poligono": self._area_mediana(),
+        }
+        # Aviso si los polígonos parecen cascos urbanos en vez de términos
+        if informe["sin_asignar"] > 0.10 * total:
+            informe["aviso"] = ("cobertura baja: los límites podrían ser cascos "
+                                "urbanos y no términos municipales; revisar la fuente")
+        return informe
+
+    def _area_mediana(self):
+        if not self._polys:
+            return None
+        import statistics
+        return round(statistics.median(p.area for p in self._polys), 5)

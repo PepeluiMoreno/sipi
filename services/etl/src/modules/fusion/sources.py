@@ -44,6 +44,7 @@ class OSMRecord:
     tokens: set = field(default_factory=set)
     municipio: str = None        # asignado por reverse-geocoding (geo.py)
     municipio_norm: str = None
+    municipio_proximidad: bool = False  # True si se asignó por cercanía, no por contención
 
 
 def _cee_titulo(row: dict) -> str:

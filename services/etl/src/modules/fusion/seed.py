@@ -43,6 +43,7 @@ class FusedEntity:
     osm_nombre: str = None
     wikidata: str = None
     geo_confirmado: bool = False  # municipio CEE == municipio OSM (point-in-polygon)
+    municipio_con_cee: bool = None  # SOLO_OSM: si el municipio tiene registros CEE (señal fuerte de hallazgo)
     fuentes: list = field(default_factory=list)  # ['CEE','OSM']
 
 
@@ -56,14 +57,18 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None
     cee = load_cee(csv_dir, provincia=provincia, ccaa=ccaa)
     osm = load_osm(osm_json)
 
+    cobertura_geo = None
     if osm_boundaries:
         from .geo import MunicipioIndex
         idx = (MunicipioIndex.from_geojson(osm_boundaries)
                if osm_boundaries.endswith(".geojson")
                else MunicipioIndex.from_overpass_json(osm_boundaries))
-        idx.asignar(osm)
+        cobertura_geo = idx.asignar(osm)
 
     matches, matched_osm = match_cee_osm(cee, osm, use_geo=bool(osm_boundaries))
+
+    from .geo import norm_municipio
+    cee_munis = {norm_municipio(c.municipio) for c in cee if c.municipio}
 
     entidades = []
     counts = {"ALTA": 0, "MEDIA": 0, "SOLO_CEE": 0, "SOLO_OSM": 0}
@@ -101,10 +106,12 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None
     for j, o in enumerate(osm):
         if j in matched_osm:
             continue
+        con_cee = bool(o.municipio and norm_municipio(o.municipio) in cee_munis)
         entidades.append(FusedEntity(
             nombre=o.name, tipo=o.tipo_canon, municipio=(o.municipio or o.city), provincia=provincia or "",
             confianza="SOLO_OSM", score=0.0, lat=o.lat, lon=o.lon,
-            osm_id=o.osm_id, osm_nombre=o.name, wikidata=o.wikidata, fuentes=["OSM"]))
+            osm_id=o.osm_id, osm_nombre=o.name, wikidata=o.wikidata,
+            municipio_con_cee=con_cee, fuentes=["OSM"]))
         counts["SOLO_OSM"] += 1
 
     resumen = {
@@ -115,16 +122,35 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None
         "solo_cee": counts["SOLO_CEE"],
         "solo_osm": counts["SOLO_OSM"],
         "entidades_total": len(entidades),
+        "hallazgos_osm_no_cee": counts["SOLO_OSM"],
+        "hallazgos_osm_no_cee_prioritarios": sum(
+            1 for e in entidades if e.confianza == "SOLO_OSM" and e.municipio_con_cee),
     }
+    if cobertura_geo is not None:
+        resumen["cobertura_geo"] = cobertura_geo
     return entidades, resumen
 
 
 def write_outputs(entidades, resumen, out_prefix):
-    """Escribe seed.json (todo), revision.json (banda MEDIA) y resumen.json."""
+    """Escribe seed.json (todo), revision.json (MEDIA), pendientes_geo.json
+    (SOLO_CEE sin coordenadas) y resumen.json."""
     with open(out_prefix + "_seed.json", "w", encoding="utf-8") as f:
         json.dump([asdict(e) for e in entidades], f, ensure_ascii=False, indent=2)
     with open(out_prefix + "_revision.json", "w", encoding="utf-8") as f:
         json.dump([asdict(e) for e in entidades if e.confianza == "MEDIA"],
                   f, ensure_ascii=False, indent=2)
+    # Worklist de geolocalización manual: inmuebles imposibles de fusionar (sin coords).
+    # Alimenta la transacción `inmueble.geolocalizar` (ver
+    # apps/api/docs/TRANSACCION_geolocalizacion_manual.md).
+    with open(out_prefix + "_pendientes_geo.json", "w", encoding="utf-8") as f:
+        json.dump([asdict(e) for e in entidades
+                   if e.confianza == "SOLO_CEE" and e.lat is None],
+                  f, ensure_ascii=False, indent=2)
     with open(out_prefix + "_resumen.json", "w", encoding="utf-8") as f:
         json.dump(resumen, f, ensure_ascii=False, indent=2)
+    # Hallazgos OSM no presentes en CEE (los más valiosos): objeto de notificación.
+    # Prioridad: municipio_con_cee=True (CEE cubre ese municipio y aun así no consta).
+    hallazgos = [asdict(e) for e in entidades if e.confianza == "SOLO_OSM"]
+    hallazgos.sort(key=lambda e: (not e["municipio_con_cee"], e["municipio"] or "", e["nombre"]))
+    with open(out_prefix + "_hallazgos_osm.json", "w", encoding="utf-8") as f:
+        json.dump(hallazgos, f, ensure_ascii=False, indent=2)
