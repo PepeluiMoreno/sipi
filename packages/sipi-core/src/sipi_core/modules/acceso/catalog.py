@@ -37,10 +37,12 @@ TRANSACCIONES: List[TransaccionDef] = [
     TransaccionDef("inmueble.crear", "Crear inmueble", "inmueble"),
     TransaccionDef("inmueble.editar", "Editar inmueble", "inmueble"),
     TransaccionDef("inmueble.geolocalizar", "Geolocalizar inmueble (manual)", "inmueble"),
-    # Expedientes (ciclo de vida)
+    # Hallazgos (datos extraídos por watchers, comprobación humana)
+    TransaccionDef("hallazgo.consultar", "Consultar hallazgos", "hallazgo", "consulta"),
+    TransaccionDef("hallazgo.verificar", "Verificar hallazgo (→ abre/engrosa expediente)", "hallazgo"),
+    TransaccionDef("hallazgo.descartar", "Descartar hallazgo", "hallazgo"),
+    # Expedientes (dosier del inmueble)
     TransaccionDef("expediente.consultar", "Consultar expedientes", "expediente", "consulta"),
-    TransaccionDef("expediente.ratificar", "Ratificar hallazgo (expediente)", "expediente"),
-    TransaccionDef("expediente.descartar", "Descartar hallazgo (expediente)", "expediente"),
     # Entidades religiosas
     TransaccionDef("entidad_religiosa.consultar", "Consultar entidades religiosas", "entidad_religiosa", "consulta"),
     TransaccionDef("entidad_religiosa.editar", "Editar entidad religiosa", "entidad_religiosa"),
@@ -66,9 +68,10 @@ ROLES: List[RolDef] = [
             "entidad_religiosa.consultar", "entidad_religiosa.editar", "expediente.consultar"],
            "Mantenimiento de inmuebles y entidades"),
     RolDef("validador", "Validador de hallazgos", "territorial",
-           ["expediente.consultar", "expediente.ratificar", "expediente.descartar",
-            "inmueble.consultar"],
-           "Valida/ratifica hallazgos en su ámbito", es_territorial=True),
+           ["hallazgo.consultar", "hallazgo.verificar", "hallazgo.descartar",
+            "expediente.consultar", "inmueble.consultar"],
+           "Comprueba hallazgos en su ámbito; al verificarlos abre/engrosa expedientes",
+           es_territorial=True),
     RolDef("operador_vigilancia", "Operador de vigilancia", "funcional",
            ["vigilancia.consultar", "vigilancia.dispositivo.crear", "vigilancia.dispositivo.activar",
             "vigilancia.ejecutar", "config.consultar"],

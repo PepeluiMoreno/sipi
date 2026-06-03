@@ -3,8 +3,8 @@
 Autorización por transacción. API mínima para usar en resolvers/servicios.
 
     from sipi_core.modules.acceso.services import authorization as authz
-    if not authz.puede(session, usuario, "expediente.ratificar"):
-        raise PermisoDenegado("expediente.ratificar")
+    if not authz.puede(session, usuario, "hallazgo.verificar"):
+        raise PermisoDenegado("hallazgo.verificar")
 """
 from __future__ import annotations
 from typing import Iterable, Optional, Set

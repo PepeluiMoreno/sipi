@@ -1,22 +1,26 @@
 # models/expedientes.py
 """
-Expediente — ciclo de vida y bitácora del inmueble.
+Hallazgo y Expediente.
 
-Reconstruye el modelo de ciclo de vida (antes `EventoHistorial` +
-`estado_ciclo_vida`, perdido en el refactor de aplanado) y lo unifica con el
-flujo de validación del destino de la refactorización: las detecciones
-automáticas (discovery/survey) se escriben como `Expediente` en estado
-`PROPUESTO`; la ratificación humana (RBAC) lo pasa a `RATIFICADO` y actualiza el
-`estado_ciclo_vida` del inmueble. No se usan tablas ad-hoc `portals.detecciones`
-para el dominio: el hallazgo vive como Expediente.
+Flujo de dominio (corregido):
+  1. Los watchers/vigilantes de cada fuente extraen datos → se registran como
+     `Hallazgo` (estado PENDIENTE, con scoring `certeza`/`confianza`).
+  2. El humano COMPRUEBA el hallazgo (transacción RBAC `hallazgo.verificar`):
+     VERIFICADO o DESCARTADO.
+  3. Un hallazgo VERIFICADO se incorpora a un `Expediente` existente del inmueble
+     o ABRE uno nuevo.
+
+`Expediente` = dosier del inmueble (estado de ciclo de vida + bitácora de
+hallazgos comprobados). El flujo de validación y el scoring viven en `Hallazgo`,
+NO en el expediente.
 """
 from __future__ import annotations
 import enum
 from datetime import datetime, date
-from typing import TYPE_CHECKING, Optional
-from sqlalchemy.orm import Mapped, mapped_column, relationship
 from decimal import Decimal
-from sqlalchemy import String, Text, Numeric, ForeignKey, Date, DateTime, Index, Enum as SQLEnum
+from typing import TYPE_CHECKING, Optional, List
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import String, Text, Numeric, Boolean, ForeignKey, Date, DateTime, Index, Enum as SQLEnum
 from sqlalchemy.dialects.postgresql import JSONB
 import strawberry
 
@@ -41,14 +45,14 @@ class EstadoCicloVida(str, enum.Enum):
 @strawberry.enum
 class GeoQuality(str, enum.Enum):
     """Calidad/origen de la geolocalización del inmueble."""
-    MANUAL = "manual"    # validado por humano
-    AUTO = "auto"        # asignado por script
-    MISSING = "missing"  # sin coordenadas
+    MANUAL = "manual"
+    AUTO = "auto"
+    MISSING = "missing"
 
 
 @strawberry.enum
 class TipoEventoExpediente(str, enum.Enum):
-    """Tipo de evento del ciclo de vida detectado o registrado."""
+    """Tipo de evento del ciclo de vida (de un hallazgo / entrada de expediente)."""
     ALTA_INMATRICULACION = "alta_inmatriculacion"
     PUESTA_EN_VENTA = "puesta_en_venta"
     VENDIDO = "vendido"
@@ -60,116 +64,120 @@ class TipoEventoExpediente(str, enum.Enum):
 
 
 @strawberry.enum
-class EstadoExpediente(str, enum.Enum):
-    """Estado del flujo de validación del expediente."""
-    PROPUESTO = "propuesto"      # detectado automáticamente, pendiente de ratificar
-    RATIFICADO = "ratificado"    # validado por un humano (RBAC)
-    DESCARTADO = "descartado"    # rechazado en la validación
+class EstadoHallazgo(str, enum.Enum):
+    """Estado de comprobación del hallazgo (dato extraído por un watcher)."""
+    PENDIENTE = "pendiente"      # extraído, pendiente de comprobar por un humano
+    VERIFICADO = "verificado"    # comprobado → incorporado/abre Expediente
+    DESCARTADO = "descartado"    # rechazado en la comprobación
 
 
 @strawberry.enum
 class CertezaHallazgo(str, enum.Enum):
-    """Confianza del hallazgo (independiente del estado de workflow). Ver §2bis del diseño.
-
-    Resultado de la valoración (scoring) del pipeline de descubrimiento:
-    - CIERTO: alta confianza → auto-ratificable según política (umbral en configuracion).
-    - DUDOSO: baja confianza → cola de validación humana.
-    """
-    CIERTO = "cierto"
-    DUDOSO = "dudoso"
+    """Confianza del hallazgo (resultado del scoring; ver §2bis del diseño)."""
+    CIERTO = "cierto"   # alta confianza → auto-verificable según umbral (configuracion)
+    DUDOSO = "dudoso"   # baja confianza → comprobación humana
 
 
 class Expediente(UUIDPKMixin, AuditMixin, Base):
-    """
-    Expediente/bitácora: un evento del ciclo de vida de un inmueble con flujo de
-    validación. Las detecciones nacen `PROPUESTO`; la ratificación las pasa a
-    `RATIFICADO` y actualiza `Inmueble.estado_ciclo_vida`.
-    """
+    """Dosier de un inmueble: su estado de ciclo de vida + bitácora de hallazgos
+    comprobados. Se abre cuando se verifica el primer hallazgo, o manualmente."""
     __tablename__ = "expedientes"
 
-    # Inmueble al que concierne. Nullable: una propuesta puede preceder al alta
-    # del inmueble confirmado (hallazgo de discovery sobre un anuncio).
-    inmueble_id: Mapped[Optional[str]] = mapped_column(
-        String(36),
-        ForeignKey(f"{APP_SCHEMA}.inmuebles.id", ondelete="CASCADE"),
-        index=True,
-        nullable=True,
-        comment="Inmueble afectado (NULL mientras es solo una propuesta sin inmueble confirmado)",
+    inmueble_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id", ondelete="CASCADE"),
+        index=True, nullable=False,
+        comment="Inmueble del que este expediente es el dosier",
     )
+    titulo: Mapped[Optional[str]] = mapped_column(String(255))
+    descripcion: Mapped[Optional[str]] = mapped_column(Text)
+    estado_actual: Mapped[EstadoCicloVida] = mapped_column(
+        SQLEnum(EstadoCicloVida, name="estado_ciclo_vida",
+                values_callable=lambda x: [e.value for e in x], create_type=False),
+        default=EstadoCicloVida.INMATRICULADO, index=True, nullable=False,
+        comment="Estado de ciclo de vida vigente (se actualiza al verificar hallazgos)",
+    )
+    fecha_apertura: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False)
+    abierto_por_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.usuarios.id"), index=True, nullable=True)
+    activo: Mapped[bool] = mapped_column(Boolean, default=True, index=True, nullable=False)
 
+    inmueble: Mapped["Inmueble"] = relationship(
+        "Inmueble", back_populates="expedientes", foreign_keys=[inmueble_id])
+    abierto_por: Mapped[Optional["Usuario"]] = relationship(
+        "Usuario", foreign_keys=[abierto_por_id], viewonly=True)
+    hallazgos: Mapped[List["Hallazgo"]] = relationship(
+        "Hallazgo", back_populates="expediente", foreign_keys="Hallazgo.expediente_id")
+
+    def __repr__(self) -> str:
+        return f"<Expediente inmueble={self.inmueble_id} estado={self.estado_actual}>"
+
+
+class Hallazgo(UUIDPKMixin, AuditMixin, Base):
+    """Dato extraído por un watcher/vigilante de una fuente, pendiente de
+    comprobación humana. Unifica las detecciones de las distintas fuentes
+    (portales, ODMGR/datasets, OSM…). Al verificarse, abre o engrosa un Expediente."""
+    __tablename__ = "hallazgos"
+
+    fuente: Mapped[str] = mapped_column(
+        String(100), index=True, nullable=False,
+        comment="Watcher/fuente: 'idealista', 'fotocasa', 'odmgr:bdns', 'osm', 'manual'…")
     tipo_evento: Mapped[TipoEventoExpediente] = mapped_column(
-        SQLEnum(
-            TipoEventoExpediente,
-            name="tipo_evento_expediente",
-            values_callable=lambda x: [e.value for e in x],
-        ),
-        index=True,
-        nullable=False,
-    )
+        SQLEnum(TipoEventoExpediente, name="tipo_evento_expediente",
+                values_callable=lambda x: [e.value for e in x]),
+        index=True, nullable=False)
+    estado: Mapped[EstadoHallazgo] = mapped_column(
+        SQLEnum(EstadoHallazgo, name="estado_hallazgo",
+                values_callable=lambda x: [e.value for e in x]),
+        default=EstadoHallazgo.PENDIENTE, index=True, nullable=False)
 
-    estado: Mapped[EstadoExpediente] = mapped_column(
-        SQLEnum(
-            EstadoExpediente,
-            name="estado_expediente",
-            values_callable=lambda x: [e.value for e in x],
-        ),
-        default=EstadoExpediente.PROPUESTO,
-        index=True,
-        nullable=False,
-    )
-
-    # --- Confianza del hallazgo (independiente del workflow; ver §2bis) ---
+    # Scoring (lo asigna el pipeline de descubrimiento)
     certeza: Mapped[Optional[CertezaHallazgo]] = mapped_column(
         SQLEnum(CertezaHallazgo, name="certeza_hallazgo",
                 values_callable=lambda x: [e.value for e in x]),
-        index=True, nullable=True,
-        comment="Resultado del scoring: CIERTO (auto-ratificable) | DUDOSO (validación humana)",
-    )
-    confianza: Mapped[Optional[Decimal]] = mapped_column(
-        Numeric(4, 3), comment="Puntuación de confianza 0.000–1.000 (scoring)")
+        index=True, nullable=True)
+    confianza: Mapped[Optional[Decimal]] = mapped_column(Numeric(4, 3))
 
     titulo: Mapped[Optional[str]] = mapped_column(String(255))
     descripcion: Mapped[Optional[str]] = mapped_column(Text)
-
-    fecha_evento: Mapped[Optional[date]] = mapped_column(
-        Date, index=True, comment="Fecha del evento en el mundo real"
-    )
-    fecha_deteccion: Mapped[datetime] = mapped_column(
-        DateTime, default=datetime.utcnow, nullable=False,
-        comment="Cuándo se detectó/registró el expediente",
-    )
-
-    fuente: Mapped[Optional[str]] = mapped_column(
-        String(100), index=True,
-        comment="Origen: 'manual', 'scraper-idealista', 'scraper-fotocasa', 'BOE'...",
-    )
+    datos: Mapped[Optional[dict]] = mapped_column(JSONB, comment="Datos crudos extraídos")
     url_evidencia: Mapped[Optional[str]] = mapped_column(String(500))
-    detalles: Mapped[Optional[dict]] = mapped_column(
-        JSONB, comment="Datos estructurados específicos del evento"
-    )
+    fecha_evento: Mapped[Optional[date]] = mapped_column(Date, index=True)
+    fecha_deteccion: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, nullable=False, index=True)
 
-    # --- Validación (RBAC) ---
-    validado_por_id: Mapped[Optional[str]] = mapped_column(
-        String(36), ForeignKey(f"{APP_SCHEMA}.usuarios.id"), index=True, nullable=True,
-    )
-    validado_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+    # Inmueble candidato (puede no estar confirmado aún)
+    inmueble_candidato_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.inmuebles.id"), index=True, nullable=True)
+    # Origen polimórfico: la detección de la fuente (DeteccionAnuncio / OdmgrNotificationChange / InmuebleRaw)
+    origen_tipo: Mapped[Optional[str]] = mapped_column(String(50))
+    origen_id: Mapped[Optional[str]] = mapped_column(String(36), index=True)
 
-    # --- Relaciones ---
-    inmueble: Mapped[Optional["Inmueble"]] = relationship(
-        "Inmueble", back_populates="expedientes", foreign_keys=[inmueble_id]
-    )
-    validado_por: Mapped[Optional["Usuario"]] = relationship(
-        "Usuario", foreign_keys=[validado_por_id], viewonly=True
-    )
+    # Comprobación humana (transacción RBAC hallazgo.verificar/descartar)
+    verificado_por_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.usuarios.id"), index=True, nullable=True)
+    verificado_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
+
+    # Expediente al que se incorpora al verificarse (NULL mientras pendiente)
+    expediente_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.expedientes.id", ondelete="SET NULL"),
+        index=True, nullable=True)
+
+    inmueble_candidato: Mapped[Optional["Inmueble"]] = relationship(
+        "Inmueble", foreign_keys=[inmueble_candidato_id], viewonly=True)
+    verificado_por: Mapped[Optional["Usuario"]] = relationship(
+        "Usuario", foreign_keys=[verificado_por_id], viewonly=True)
+    expediente: Mapped[Optional["Expediente"]] = relationship(
+        "Expediente", back_populates="hallazgos", foreign_keys=[expediente_id])
 
     __table_args__ = (
-        Index("ix_expedientes_inmueble_estado", "inmueble_id", "estado"),
-        Index("ix_expedientes_tipo_fecha", "tipo_evento", "fecha_evento"),
+        Index("ix_hallazgos_estado_certeza", "estado", "certeza"),
+        Index("ix_hallazgos_inmueble_candidato", "inmueble_candidato_id"),
     )
 
     @property
-    def es_propuesta(self) -> bool:
-        return self.estado == EstadoExpediente.PROPUESTO
+    def es_pendiente(self) -> bool:
+        return self.estado == EstadoHallazgo.PENDIENTE
 
     def __repr__(self) -> str:
-        return f"<Expediente {self.tipo_evento} inmueble={self.inmueble_id} estado={self.estado}>"
+        return f"<Hallazgo {self.fuente}:{self.tipo_evento} estado={self.estado}>"

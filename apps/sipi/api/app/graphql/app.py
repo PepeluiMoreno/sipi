@@ -37,10 +37,11 @@ def _create_graphql_assets():
         try:
             from app.graphql.schema import create_schema
             from strawberry.asgi import GraphQL
+            from app.graphql.auth import get_context
 
             print("[FIX] Creating schema GraphQL (lazy)...")
             _schema = create_schema()
-            _graphql_asgi = GraphQL(_schema, graphiql=True)
+            _graphql_asgi = GraphQL(_schema, graphiql=True, context_getter=get_context)
             _schema_created = True
             print("OK Schema GraphQL created")
             return _schema, _graphql_asgi

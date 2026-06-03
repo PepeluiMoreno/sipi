@@ -161,10 +161,11 @@ from sipi_core.modules.intervenciones.subvenciones import (
 # ============================================================================
 from sipi_core.modules.expedientes.expedientes import (
     Expediente,
+    Hallazgo,
     EstadoCicloVida,
     GeoQuality,
     TipoEventoExpediente,
-    EstadoExpediente,
+    EstadoHallazgo,
     CertezaHallazgo,
 )
 
@@ -269,9 +270,9 @@ __all__ = [
     # Subsidies
     'IntervencionSubvencion', 'SubvencionAdministracion',
     
-    # Expedientes (ciclo de vida)
-    'Expediente', 'EstadoCicloVida', 'GeoQuality',
-    'TipoEventoExpediente', 'EstadoExpediente', 'CertezaHallazgo',
+    # Expedientes (dosier) y Hallazgos (detecciones verificables)
+    'Expediente', 'Hallazgo', 'EstadoCicloVida', 'GeoQuality',
+    'TipoEventoExpediente', 'EstadoHallazgo', 'CertezaHallazgo',
 
     # Discovery
     'InmuebleRaw', 'DeteccionAnuncio',

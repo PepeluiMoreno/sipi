@@ -1,6 +1,7 @@
-# Orquestación raíz del monorepo SIPI.
+# Orquestación raíz del monorepo SIPI (desarrollo).
 # Reusa el volumen de datos existente `sipi_pgdata` (no se pierde nada).
-# Esquema B: todo en `sipi` (APP_SCHEMA=GIS_SCHEMA=DEFAULT_SCHEMA=sipi).
+# Esquema B: todo en `sipi`. Acceso vía Traefik como ${APP_DEV_DOMAIN:-sipi.optiplex-790}
+# (mismo patrón que SIGA: red externa traefik_public + labels en frontend y api).
 services:
   db:
     build:
@@ -49,27 +50,52 @@ services:
     ports:
       - "${GRAPHQL_HOST_PORT:-8040}:${GRAPHQL_PORT:-8040}"
     restart: unless-stopped
-    networks: [sipi-network]
+    networks: [sipi-network, traefik_public]
     volumes:
       - ./apps/sipi/api/app:/code/app:ro
       # packages/sipi-core es la única fuente de modelos
       - ./packages/sipi-core/src/sipi_core:/code/sipi_core:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_public"
+      # La API responde bajo el mismo host en /graphql, /api, /health, /odm_webhook
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`) && (PathPrefix(`/graphql`) || PathPrefix(`/api`) || PathPrefix(`/health`) || PathPrefix(`/odm_webhook`))"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.entrypoints=web"
+      - "traefik.http.services.${APP_PREFIX:-sipi}-api.loadbalancer.server.port=8040"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api-tls.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`) && (PathPrefix(`/graphql`) || PathPrefix(`/api`) || PathPrefix(`/health`) || PathPrefix(`/odm_webhook`))"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api-tls.entrypoints=websecure"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api-tls.tls=true"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api-tls.service=${APP_PREFIX:-sipi}-api"
 
   frontend:
     build:
       context: ./apps/sipi/frontend
+      dockerfile: Dockerfile.dev
     container_name: sipi-frontend
     depends_on: [api]
     environment:
-      VITE_API_URL: ${VITE_API_URL:-http://localhost:8040/graphql}
-    ports:
-      - "${FRONTEND_PORT:-5173}:5173"
+      # El navegador llama a la API a través de Traefik (mismo host, /graphql)
+      VITE_API_URL: ${VITE_API_URL:-https://${APP_DEV_DOMAIN:-sipi.optiplex-790}/graphql}
     restart: unless-stopped
-    networks: [sipi-network]
+    networks: [sipi-network, traefik_public]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_public"
+      # HTTP (catch-all del host → frontend Vite)
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev.entrypoints=web"
+      - "traefik.http.services.${APP_PREFIX:-sipi}-dev.loadbalancer.server.port=5173"
+      # HTTPS (cert auto-firmado de Traefik, sin Let's Encrypt)
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.entrypoints=websecure"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.tls=true"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.service=${APP_PREFIX:-sipi}-dev"
 
 networks:
   sipi-network:
     driver: bridge
+  traefik_public:
+    external: true
 
 volumes:
   sipi_pgdata:

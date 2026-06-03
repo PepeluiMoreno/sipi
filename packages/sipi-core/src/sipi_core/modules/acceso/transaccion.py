@@ -23,7 +23,7 @@ class TipoTransaccion(str, enum.Enum):
 
 
 class Transaccion(UUIDPKMixin, AuditMixin, Base):
-    """Acción atómica autorizable. p. ej. `expediente.ratificar`, `inmueble.crear`."""
+    """Acción atómica autorizable. p. ej. `hallazgo.verificar`, `inmueble.crear`."""
     __tablename__ = "transacciones"
 
     codigo: Mapped[str] = mapped_column(String(80), unique=True, index=True, nullable=False,

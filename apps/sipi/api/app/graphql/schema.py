@@ -540,6 +540,99 @@ def _make_delete_resolver(model):
 # Factory del schema
 # ---------------------------------------------------------------------------
 
+@strawberry.type
+class HallazgoAccionResult:
+    """Resultado de comprobar un hallazgo (verificar/descartar)."""
+    ok: bool
+    id: strawberry.ID
+    estado: Optional[str] = None
+    expediente_id: Optional[str] = None
+    mensaje: Optional[str] = None
+
+
+# tipo_evento del hallazgo → estado de ciclo de vida que fija en el expediente
+_EVENTO_A_CICLO = {
+    "puesta_en_venta": "en_venta",
+    "vendido": "vendido",
+    "cambio_de_uso": "cambio_de_uso",
+    "rehabilitacion": "rehabilitacion",
+    "rehabilitacion_subvencionada": "rehabilitacion",
+}
+
+
+def _make_hallazgo_transicion_resolvers():
+    """Mutations RBAC: el humano COMPRUEBA un hallazgo (dato de un watcher).
+
+    - `verificarHallazgo`: transacción `hallazgo.verificar`. Marca VERIFICADO y lo
+      incorpora a un Expediente del inmueble candidato (lo abre si no existe),
+      actualizando el estado de ciclo de vida del expediente según el tipo de evento.
+    - `descartarHallazgo`: transacción `hallazgo.descartar`. Marca DESCARTADO.
+    """
+    from datetime import datetime, timezone
+
+    async def verificar_hallazgo(info: strawberry.Info, id: strawberry.ID) -> HallazgoAccionResult:
+        from app.db.sessions.async_session import async_session_maker
+        from app.graphql.authz import exigir, PermisoDenegado
+        from sipi_core.modules.expedientes.expedientes import (
+            Hallazgo, Expediente, EstadoHallazgo, EstadoCicloVida,
+        )
+        from sqlalchemy import select
+        async with async_session_maker() as db:
+            try:
+                usuario = await exigir(info, db, "hallazgo.verificar")
+            except PermisoDenegado as e:
+                await db.commit()
+                return HallazgoAccionResult(ok=False, id=id, mensaje=str(e))
+            h = await db.get(Hallazgo, str(id))
+            if h is None:
+                return HallazgoAccionResult(ok=False, id=id, mensaje="Hallazgo no encontrado")
+            if h.inmueble_candidato_id is None:
+                return HallazgoAccionResult(ok=False, id=id,
+                    mensaje="El hallazgo no tiene inmueble candidato; asígnalo antes de verificar")
+            # Expediente del inmueble: abrir si no existe
+            exp = (await db.execute(
+                select(Expediente).where(
+                    Expediente.inmueble_id == h.inmueble_candidato_id,
+                    Expediente.activo.is_(True),
+                ).limit(1)
+            )).scalar_one_or_none()
+            if exp is None:
+                exp = Expediente(inmueble_id=h.inmueble_candidato_id,
+                                 abierto_por_id=getattr(usuario, "id", None))
+                db.add(exp); await db.flush()
+            # Incorporar hallazgo y actualizar ciclo de vida del expediente
+            ciclo = _EVENTO_A_CICLO.get(h.tipo_evento.value)
+            if ciclo is not None:
+                exp.estado_actual = EstadoCicloVida(ciclo)
+            h.estado = EstadoHallazgo.VERIFICADO
+            h.verificado_por_id = getattr(usuario, "id", None)
+            h.verificado_at = datetime.now(timezone.utc)
+            h.expediente_id = exp.id
+            await db.commit()
+            return HallazgoAccionResult(ok=True, id=id, estado=h.estado.value, expediente_id=exp.id)
+
+    async def descartar_hallazgo(info: strawberry.Info, id: strawberry.ID) -> HallazgoAccionResult:
+        from app.db.sessions.async_session import async_session_maker
+        from app.graphql.authz import exigir, PermisoDenegado
+        from sipi_core.modules.expedientes.expedientes import Hallazgo, EstadoHallazgo
+        async with async_session_maker() as db:
+            try:
+                usuario = await exigir(info, db, "hallazgo.descartar")
+            except PermisoDenegado as e:
+                await db.commit()
+                return HallazgoAccionResult(ok=False, id=id, mensaje=str(e))
+            h = await db.get(Hallazgo, str(id))
+            if h is None:
+                return HallazgoAccionResult(ok=False, id=id, mensaje="Hallazgo no encontrado")
+            h.estado = EstadoHallazgo.DESCARTADO
+            h.verificado_por_id = getattr(usuario, "id", None)
+            h.verificado_at = datetime.now(timezone.utc)
+            await db.commit()
+            return HallazgoAccionResult(ok=True, id=id, estado=h.estado.value)
+
+    return verificar_hallazgo, descartar_hallazgo
+
+
 def create_schema() -> strawberry.Schema:
     logger.info("Construyendo schema GraphQL...")
     # Limpiar registry al iniciar para evitar artefactos de recargas en desarrollo
@@ -595,6 +688,14 @@ def create_schema() -> strawberry.Schema:
 
     if not queries:
         raise ValueError("No se generaron queries")
+
+    # --- Mutations de dominio sujetas a RBAC (transacciones) ---
+    try:
+        verificar, descartar = _make_hallazgo_transicion_resolvers()
+        mutations["verificarHallazgo"] = strawberry.mutation(verificar)
+        mutations["descartarHallazgo"] = strawberry.mutation(descartar)
+    except Exception as e:
+        logger.warning(f"Omitiendo mutaciones de hallazgo (RBAC): {e}")
 
     Query = strawberry.type(type("Query", (), queries))
     Mutation = strawberry.type(type("Mutation", (), mutations)) if mutations else None
