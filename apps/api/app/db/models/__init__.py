@@ -1,78 +1,12 @@
-# models/__init__.py
-from app.db.base import Base
-from app.db.mixins import UUIDPKMixin, AuditMixin
+# -*- coding: utf-8 -*-
+"""MODELO ÚNICO: este paquete ya no define modelos.
 
-# Actores
-from .actores import (
-    Adquiriente, Administracion, AdministracionTitular, AgenciaInmobiliaria,
-    ColegioProfesional, Diocesis, DiocesisTitular, Notaria,
-    Tecnico, RegistroPropiedad, RegistroPropiedadTitular, Transmitente
-)
+Re-exporta el modelo canónico de sipi-core (packages/sipi-core). Cualquier
+cambio de modelo se hace ALLÍ; las migraciones viven en sipi-core/alembic.
+"""
+from sipi_core.db.registry import Base  # noqa: F401
+from sipi_core.mixins import UUIDPKMixin, AuditMixin  # noqa: F401
+from sipi_core import models as _core_models
+from sipi_core.models import *  # noqa: F401,F403
 
-# Tipologías
-from .tipologias import (
-    TipoEstadoConservacion, TipoEstadoTratamiento, TipoRolTecnico,
-    TipoCertificacionPropiedad, TipoDocumento, TipoInmueble, TipoMimeDocumento,
-    TipoPersona, TipoTransmision, TipoVia, TipoLicencia, FuenteDocumental
-)
-
-# Geografía
-from .geografia import ComunidadAutonoma, Provincia, Municipio
-
-# Documentos
-from .documentos import Documento, InmuebleDocumento, ActuacionDocumento, TransmisionDocumento
-
-# Actuaciones
-from .actuaciones import Actuacion, ActuacionTecnico
-
-# Transmisiones
-from .transmisiones import Transmision, TransmisionAnunciante
-
-# Inmuebles (incluye InmuebleCita)
-from .inmuebles import (
-    Inmueble, Inmatriculacion, InmuebleDenominacion, 
-    InmuebleOSMExt, InmuebleWDExt, InmuebleCita
-)
-
-# Historiografía
-from .historiografia import FuenteHistoriografica
-
-# Figuras de Protección
-from .figuras_proteccion import FiguraProteccion, NivelProteccion
-
-# Subvenciones
-from .subvenciones import ActuacionSubvencion, SubvencionAdministracion
-
-# Usuarios
-from .users import Usuario, Rol
-
-__all__ = [
-    'Base', 'UUIDPKMixin', 'AuditMixin',
-    # Actores
-    'Adquiriente', 'Administracion', 'AdministracionTitular', 'AgenciaInmobiliaria',
-    'ColegioProfesional', 'Diocesis', 'DiocesisTitular', 'Notaria',
-    'Tecnico', 'RegistroPropiedad', 'RegistroPropiedadTitular', 'Transmitente',
-    # Tipologías
-    'TipoEstadoConservacion', 'TipoEstadoTratamiento', 'TipoRolTecnico',
-    'TipoCertificacionPropiedad', 'TipoDocumento', 'TipoInmueble', 'TipoMimeDocumento',
-    'TipoPersona', 'TipoTransmision', 'TipoVia', 'TipoLicencia', 'FuenteDocumental',
-    # Geografía
-    'ComunidadAutonoma', 'Provincia', 'Municipio',
-    # Documentos
-    'Documento', 'InmuebleDocumento', 'ActuacionDocumento', 'TransmisionDocumento',
-    # Actuaciones
-    'Actuacion', 'ActuacionTecnico',
-    # Transmisiones
-    'Transmision', 'TransmisionAnunciante',
-    # Inmuebles
-    'Inmueble', 'Inmatriculacion', 'InmuebleDenominacion',
-    'InmuebleOSMExt', 'InmuebleWDExt', 'InmuebleCita',
-    # Historiografía
-    'FuenteHistoriografica',
-    # Figuras de Protección
-    'FiguraProteccion', 'NivelProteccion',
-    # Subvenciones
-    'ActuacionSubvencion', 'SubvencionAdministracion',
-    # Usuarios
-    'Usuario', 'Rol'
-]
+__all__ = [n for n in dir(_core_models) if not n.startswith("_")]

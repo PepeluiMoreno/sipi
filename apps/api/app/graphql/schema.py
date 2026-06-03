@@ -44,33 +44,15 @@ def get_graphql_type_for_column(column):
         return Optional[str] if column.nullable else str
 
 def load_all_models(folder: str = "app/db/models"):
-    """Carga todos los modelos SQLAlchemy sin duplicados"""
-    models_dict = {}  # Usar dict para deduplicar por nombre
-    folder_path = Path(folder)
-    
-    for py_file in folder_path.glob("*.py"):
-        if py_file.name.startswith("__"):
-            continue
-        
-        module_name = f"{folder.replace('/', '.')}.{py_file.stem}"
-        
-        try:
-            module = importlib.import_module(module_name)
-            for attr_name in dir(module):
-                attr = getattr(module, attr_name)
-                if hasattr(attr, "__tablename__") and not attr_name.startswith('_'):
-                    # Deduplicar: solo agregar si no existe
-                    if attr_name not in models_dict:
-                        logger.debug(f"📦 Modelo encontrado: {attr_name} (tabla: {attr.__tablename__})")
-                        models_dict[attr_name] = attr
-                    else:
-                        logger.debug(f"⚠️  Modelo duplicado omitido: {attr_name} en {module_name}")
-        except Exception as e:
-            logger.warning(f"⚠️  Error cargando {module_name}: {e}")
-            continue
-    
-    models = list(models_dict.values())
-    logger.info(f"✅ {len(models)} modelos únicos cargados")
+    """MODELO ÚNICO: carga las clases mapeadas de sipi-core. FAIL-FAST:
+    cualquier error de import o mapeo revienta aquí en vez de degradar el
+    schema en silencio (el bug que dejó a producción sin actores/usuarios)."""
+    import sipi_core.models  # registra el modelo canónico completo
+    from sipi_core.db.registry import Base
+    from sqlalchemy.orm import configure_mappers
+    configure_mappers()
+    models = sorted({m.class_ for m in Base.registry.mappers}, key=lambda c: c.__name__)
+    logger.info(f"✅ {len(models)} modelos cargados desde sipi-core (modelo único)")
     return models
 
 def get_excluded_field_names_for_model(model):

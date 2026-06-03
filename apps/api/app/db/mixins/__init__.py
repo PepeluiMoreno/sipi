@@ -1,19 +1,4 @@
-# app/db/mixins/__init__.py
-from .base import UUIDPKMixin, AuditMixin
-from .identificacion import TipoIdentificacion, IdentificacionMixin
-from .contacto import ContactoMixin, ContactoDireccionMixin
-from .direccion import DireccionMixin
-from .titularidad import TitularidadMixin
-from .documento import DocumentoMixin
-
-__all__ = [
-    "UUIDPKMixin",
-    "AuditMixin",
-    "TipoIdentificacion",
-    "IdentificacionMixin",
-    "ContactoMixin",
-    "ContactoDireccionMixin",
-    "DireccionMixin",
-    "TitularidadMixin",
-    "DocumentoMixin",
-]
+# -*- coding: utf-8 -*-
+"""MODELO ÚNICO: mixins canónicos de sipi-core."""
+from sipi_core.mixins import *  # noqa: F401,F403
+from sipi_core.mixins import UUIDPKMixin, AuditMixin  # noqa: F401
