@@ -36,8 +36,8 @@ from utils.etl_audit import ETL_USER_ID
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "SIPI-CORE"))
 
 from sipi_core.db.sessions import AsyncDatabaseManager
-from sipi_core.models.administraciones import Administracion
-from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
+from sipi_core.modules.actores.administraciones import Administracion
+from sipi_core.modules.geografia.geografia import ComunidadAutonoma, Provincia, Municipio
 from sqlalchemy import select, text
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")

@@ -19,12 +19,12 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin
 # ============================================================================
 # USERS (DEBE IR PRIMERO - AuditMixin y muchos otros dependen de esto)
 # ============================================================================
-from sipi_core.models.users import Usuario, Rol
+from sipi_core.modules.usuarios.users import Usuario, Rol
 
 # ============================================================================
 # TYPOLOGIES (APP Schema - Sin dependencias de actores)
 # ============================================================================
-from sipi_core.models.tipologias import (
+from sipi_core.modules.catalogos.tipologias import (
     TipoEstadoConservacion, TipoEstadoTratamiento, TipoRolTecnico,
     TipoCertificacionPropiedad, TipoTituloPropiedad, TipoDocumento, 
     TipoInmueble, TipoMimeDocumento, TipoPersona, TipoTransmision, 
@@ -35,7 +35,7 @@ from sipi_core.models.tipologias import (
 # ============================================================================
 # GEOGRAPHY (APP Schema - Sin dependencias de actores)
 # ============================================================================
-from sipi_core.models.geografia import (
+from sipi_core.modules.geografia.geografia import (
     ComunidadAutonoma, 
     Provincia, 
     Municipio
@@ -44,39 +44,39 @@ from sipi_core.models.geografia import (
 # ============================================================================
 # ACTORS BASE (Clases base abstractas sin dependencias)
 # ============================================================================
-from sipi_core.models.actores_base import PersonaMixin, TitularBase
+from sipi_core.modules.actores.actores_base import PersonaMixin, TitularBase
 
 # ============================================================================
 # ACTORS (APP Schema) - Ordenados por dependencias de Foreign Keys
 # ============================================================================
 
 # 1. Notarios (no tienen FK a otros actores)
-from sipi_core.models.notarios import Notaria, NotariaTitular  
+from sipi_core.modules.actores.notarios import Notaria, NotariaTitular  
 
 # 2. Registradores (no tienen FK a otros actores)
-from sipi_core.models.registradores import RegistroPropiedad, RegistroPropiedadTitular
+from sipi_core.modules.actores.registradores import RegistroPropiedad, RegistroPropiedadTitular
 
 # 3. Administraciones (tienen updated_by_id -> usuarios.id, ya importado arriba)
-from sipi_core.models.administraciones import Administracion, AdministracionTitular
+from sipi_core.modules.actores.administraciones import Administracion, AdministracionTitular
 
 # 4. Entidades Religiosas (ProvinciaEclesiastica → Diocesis → Parroquia por FKs)
-from sipi_core.models.entidades_religiosas import ProvinciaEclesiastica, Diocesis, DiocesisTitular, Parroquia
-from sipi_core.models.entidades_religiosas import EntidadReligiosa, EntidadReligiosaTitular
+from sipi_core.modules.entidades_religiosas.entidades_religiosas import ProvinciaEclesiastica, Diocesis, DiocesisTitular, Parroquia
+from sipi_core.modules.entidades_religiosas.entidades_religiosas import EntidadReligiosa, EntidadReligiosaTitular
 
 # 5. Técnicos (pueden tener FK a tipologías y usuarios)
-from sipi_core.models.tecnicos import Tecnico, ColegioProfesional
+from sipi_core.modules.actores.tecnicos import Tecnico, ColegioProfesional
 
 # 6. Privados y Agencias (sin dependencias críticas)
-from sipi_core.models.privados import Privado
-from sipi_core.models.agencias import AgenciaInmobiliaria
+from sipi_core.modules.actores.privados import Privado
+from sipi_core.modules.actores.agencias import AgenciaInmobiliaria
 
 # 7. Actores de transmisión (Transmitente y Adquiriente — polimórficos)
-from sipi_core.models.actores_transmision import Transmitente, Adquiriente
+from sipi_core.modules.actores.actores_transmision import Transmitente, Adquiriente
 
 # ============================================================================
 # DOCUMENTS (APP Schema - Depende de actores)
 # ============================================================================
-from sipi_core.models.documentos import (
+from sipi_core.modules.documentos.documentos import (
     Documento, 
     InmuebleDocumento
 )
@@ -84,7 +84,7 @@ from sipi_core.models.documentos import (
 # ============================================================================
 # PROPERTIES (APP Schema - Depende de documentos, geografía y actores)
 # ============================================================================
-from sipi_core.models.inmuebles import (
+from sipi_core.modules.inmuebles.inmuebles import (
     Inmueble, 
     Inmatriculacion, 
     InmuebleDenominacion,
@@ -98,14 +98,14 @@ from sipi_core.models.inmuebles import (
 # ============================================================================
 # HISTORIOGRAPHY (APP Schema)
 # ============================================================================
-from sipi_core.models.historiografia import (
+from sipi_core.modules.inmuebles.historiografia import (
     FuenteHistoriografica
 )
 
 # ============================================================================
 # PROTECTION FIGURES (APP Schema)
 # ============================================================================
-from sipi_core.models.figuras_proteccion import (
+from sipi_core.modules.inmuebles.figuras_proteccion import (
     FiguraProteccion, 
     NivelProteccion
 )
@@ -113,7 +113,7 @@ from sipi_core.models.figuras_proteccion import (
 # ============================================================================
 # TRANSMISSIONS (APP Schema - Depende de inmuebles y actores)
 # ============================================================================
-from sipi_core.models.transmisiones import (
+from sipi_core.modules.transmisiones.transmisiones import (
     Transmision, 
     TransmisionAnunciante
 )
@@ -121,7 +121,7 @@ from sipi_core.models.transmisiones import (
 # ============================================================================
 # INTERVENTIONS (APP Schema - Depende de inmuebles y técnicos)
 # ============================================================================
-from sipi_core.models.intervenciones import (
+from sipi_core.modules.intervenciones.intervenciones import (
     Intervencion, 
     IntervencionTecnico
 )
@@ -129,7 +129,7 @@ from sipi_core.models.intervenciones import (
 # ============================================================================
 # SUBSIDIES (APP Schema - Depende de intervenciones y administraciones)
 # ============================================================================
-from sipi_core.models.subvenciones import (
+from sipi_core.modules.intervenciones.subvenciones import (
     IntervencionSubvencion, 
     SubvencionAdministracion
 )
@@ -137,7 +137,7 @@ from sipi_core.models.subvenciones import (
 # ============================================================================
 # EXPEDIENTES (APP Schema - ciclo de vida del inmueble + validación)
 # ============================================================================
-from sipi_core.models.expedientes import (
+from sipi_core.modules.expedientes.expedientes import (
     Expediente,
     EstadoCicloVida,
     GeoQuality,
@@ -148,7 +148,7 @@ from sipi_core.models.expedientes import (
 # ============================================================================
 # DISCOVERY (APP Schema)
 # ============================================================================
-from sipi_core.models.discovery import (
+from sipi_core.modules.discovery.discovery import (
     InmuebleRaw,
     DeteccionAnuncio
 )
@@ -156,15 +156,15 @@ from sipi_core.models.discovery import (
 # ============================================================================
 # OSM (GIS Schema - could be moved to geografia package)
 # ============================================================================
-from sipi_core.models.osm import (
+from sipi_core.modules.discovery.osm import (
     OSMPlace
 )
 
 # ============================================================================
 # ODMGR NOTIFICATIONS (notificaciones de actualización de datasets ODMGR)
 # ============================================================================
-from sipi_core.models.odmgr_notifications import OdmgrNotification
-from sipi_core.models.odmgr_notification_changes import OdmgrNotificationChange
+from sipi_core.modules.notificaciones.odmgr_notifications import OdmgrNotification
+from sipi_core.modules.notificaciones.odmgr_notification_changes import OdmgrNotificationChange
 
 # ============================================================================
 # EXPORTS

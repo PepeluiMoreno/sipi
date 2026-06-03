@@ -23,7 +23,7 @@ from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import AuditMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.inmuebles import Inmueble
+    from sipi_core.modules.inmuebles.inmuebles import Inmueble
 
 
 class InmuebleRaw(Base, AuditMixin):

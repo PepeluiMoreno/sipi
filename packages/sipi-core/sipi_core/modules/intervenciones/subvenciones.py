@@ -9,8 +9,8 @@ from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.intervenciones import Intervencion
-    from sipi_core.models.administraciones import Administracion
+    from sipi_core.modules.intervenciones.intervenciones import Intervencion
+    from sipi_core.modules.actores.administraciones import Administracion
 
 
 class IntervencionSubvencion(UUIDPKMixin, AuditMixin, Base):

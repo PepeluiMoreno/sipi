@@ -10,9 +10,9 @@ from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.geografia import Municipio
-    from sipi_core.models.inmuebles import IntervencionTecnico
-    from sipi_core.models.tipologias import TipoRolTecnico
+    from sipi_core.modules.geografia.geografia import Municipio
+    from sipi_core.modules.inmuebles.inmuebles import IntervencionTecnico
+    from sipi_core.modules.catalogos.tipologias import TipoRolTecnico
 
 class Tecnico(UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin, Base):
     __tablename__ = "tecnicos"

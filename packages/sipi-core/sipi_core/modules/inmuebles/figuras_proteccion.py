@@ -10,7 +10,7 @@ from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.gis import ComunidadAutonoma
+    from sipi_core.modules.geografia.geografia import ComunidadAutonoma
 
 @strawberry.enum
 class NivelProteccion(str, enum.Enum):

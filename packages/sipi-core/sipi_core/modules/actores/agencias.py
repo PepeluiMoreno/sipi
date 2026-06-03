@@ -12,8 +12,8 @@ from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin, ContactoDireccionMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.geografia import Municipio, Provincia
-    from sipi_core.models.transmisiones import TransmisionAnunciante
+    from sipi_core.modules.geografia.geografia import Municipio, Provincia
+    from sipi_core.modules.transmisiones.transmisiones import TransmisionAnunciante
 
 
 class AgenciaInmobiliaria(UUIDPKMixin, AuditMixin, ContactoDireccionMixin, Base):

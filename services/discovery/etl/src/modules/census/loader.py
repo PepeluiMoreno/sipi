@@ -15,11 +15,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, text
 
 # Imports de sipi-core
-from sipi_core.models.inmuebles import Inmueble, Inmatriculacion
-from sipi_core.models.registradores import RegistroPropiedad
-from sipi_core.models.entidades_religiosas import Diocesis
-from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
-from sipi_core.models.tipologias import TipoInmueble, TipoCertificacionPropiedad
+from sipi_core.modules.inmuebles.inmuebles import Inmueble, Inmatriculacion
+from sipi_core.modules.actores.registradores import RegistroPropiedad
+from sipi_core.modules.entidades_religiosas.entidades_religiosas import Diocesis
+from sipi_core.modules.geografia.geografia import ComunidadAutonoma, Provincia, Municipio
+from sipi_core.modules.catalogos.tipologias import TipoInmueble, TipoCertificacionPropiedad
 
 from .mapper import listado_ceeMapper
 

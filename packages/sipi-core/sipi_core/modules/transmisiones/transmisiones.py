@@ -10,11 +10,11 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin
 from sipi_core.db.registry import Base, APP_SCHEMA
 
 if TYPE_CHECKING:
-    from sipi_core.models.inmuebles import Inmueble
-    from sipi_core.models.notarios import Notaria
-    from sipi_core.models.registradores import RegistroPropiedad
-    from sipi_core.models.tipologias import TipoTransmision, TipoCertificacionPropiedad                     
-    from sipi_core.models.agencias import AgenciaInmobiliaria
+    from sipi_core.modules.inmuebles.inmuebles import Inmueble
+    from sipi_core.modules.actores.notarios import Notaria
+    from sipi_core.modules.actores.registradores import RegistroPropiedad
+    from sipi_core.modules.catalogos.tipologias import TipoTransmision, TipoCertificacionPropiedad                     
+    from sipi_core.modules.actores.agencias import AgenciaInmobiliaria
 
 class Transmision(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "transmisiones"

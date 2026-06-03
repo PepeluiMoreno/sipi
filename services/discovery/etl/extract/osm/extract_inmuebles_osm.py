@@ -43,8 +43,8 @@ from geoalchemy2.shape import from_shape
 from sqlalchemy import select
 
 from sipi_core.db.sessions import AsyncDatabaseManager
-from sipi_core.models.inmuebles import Inmueble, InmuebleOSMExt
-from sipi_core.models.tipologias import TipoInmueble
+from sipi_core.modules.inmuebles.inmuebles import Inmueble, InmuebleOSMExt
+from sipi_core.modules.catalogos.tipologias import TipoInmueble
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)

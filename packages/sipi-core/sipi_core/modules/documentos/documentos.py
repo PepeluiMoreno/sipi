@@ -11,9 +11,9 @@ from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin, DocumentoMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.inmuebles import Inmueble
-    from sipi_core.models.tipologias import TipoDocumento, TipoLicencia
-    from sipi_core.models.documentos import FuenteDocumental
+    from sipi_core.modules.inmuebles.inmuebles import Inmueble
+    from sipi_core.modules.catalogos.tipologias import TipoDocumento, TipoLicencia
+    from sipi_core.modules.documentos.documentos import FuenteDocumental
 
 
 class Documento(UUIDPKMixin, AuditMixin, DocumentoMixin, Base):

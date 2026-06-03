@@ -7,8 +7,8 @@ from sqlalchemy.orm import Mapped, mapped_column, declared_attr
 from sipi_core.db.registry import APP_SCHEMA
 
 if TYPE_CHECKING:
-    from sipi_core.models.geografia import Provincia, Municipio, ComunidadAutonoma
-    from sipi_core.models.tipologias import TipoVia
+    from sipi_core.modules.geografia.geografia import Provincia, Municipio, ComunidadAutonoma
+    from sipi_core.modules.catalogos.tipologias import TipoVia
 
 class DireccionMixin:
     """

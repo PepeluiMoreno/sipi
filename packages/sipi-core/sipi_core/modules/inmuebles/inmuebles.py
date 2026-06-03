@@ -8,24 +8,24 @@ from geoalchemy2 import Geometry
 
 from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
-from sipi_core.models.expedientes import EstadoCicloVida, GeoQuality
+from sipi_core.modules.expedientes.expedientes import EstadoCicloVida, GeoQuality
 
 if TYPE_CHECKING:
-    from sipi_core.models.expedientes import Expediente
-    from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
-    from sipi_core.models.tipologias import (
+    from sipi_core.modules.expedientes.expedientes import Expediente
+    from sipi_core.modules.geografia.geografia import ComunidadAutonoma, Provincia, Municipio
+    from sipi_core.modules.catalogos.tipologias import (
         TipoInmueble,
         TipoEstadoConservacion,
         TipoEstadoTratamiento,
         EstiloArquitectonico,
     )
-    from sipi_core.models.entidades_religiosas import Diocesis, EntidadReligiosa, Sede
-    from sipi_core.models.documentos import InmuebleDocumento
-    from sipi_core.models.transmisiones import Transmision
-    from sipi_core.models.intervenciones import Intervencion
-    from sipi_core.models.historiografia import InmuebleCita
-    from sipi_core.models.registradores import RegistroPropiedad
-    from sipi_core.models.tipologias import TipoCertificacionPropiedad
+    from sipi_core.modules.entidades_religiosas.entidades_religiosas import Diocesis, EntidadReligiosa, Sede
+    from sipi_core.modules.documentos.documentos import InmuebleDocumento
+    from sipi_core.modules.transmisiones.transmisiones import Transmision
+    from sipi_core.modules.intervenciones.intervenciones import Intervencion
+    from sipi_core.modules.inmuebles.historiografia import InmuebleCita
+    from sipi_core.modules.actores.registradores import RegistroPropiedad
+    from sipi_core.modules.catalogos.tipologias import TipoCertificacionPropiedad
 
 class Inmueble(UUIDPKMixin, AuditMixin, Base):
     __tablename__ = "inmuebles"

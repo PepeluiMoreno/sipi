@@ -19,8 +19,8 @@ from sipi_core.db.registry import Base
 from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, ContactoDireccionMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.geografia import Municipio
-    from sipi_core.models.transmisiones import Transmision
+    from sipi_core.modules.geografia.geografia import Municipio
+    from sipi_core.modules.transmisiones.transmisiones import Transmision
 
 # Valores permitidos para tipo_actor
 TIPO_ACTOR_ENTIDAD_RELIGIOSA = "entidad_religiosa"

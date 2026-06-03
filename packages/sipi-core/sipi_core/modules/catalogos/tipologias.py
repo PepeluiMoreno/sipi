@@ -10,11 +10,11 @@ from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.inmuebles import Inmueble, Inmatriculacion, InmuebleUso  # noqa: F401
-    from sipi_core.models.transmisiones import Transmision    
-    from sipi_core.models.tecnicos import Tecnico
-    from sipi_core.models.documentos import Documento     
-    from sipi_core.models.entidades_religiosas import EntidadReligiosa
+    from sipi_core.modules.inmuebles.inmuebles import Inmueble, Inmatriculacion, InmuebleUso  # noqa: F401
+    from sipi_core.modules.transmisiones.transmisiones import Transmision    
+    from sipi_core.modules.actores.tecnicos import Tecnico
+    from sipi_core.modules.documentos.documentos import Documento     
+    from sipi_core.modules.entidades_religiosas.entidades_religiosas import EntidadReligiosa
 
 
 class  TipologiaBase(UUIDPKMixin, AuditMixin, Base):

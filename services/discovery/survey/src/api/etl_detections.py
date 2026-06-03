@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from ..db.connection import get_db
-from sipi_core.models.discovery import DeteccionAnuncio as Deteccion
+from sipi_core.modules.discovery.discovery import DeteccionAnuncio as Deteccion
 
 router = APIRouter(prefix="/api/etl/detecciones", tags=["detecciones"])
 

@@ -8,7 +8,7 @@ from sipi_core.db.registry import Base
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
-    from sipi_core.models.inmuebles import InmuebleCita
+    from sipi_core.modules.inmuebles.inmuebles import InmuebleCita
 
 
 class FuenteHistoriografica(UUIDPKMixin, AuditMixin, Base):

@@ -18,8 +18,8 @@ from sipi_core.mixins import (
 from .actores_base import TitularBase
 
 if TYPE_CHECKING:
-    from sipi_core.models.geografia import ComunidadAutonoma, Provincia, Municipio
-    from sipi_core.models.subvenciones import SubvencionAdministracion
+    from sipi_core.modules.geografia.geografia import ComunidadAutonoma, Provincia, Municipio
+    from sipi_core.modules.intervenciones.subvenciones import SubvencionAdministracion
 
 class Administracion(
     UUIDPKMixin,

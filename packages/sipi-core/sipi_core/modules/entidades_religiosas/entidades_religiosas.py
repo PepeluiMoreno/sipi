@@ -15,13 +15,13 @@ from sipi_core.mixins import (
     ContactoDireccionMixin,
     TitularidadMixin,
 )
-from sipi_core.models.actores_base import TitularBase
+from sipi_core.modules.actores.actores_base import TitularBase
 
 if TYPE_CHECKING:
-    from sipi_core.models.geografia import Municipio
-    from sipi_core.models.inmuebles import Inmueble
-    from sipi_core.models.tipologias import TipoEntidadReligiosa
-    from sipi_core.models.entidades_religiosas import Parroquia
+    from sipi_core.modules.geografia.geografia import Municipio
+    from sipi_core.modules.inmuebles.inmuebles import Inmueble
+    from sipi_core.modules.catalogos.tipologias import TipoEntidadReligiosa
+    from sipi_core.modules.entidades_religiosas.entidades_religiosas import Parroquia
 
 
 class ProvinciaEclesiastica(UUIDPKMixin, AuditMixin, Base):

@@ -8,7 +8,7 @@ from sqlalchemy.schema import ForeignKey
 from sipi_core.db.registry import APP_SCHEMA
 
 if TYPE_CHECKING:
-    from sipi_core.models.users import Usuario
+    from sipi_core.modules.usuarios.users import Usuario
 
 class UUIDPKMixin:
     """Clave primaria UUID estándar"""

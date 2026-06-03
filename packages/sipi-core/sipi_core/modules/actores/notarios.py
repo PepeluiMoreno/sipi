@@ -9,8 +9,8 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin, ContactoDireccionMixin
 from .actores_base import TitularBase
 
 if TYPE_CHECKING:
-    from sipi_core.models.geografia import Municipio
-    from sipi_core.models.transmisiones import Transmision
+    from sipi_core.modules.geografia.geografia import Municipio
+    from sipi_core.modules.transmisiones.transmisiones import Transmision
 
 class Notaria(UUIDPKMixin, AuditMixin, ContactoDireccionMixin, Base):
     __tablename__ = "notarias"
