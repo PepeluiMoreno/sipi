@@ -22,12 +22,13 @@ def main():
     ap = argparse.ArgumentParser(description="Fusión CEE × OSM -> seed de Inmuebles")
     ap.add_argument("--cee", required=True, help="Directorio con los CSV del CEE")
     ap.add_argument("--osm", required=True, help="JSON de Overpass (bienes religiosos)")
+    ap.add_argument("--osm-boundaries", dest="boundaries", help="Limites admin_level=8 (Overpass JSON) o GeoJSON de municipios; activa bloqueo por municipio")
     ap.add_argument("--provincia", help="Filtrar CEE por provincia")
     ap.add_argument("--ccaa", help="Filtrar CEE por comunidad autónoma")
     ap.add_argument("--out", required=True, help="Prefijo de los ficheros de salida")
     args = ap.parse_args()
 
-    entidades, resumen = run_fusion(args.cee, args.osm, provincia=args.provincia, ccaa=args.ccaa)
+    entidades, resumen = run_fusion(args.cee, args.osm, provincia=args.provincia, ccaa=args.ccaa, osm_boundaries=args.boundaries)
     write_outputs(entidades, resumen, args.out)
     print("Resumen de la fusión:")
     for k, v in resumen.items():

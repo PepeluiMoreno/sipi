@@ -51,13 +51,37 @@ SOLO_OSM refleja en parte cobertura real (muchas capillas/cementerios/parcelas
 del CEE no están itemizados en OSM, y viceversa), pero también ambigüedad por
 falta de desambiguación a nivel municipio.
 
-## Próximas mejoras (palancas claras)
+## Palanca implementada — bloqueo por municipio (reverse-geocoding)
 
-1. **Bloqueo geográfico por municipio** (la palanca grande): reverse-geocodificar
-   las coordenadas OSM (100 % disponibles) contra los polígonos de municipio
-   (PostGIS, point-in-polygon) para asignar municipio a cada bien OSM. Confina el
-   emparejamiento dentro del municipio → sube precisión y recall, y resuelve la
-   ambigüedad de advocaciones repetidas.
+Añadido `geo.py`: asigna municipio a cada bien OSM por **point-in-polygon**
+contra los límites `admin_level=8` (Overpass / GeoJSON), con normalización de
+nombres es↔gl y artículos (`A Cañiza`/`la caniza`, `Vila de Cruces`, municipios
+fusionados como `Cerdedo-Cotobade`). El emparejamiento se bloquea por municipio.
+
+Evolución del resultado en Pontevedra:
+
+| Estrategia | ALTA | Lectura |
+|------------|------|---------|
+| Province-wide (sin geo) | 132 | **~58 % falsos positivos** (mismo santo, municipio distinto) |
+| Bloqueo municipio (exacto) | 71 | geográficamente confirmados |
+| **Bloqueo municipio (normalizado)** | **83** | confirmados + cobertura (37/40 municipios casan) |
+
+Diagnóstico clave: de las 132 ALTA "province-wide", solo 56 estaban en el mismo
+municipio; 77 eran coincidencias espurias de nombre entre municipios distintos
+(p. ej. CEE *Vigo/San Roque* ↔ OSM *O Grove/San Roque*). El bloqueo por
+municipio no perdía matches: eliminaba falsos positivos. Las 83 ALTA resultantes
+están **100 % geo-confirmadas y con coordenadas**.
+
+Sin confirmación geográfica (municipio CEE sin join), el candidato de provincia
+**se topa en banda MEDIA** (cola de revisión), nunca auto-fusión.
+
+> En producción, `geo.py` equivale a `ST_Contains(municipio.geom, punto)` contra
+> los polígonos de municipio en PostGIS (modelo `geografia`); el módulo admite
+> esa fuente o un GeoJSON/Overpass.
+
+## Próximas mejoras (palancas restantes)
+
+1. ~~Bloqueo geográfico por municipio~~ — **hecho** (ver arriba).
 2. **Catastro como fuente de coordenadas para el CEE**: donde la inmatriculación
    tenga referencia catastral, obtener geometría autoritativa del Catastro
    (WFS/INSPIRE). Resuelve los SOLO_CEE que OSM no cubre.

@@ -42,6 +42,8 @@ class OSMRecord:
     city: str
     wikidata: str
     tokens: set = field(default_factory=set)
+    municipio: str = None        # asignado por reverse-geocoding (geo.py)
+    municipio_norm: str = None
 
 
 def _cee_titulo(row: dict) -> str:

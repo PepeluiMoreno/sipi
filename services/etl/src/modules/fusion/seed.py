@@ -42,17 +42,28 @@ class FusedEntity:
     osm_id: str = None
     osm_nombre: str = None
     wikidata: str = None
+    geo_confirmado: bool = False  # municipio CEE == municipio OSM (point-in-polygon)
     fuentes: list = field(default_factory=list)  # ['CEE','OSM']
 
 
-def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None):
+def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None, osm_boundaries=None):
     """Ejecuta la fusión y devuelve (entidades, resumen).
 
-    `entidades` es una lista de FusedEntity; `resumen` un dict con contadores.
+    Si `osm_boundaries` (JSON Overpass admin_level=8 o GeoJSON de municipios) se
+    indica, se asigna municipio a cada bien OSM por point-in-polygon y el
+    emparejamiento se bloquea por municipio (mayor precisión).
     """
     cee = load_cee(csv_dir, provincia=provincia, ccaa=ccaa)
     osm = load_osm(osm_json)
-    matches, matched_osm = match_cee_osm(cee, osm)
+
+    if osm_boundaries:
+        from .geo import MunicipioIndex
+        idx = (MunicipioIndex.from_geojson(osm_boundaries)
+               if osm_boundaries.endswith(".geojson")
+               else MunicipioIndex.from_overpass_json(osm_boundaries))
+        idx.asignar(osm)
+
+    matches, matched_osm = match_cee_osm(cee, osm, use_geo=bool(osm_boundaries))
 
     entidades = []
     counts = {"ALTA": 0, "MEDIA": 0, "SOLO_CEE": 0, "SOLO_OSM": 0}
@@ -66,7 +77,7 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None):
                 provincia=c.provincia, confianza="ALTA", score=round(m.score, 3),
                 lat=o.lat, lon=o.lon, cee_registro=c.registro, cee_titulo=c.titulo,
                 cee_titular=c.titular, osm_id=o.osm_id, osm_nombre=o.name,
-                wikidata=o.wikidata, fuentes=["CEE", "OSM"]))
+                wikidata=o.wikidata, fuentes=["CEE", "OSM"], geo_confirmado=m.geo_confirmado))
             counts["ALTA"] += 1
         elif m.band == "MEDIA":
             o = m.osm
@@ -76,7 +87,7 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None):
                 score=round(m.score, 3), lat=o.lat, lon=o.lon,
                 cee_registro=c.registro, cee_titulo=c.titulo, cee_titular=c.titular,
                 osm_id=o.osm_id, osm_nombre=o.name, wikidata=o.wikidata,
-                fuentes=["CEE", "OSM?"]))
+                fuentes=["CEE", "OSM?"], geo_confirmado=m.geo_confirmado))
             counts["MEDIA"] += 1
         else:  # BAJA o SIN_MATCH -> entidad solo CEE
             entidades.append(FusedEntity(
@@ -91,7 +102,7 @@ def run_fusion(csv_dir, osm_json, provincia=None, ccaa=None):
         if j in matched_osm:
             continue
         entidades.append(FusedEntity(
-            nombre=o.name, tipo=o.tipo_canon, municipio=o.city, provincia=provincia or "",
+            nombre=o.name, tipo=o.tipo_canon, municipio=(o.municipio or o.city), provincia=provincia or "",
             confianza="SOLO_OSM", score=0.0, lat=o.lat, lon=o.lon,
             osm_id=o.osm_id, osm_nombre=o.name, wikidata=o.wikidata, fuentes=["OSM"]))
         counts["SOLO_OSM"] += 1
