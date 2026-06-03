@@ -1,0 +1,88 @@
+# Desarrollo con Traefik (igual que SIGA): acceso por https://${APP_DEV_DOMAIN}.
+#   APP_DEV_DOMAIN por defecto sipi.optiplex-790 (la máquina es optiplex-790).
+# Expone el FRONTEND vía Traefik; la API y la BD quedan en la red interna.
+# El frontend reenvía /graphql a la API (proxy de Vite) → mismo origen, sin CORS.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+services:
+  db:
+    build:
+      context: ./apps/sipi/api
+      dockerfile: Dockerfile.postgres
+    container_name: sipi-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sipi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sipi}
+      POSTGRES_DB: ${POSTGRES_DB:-sipi}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C.UTF-8"
+    volumes:
+      - sipi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sipi} -d ${POSTGRES_DB:-sipi}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    networks: [internal]
+
+  api:
+    build:
+      context: ./apps/sipi/api
+      dockerfile: Dockerfile
+    container_name: sipi-api
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://sipi:${POSTGRES_PASSWORD:-sipi}@db:5432/sipi}
+      APP_SCHEMA: sipi
+      GIS_SCHEMA: sipi
+      DEFAULT_SCHEMA: sipi
+      DATABASE_SCHEMA: sipi
+      DEFINED_SCHEMAS: sipi
+      GRAPHQL_HOST: 0.0.0.0
+      GRAPHQL_PORT: 8040
+      PYTHONPATH: /code:/code/sipi_core
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./apps/sipi/api/app:/code/app:ro
+      - ./packages/sipi-core/src/sipi_core:/code/sipi_core:ro
+    networks: [internal]
+
+  frontend:
+    image: node:20-alpine
+    container_name: sipi-frontend
+    working_dir: /app
+    command: sh -c "corepack enable && pnpm install && pnpm dev --host 0.0.0.0 --port 5173"
+    environment:
+      # GraphQL en el mismo origen (lo reenvía el proxy de Vite a la API)
+      VITE_API_URL: /graphql
+      VITE_API_TARGET: http://api:8040
+    volumes:
+      - ./apps/sipi/frontend:/app
+      - frontend_modules:/app/node_modules
+    depends_on: [api]
+    networks: [internal, traefik_public]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_public"
+      # HTTP
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev.entrypoints=web"
+      - "traefik.http.services.${APP_PREFIX:-sipi}-dev.loadbalancer.server.port=5173"
+      # HTTPS (cert auto-firmado de Traefik)
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.rule=Host(`${APP_DEV_DOMAIN:-sipi.optiplex-790}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.entrypoints=websecure"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.tls=true"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-dev-tls.service=${APP_PREFIX:-sipi}-dev"
+
+networks:
+  internal:
+  traefik_public:
+    external: true
+
+volumes:
+  sipi_pgdata:
+    name: sipi_pgdata
+    external: true
+  frontend_modules:
