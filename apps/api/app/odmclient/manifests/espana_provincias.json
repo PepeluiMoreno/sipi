@@ -1,0 +1,20 @@
+{
+  "publisher": {
+    "acronimo": "INE",
+    "nombre": "Instituto Nacional de Estadística",
+    "nivel": "ESTATAL",
+    "pais": "España",
+    "portal_url": "https://www.ine.es"
+  },
+  "resource": {
+    "name": "España - Provincias (INE)",
+    "fetcher": "API REST",
+    "target_table": "geo_provincias",
+    "schedule": "0 4 1 1 *",
+    "params": {
+      "url": "https://servicios.ine.es/wstempus/js/ES/VALORES_VARIABLE/115",
+      "method": "GET",
+      "timeout": "60"
+    }
+  }
+}

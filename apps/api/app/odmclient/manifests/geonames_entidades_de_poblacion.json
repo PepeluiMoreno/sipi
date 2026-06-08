@@ -1,0 +1,18 @@
+{
+  "publisher": null,
+  "resource": {
+    "name": "Geonames - Entidades de Población (España)",
+    "fetcher": "Compressed File",
+    "target_table": "geo_elm",
+    "schedule": "0 3 1 1 *",
+    "params": {
+      "url": "https://download.geonames.org/export/dump/ES.zip",
+      "format": "zip",
+      "entry": "ES.txt",
+      "inner_format": "tsv",
+      "timeout": "120",
+      "headers": "{\"User-Agent\": \"ODMGR/1.0 (investigacion patrimonial)\"}",
+      "columns": "[\"geonameid\",\"name\",\"asciiname\",\"alternatenames\",\"lat\",\"lon\",\"feature_class\",\"feature_code\",\"country\",\"cc2\",\"admin1\",\"admin2\",\"admin3\",\"admin4\",\"population\",\"elevation\",\"dem\",\"timezone\",\"modification\"]"
+    }
+  }
+}

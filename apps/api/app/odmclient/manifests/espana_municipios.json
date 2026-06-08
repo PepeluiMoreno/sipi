@@ -1,0 +1,22 @@
+{
+  "publisher": {
+    "acronimo": "INE",
+    "nombre": "Instituto Nacional de Estadística",
+    "nivel": "ESTATAL",
+    "pais": "España",
+    "portal_url": "https://www.ine.es"
+  },
+  "resource": {
+    "name": "España - Municipios (INE)",
+    "fetcher": "File Download",
+    "target_table": "geo_municipios",
+    "schedule": "0 4 1 1 *",
+    "params": {
+      "url": "https://www.ine.es/daco/daco42/codmun/26codmun.xlsx",
+      "format": "xlsx",
+      "skip_rows": "2",
+      "timeout": "60",
+      "headers": "{\"User-Agent\": \"Mozilla/5.0\", \"Referer\": \"https://www.ine.es/\"}"
+    }
+  }
+}

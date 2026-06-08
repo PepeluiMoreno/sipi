@@ -1,0 +1,25 @@
+{
+  "publisher": {
+    "acronimo": "DGC",
+    "nombre": "Dirección General del Catastro",
+    "nivel": "ESTATAL",
+    "pais": "España",
+    "portal_url": "https://www.catastro.meh.es"
+  },
+  "resource": {
+    "name": "Catastro - Parcelas (Sevilla)",
+    "fetcher": "WFS",
+    "target_table": "catastro_parcelas",
+    "schedule": "0 3 1 * *",
+    "params": {
+      "endpoint": "http://ovc.catastro.meh.es/INSPIRE/wfsCP.aspx",
+      "typenames": "cp:CadastralParcel",
+      "bbox": "36.9,-6.4,37.9,-5.3",
+      "outputFormat": "application/gml+xml; version=3.2",
+      "srsName": "EPSG:4326",
+      "count": "500",
+      "id_field": "nationalCadastralReference",
+      "timeout": "120"
+    }
+  }
+}

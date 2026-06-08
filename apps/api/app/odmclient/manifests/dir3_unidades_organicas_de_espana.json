@@ -1,0 +1,22 @@
+{
+  "publisher": {
+    "acronimo": "JDA",
+    "nombre": "Junta de Andalucía",
+    "nivel": "AUTONOMICO",
+    "pais": "España",
+    "comunidad_autonoma": "Andalucía",
+    "portal_url": "https://www.juntadeandalucia.es"
+  },
+  "resource": {
+    "name": "DIR3 - Unidades Orgánicas de España",
+    "fetcher": "API REST",
+    "target_table": "dir3_unidades",
+    "schedule": "0 3 * * 0",
+    "params": {
+      "url": "https://datos.juntadeandalucia.es/api/v0/dir3/all?format=json",
+      "method": "GET",
+      "timeout": "120",
+      "id_field": "id"
+    }
+  }
+}

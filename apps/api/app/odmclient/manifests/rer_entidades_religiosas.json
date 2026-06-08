@@ -1,0 +1,23 @@
+{
+  "publisher": {
+    "acronimo": "MJUST",
+    "nombre": "Ministerio de Justicia",
+    "nivel": "ESTATAL",
+    "pais": "España",
+    "portal_url": "https://www.mjusticia.gob.es"
+  },
+  "resource": {
+    "name": "RER - Entidades Religiosas",
+    "fetcher": "HTML SearchLoop",
+    "target_table": "rer_entidades",
+    "schedule": "0 3 * * 0",
+    "params": {
+      "url": "http://maper.mjusticia.gob.es/Maper/RER.action",
+      "search_field_name": "comunidadAutonoma",
+      "rows_selector": "table.resultado tr",
+      "method": "POST",
+      "delay_between_searches": "2",
+      "timeout": "60"
+    }
+  }
+}

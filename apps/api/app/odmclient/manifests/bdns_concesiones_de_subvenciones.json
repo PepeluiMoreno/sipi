@@ -1,0 +1,31 @@
+{
+  "publisher": {
+    "acronimo": "BDNS",
+    "nombre": "Base de Datos Nacional de Subvenciones",
+    "nivel": "ESTATAL",
+    "pais": "España",
+    "portal_url": "https://www.infosubvenciones.es"
+  },
+  "resource": {
+    "name": "BDNS - Concesiones de Subvenciones",
+    "fetcher": "API REST Paginada",
+    "target_table": "bdns_concesiones",
+    "schedule": "0 4 * * 1",
+    "params": {
+      "url": "https://www.infosubvenciones.es/bdnstrans/api/concesiones/busqueda",
+      "page_param": "page",
+      "page_size_param": "pageSize",
+      "page_size": "10000",
+      "content_field": "content",
+      "id_field": "id",
+      "fechaDesde": {
+        "value": "01/01/2026",
+        "is_external": true
+      },
+      "fechaHasta": {
+        "value": "31/12/2026",
+        "is_external": true
+      }
+    }
+  }
+}

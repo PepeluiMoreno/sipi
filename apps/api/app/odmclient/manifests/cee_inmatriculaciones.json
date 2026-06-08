@@ -1,0 +1,16 @@
+{
+  "publisher": null,
+  "resource": {
+    "name": "CEE - Inmatriculaciones saneadas (xlsx)",
+    "fetcher": "File Download",
+    "target_table": "inmatriculaciones_cee",
+    "schedule": "0 4 1 * *",
+    "params": {
+      "url": "PENDIENTE: enlace MinIO/Drive del xlsx saneado",
+      "format": "xlsx",
+      "skip_rows": "0",
+      "timeout": "120"
+    }
+  },
+  "_notas": "Documento saneado por la organización (no scraping de la CEE). Definir 'url' al objeto en MinIO o al enlace de descarga directa de Drive antes de aplicar."
+}

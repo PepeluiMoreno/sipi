@@ -1,0 +1,17 @@
+{
+  "publisher": null,
+  "resource": {
+    "name": "OSM - Inmuebles Eclesiásticos (España)",
+    "fetcher": "OSM Overpass",
+    "target_table": "osm_inmuebles_eclesiasticos",
+    "schedule": "0 2 * * 0",
+    "params": {
+      "use_types": "[{\"preset\": \"RELIGIOUS_ALL\"}, {\"preset\": \"RELIGIOUS_BUILDING_EXTRA\"}]",
+      "demarcacion": "España",
+      "element_types": "node,way,relation",
+      "out_format": "center",
+      "timeout": "1800",
+      "max_elements": "0"
+    }
+  }
+}
