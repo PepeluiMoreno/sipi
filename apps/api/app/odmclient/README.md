@@ -9,6 +9,21 @@ mantiene el *desired-state* de recursos (de sus publishers reales) que consume.
   GraphQL (upsert: publisher por acrónimo, resource por nombre). Mapea al
   `CreateResourceInput` real de ODM.
 
+## Distinguir lo que ya existe en ODM de lo nuevo (`mode`)
+Muchos recursos son tan generales que **ODM ya los tiene creados** (de hecho casi
+todos se rescataron de su propio `seed_resources.py`). SIPI no debe re-crearlos ni
+mantenerlos: los **consume**. Cada manifiesto declara su intención:
+
+- `"mode": "subscribe"` — el recurso **ya existe en ODM**; se fija su `odm_id` real.
+  El motor solo verifica que sigue ahí y (futuro) asegura la suscripción de SIPI.
+  **Nunca escribe sus params** (evita que SIPI pise la definición de ODM).
+- `"mode": "manage"` — recurso **propio de SIPI** que ODM no tiene (p. ej. el CEE).
+  El motor hace upsert. Si el nombre ya existiera en ODM, lo marca como posible colisión.
+
+Mecánicamente la distinción se obtiene casando por nombre contra `{ resources }` del
+ODM vivo; el dry-run la imprime (`SUBSCRIBE · ya existe` vs `MANAGE · create`).
+Hoy: **11 subscribe + 1 manage (CEE)**.
+
 ## Uso
 ```bash
 # dry-run: SOLO lee ODM y muestra el plan (no escribe)

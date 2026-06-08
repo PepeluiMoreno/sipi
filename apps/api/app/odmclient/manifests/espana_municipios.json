@@ -1,4 +1,6 @@
 {
+  "mode": "subscribe",
+  "odm_id": "b51077ac-fb79-48e8-b21f-1f2919fa6862",
   "publisher": {
     "acronimo": "INE",
     "nombre": "Instituto Nacional de Estadística",

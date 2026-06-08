@@ -1,4 +1,6 @@
 {
+  "mode": "subscribe",
+  "odm_id": "f5e7ae2d-0fab-40a6-8388-79282d1ff924",
   "publisher": null,
   "resource": {
     "name": "OSM - Inmuebles Eclesiásticos (España)",

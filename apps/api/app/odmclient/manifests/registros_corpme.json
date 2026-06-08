@@ -1,4 +1,6 @@
 {
+  "mode": "subscribe",
+  "odm_id": "3eb9acc9-2ca1-4371-bc00-0afcc372b6cc",
   "publisher": {
     "acronimo": "CORPME",
     "nombre": "Colegio de Registradores de la Propiedad, Bienes Muebles y Mercantiles de España",

@@ -1,4 +1,6 @@
 {
+  "mode": "subscribe",
+  "odm_id": "d3d0868c-4450-40b8-bc74-32026b37aeb1",
   "publisher": {
     "acronimo": "BDNS",
     "nombre": "Base de Datos Nacional de Subvenciones",

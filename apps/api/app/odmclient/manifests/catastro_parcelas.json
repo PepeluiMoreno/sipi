@@ -1,4 +1,6 @@
 {
+  "mode": "subscribe",
+  "odm_id": "694b8f4f-cb49-453d-bac9-ecef6ec2dc93",
   "publisher": {
     "acronimo": "DGC",
     "nombre": "Dirección General del Catastro",

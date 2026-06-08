@@ -1,4 +1,6 @@
 {
+  "mode": "subscribe",
+  "odm_id": "301f8287-3b33-4b98-93d2-e095cf8475a0",
   "publisher": {
     "acronimo": "JDA",
     "nombre": "Junta de Andalucía",

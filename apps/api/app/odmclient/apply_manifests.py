@@ -104,41 +104,50 @@ def run(base_url: str, token: Optional[str], manifests_dir: str, do_apply: bool)
     problemas = 0
 
     for m in mans:
+        mode = m.get("mode", "manage")
         p, r = m.get("publisher"), m["resource"]
+        name = r["name"]
+
+        # ── subscribe: recurso ya gestionado por ODM; SIPI NO escribe ──────────
+        if mode == "subscribe":
+            existe = name in res
+            odm_id = m.get("odm_id") or (res.get(name) or {}).get("id")
+            if existe:
+                print(f"[{m['_file']}] SUBSCRIBE · ya existe en ODM '{name}' (id={odm_id}) — SIPI consume, no modifica")
+                # TODO(consume): asegurar la DatasetSubscription de la Application SIPI
+            else:
+                print(f"[{m['_file']}] SUBSCRIBE · ⚠ NO existe en ODM '{name}' — ¿renombrado/retirado? revisar")
+                problemas += 1
+            continue
+
+        # ── manage: recurso propio de SIPI; upsert ─────────────────────────────
         acr = (p or {}).get("acronimo", "")
         fname = r["fetcher"]
         fid = fetchers.get(fname)
-
-        # publisher
-        if p:
-            verb = "update" if acr in pubs else "create"
-            print(f"[{m['_file']}] publisher {acr or p['nombre']}: {verb}")
-            if do_apply:
-                if verb == "create":
-                    pubs[acr] = gql(M_CREATE_PUB, {"input": publisher_input(p)})["createPublisher"]
-                else:
-                    gql(M_UPDATE_PUB, {"id": pubs[acr]["id"], "input": publisher_input(p)})
-
-        # resource
         if fid is None:
-            print(f"[{m['_file']}] ⚠ fetcher '{fname}' no existe en ODM — recurso OMITIDO ('{r['name']}')")
+            print(f"[{m['_file']}] MANAGE · ⚠ fetcher '{fname}' no existe en ODM — OMITIDO ('{name}')")
             problemas += 1
             continue
+        if p and do_apply:
+            if acr in pubs:
+                gql(M_UPDATE_PUB, {"id": pubs[acr]["id"], "input": publisher_input(p)})
+            else:
+                pubs[acr] = gql(M_CREATE_PUB, {"input": publisher_input(p)})["createPublisher"]
         pid = (pubs.get(acr) or {}).get("id")
-        verb = "update" if r["name"] in res else "create"
-        print(f"[{m['_file']}] resource '{r['name']}': {verb}  (fetcher={fname}, target={r.get('target_table')})")
-
+        existe = name in res
+        verb = "update (¡ya existe! posible colisión)" if existe else "create"
+        print(f"[{m['_file']}] MANAGE · {verb}  '{name}'  (fetcher={fname}, target={r.get('target_table')})")
         if do_apply:
             inp = {"fetcherId": fid, "active": r.get("active", True), "params": params_list(r.get("params", {}))}
             if r.get("target_table") is not None: inp["targetTable"] = r["target_table"]
             if r.get("schedule"):                 inp["schedule"] = r["schedule"]
             if r.get("description"):              inp["description"] = r["description"]
             if pid:                               inp["publisherId"] = pid
-            if verb == "create":
-                inp["name"] = r["name"]
-                gql(M_CREATE_RES, {"input": inp})
+            if existe:
+                gql(M_UPDATE_RES, {"id": res[name]["id"], "input": inp})
             else:
-                gql(M_UPDATE_RES, {"id": res[r["name"]]["id"], "input": inp})
+                inp["name"] = name
+                gql(M_CREATE_RES, {"input": inp})
 
     print(f"\n{'Aplicado' if do_apply else 'Plan'} OK. Problemas: {problemas}")
     if not do_apply:

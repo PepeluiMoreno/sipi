@@ -1,4 +1,6 @@
 {
+  "mode": "subscribe",
+  "odm_id": "3b086c1e-911a-437f-b82e-e1ed27b7690d",
   "publisher": {
     "acronimo": "MJUST",
     "nombre": "Ministerio de Justicia",

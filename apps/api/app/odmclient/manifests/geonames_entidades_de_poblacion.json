@@ -1,4 +1,6 @@
 {
+  "mode": "subscribe",
+  "odm_id": "7326f539-f3c9-4a14-8c25-b4e946707833",
   "publisher": null,
   "resource": {
     "name": "Geonames - Entidades de Población (España)",
