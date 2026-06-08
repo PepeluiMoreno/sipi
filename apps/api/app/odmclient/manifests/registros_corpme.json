@@ -1,0 +1,23 @@
+{
+  "publisher": {
+    "acronimo": "CORPME",
+    "nombre": "Colegio de Registradores de la Propiedad, Bienes Muebles y Mercantiles de España",
+    "nivel": "ESTATAL",
+    "pais": "España",
+    "portal_url": "https://www.registradores.org"
+  },
+  "resource": {
+    "name": "Registros de la Propiedad (CORPME)",
+    "fetcher": "File Download",
+    "target_table": "registros_propiedad",
+    "schedule": "0 3 1 * *",
+    "params": {
+      "url": "https://www.registradores.org/documents/20122/573720/Listado_Registros_Propiedad.xlsx",
+      "format": "xlsx",
+      "skip_rows": "1",
+      "timeout": "60",
+      "headers": "{\"User-Agent\": \"Mozilla/5.0\", \"Referer\": \"https://www.registradores.org/\"}"
+    }
+  },
+  "_notas": "URL CADUCADA: la auditoría de ODM (commit 55c1ddc) detectó 404 — registradores.org renombró el documento. Antes de aplicar este manifiesto hay que actualizar 'url' al documento vigente. Ejemplo del valor de revisar un diff de manifiesto en lugar de un script."
+}
