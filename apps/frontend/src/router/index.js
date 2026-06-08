@@ -24,6 +24,9 @@ import ConfigCatalogos from '../modules/catalogos/views/ConfigCatalogos.vue'
 import ConfigUsuarios from '../modules/usuarios/views/ConfigUsuarios.vue'
 import VerificarEmail from '../modules/usuarios/views/VerificarEmail.vue'
 
+// ODM (odmclient)
+import OdmRecursosView from '../modules/odmclient/views/OdmRecursosView.vue'
+
 const routes = [
   {
     path: '/login',
@@ -102,6 +105,12 @@ const routes = [
         path: '/config/usuarios',
         name: 'ConfigUsuarios',
         component: ConfigUsuarios
+      },
+      // DATOS ABIERTOS (ODM)
+      {
+        path: '/odm',
+        name: 'OdmRecursos',
+        component: OdmRecursosView
       },
       // 404
       {

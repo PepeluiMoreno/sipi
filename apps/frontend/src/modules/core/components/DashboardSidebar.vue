@@ -96,6 +96,21 @@
             <span>Usuarios</span>
           </router-link>
         </div>
+
+        <!-- Datos abiertos -->
+        <div class="mt-6">
+          <p class="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+            Datos abiertos
+          </p>
+          <router-link
+            to="/odm"
+            class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            :class="{ 'bg-gray-800': $route.path.startsWith('/odm') }"
+          >
+            <CircleStackIcon class="w-5 h-5" />
+            <span>Recursos ODM</span>
+          </router-link>
+        </div>
       </div>
     </nav>
   </aside>
@@ -110,6 +125,7 @@ import {
   DocumentTextIcon,
   FolderIcon,
   ListBulletIcon,
-  UsersIcon
+  UsersIcon,
+  CircleStackIcon
 } from '@heroicons/vue/24/outline'
 </script>
