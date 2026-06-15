@@ -27,3 +27,10 @@ dist/
 _legacy/
 Taxonomia
 Taxonomia*
+
+# Dumps de BD y workspaces de editor
+*.dump
+*.code-workspace
+
+# Scratch local (bundles, patches, handoffs sueltos)
+/tmp/
