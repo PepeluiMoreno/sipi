@@ -191,6 +191,9 @@ class Hallazgo(UUIDPKMixin, AuditMixin, Base):
     # Origen polimórfico: la detección de la fuente (DeteccionAnuncio / OdmgrNotificationChange / InmuebleRaw)
     origen_tipo: Mapped[Optional[str]] = mapped_column(String(50))
     origen_id: Mapped[Optional[str]] = mapped_column(String(36), index=True)
+    # Proceso de vigilancia que lo generó (NULL si manual/legacy)
+    proceso_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.procesos_vigilancia.id", ondelete="SET NULL"), index=True)
 
     # Comprobación humana (transacción RBAC hallazgo.verificar/descartar)
     verificado_por_id: Mapped[Optional[str]] = mapped_column(

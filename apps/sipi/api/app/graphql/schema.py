@@ -716,6 +716,131 @@ class AuthResult:
 
 
 @strawberry.type
+class MuestraProbar:
+    """Una muestra obtenida al probar una fuente de vigilancia."""
+    fuente: Optional[str] = None
+    titulo: Optional[str] = None
+    url: Optional[str] = None
+    precio: Optional[str] = None
+    score: Optional[float] = None
+
+
+@strawberry.type
+class ProbarResult:
+    """Resultado de «Probar ahora» de un proceso de vigilancia."""
+    ok: bool
+    mensaje: Optional[str] = None
+    muestras: List[MuestraProbar] = strawberry.field(default_factory=list)
+
+
+def _probar_construir_request(fetcher: str, fp: dict):
+    """(url, metodo, query) para una fuente según su fetcher. url=None si no aplica."""
+    if fetcher == "api_rest":
+        base = (fp.get("url_base") or "").rstrip("/")
+        if not base:
+            return None, "GET", {}
+        return base + (fp.get("endpoint") or ""), (fp.get("metodo") or "GET").upper(), (fp.get("query") or {})
+    if fetcher in ("html_paginated", "html_searchloop"):
+        return fp.get("url_busqueda") or None, "GET", {}
+    if fetcher == "rss_atom":
+        return fp.get("feed_url") or None, "GET", {}
+    return None, "GET", {}
+
+
+def _probar_items_json(resp) -> list:
+    """Best-effort: extrae una lista de ítems {titulo,url,precio} de una respuesta JSON."""
+    try:
+        data = resp.json()
+    except Exception:
+        return []
+    items = data if isinstance(data, list) else None
+    if items is None and isinstance(data, dict):
+        for k in ("elementList", "items", "results", "data", "elements", "anuncios"):
+            if isinstance(data.get(k), list):
+                items = data[k]; break
+    out = []
+    for it in (items or []):
+        if not isinstance(it, dict):
+            continue
+        def g(*ks):
+            for k in ks:
+                if it.get(k) not in (None, ""):
+                    return str(it[k])
+            return None
+        out.append({"titulo": g("titulo", "title", "name", "address", "direccion"),
+                    "url": g("url", "link", "href", "permalink"),
+                    "precio": g("precio", "price", "priceInfo")})
+    return out
+
+
+async def _probar_proceso_vigilancia(info: "strawberry.Info", proceso_id: strawberry.ID,
+                                     fuente_id: Optional[str] = None) -> ProbarResult:
+    """Prueba en caliente las fuentes de un proceso: conectividad real + muestreo JSON
+    + recuento de keywords inclusión/exclusión sobre lo descargado. La extracción HTML
+    fina (selectores) es del motor de survey; aquí validamos que la fuente responde."""
+    import time as _time
+    import httpx as _httpx
+    from app.db.sessions.async_session import async_session_maker
+    from sqlalchemy import select as _select
+    from sipi_core.models import ProcesoVigilancia as _PV
+
+    async with async_session_maker() as db:
+        proc = (await db.execute(_select(_PV).where(_PV.id == str(proceso_id)))).scalar_one_or_none()
+    if proc is None:
+        return ProbarResult(ok=False, mensaje="Proceso no encontrado.")
+    params = proc.parametros or {}
+    fuentes = params.get("fuentes") or []
+    if fuente_id:
+        fuentes = [f for f in fuentes if f.get("id") == fuente_id]
+    fuentes = [f for f in fuentes if f.get("activa", True)]
+    if not fuentes:
+        return ProbarResult(ok=False, mensaje="El proceso no tiene fuentes activas que probar. "
+                                              "Añade una fuente con su fetcher (API/HTML/RSS).")
+    incl = [k.lower() for k in (params.get("keywords_inclusion") or []) if k]
+    excl = [k.lower() for k in (params.get("keywords_exclusion") or []) if k]
+
+    muestras: List[MuestraProbar] = []
+    lineas: list = []
+    ok_any = False
+    for f in fuentes[:5]:
+        nombre = f.get("nombre") or "(fuente)"
+        fetcher = f.get("fetcher") or "?"
+        fp = f.get("params") or {}
+        url, metodo, query = _probar_construir_request(fetcher, fp)
+        if not url:
+            lineas.append(f"• {nombre} [{fetcher}]: sin URL configurada.")
+            continue
+        try:
+            t0 = _time.time()
+            with _httpx.Client(timeout=15, follow_redirects=True,
+                               headers={"User-Agent": "sipi-vigilancia/probar"}) as cli:
+                if metodo == "POST":
+                    resp = cli.post(url, data=query or None)
+                else:
+                    resp = cli.get(url, params=query or None)
+            ms = int((_time.time() - t0) * 1000)
+            texto = resp.text or ""
+            low = texto.lower()
+            ninc = sum(low.count(k) for k in incl)
+            nexc = sum(low.count(k) for k in excl)
+            extra = ""
+            if fetcher == "api_rest" and "json" in resp.headers.get("content-type", "").lower():
+                its = _probar_items_json(resp)
+                for it in its[:8]:
+                    muestras.append(MuestraProbar(fuente=nombre, titulo=it.get("titulo"),
+                                                  url=it.get("url"), precio=it.get("precio")))
+                extra = f", {len(its)} ítems JSON"
+            if 200 <= resp.status_code < 400:
+                ok_any = True
+            lineas.append(f"• {nombre} [{fetcher}]: HTTP {resp.status_code} "
+                          f"({len(texto)//1024} KB, {ms} ms){extra}. "
+                          f"Keywords inclusión: {ninc}, exclusión: {nexc}.")
+        except Exception as e:  # noqa: BLE001
+            lineas.append(f"• {nombre} [{fetcher}]: ERROR — {e}")
+    return ProbarResult(ok=ok_any, mensaje="\n".join(lineas), muestras=muestras)
+
+
+@strawberry.type
 class UsuarioActual:
     """Usuario autenticado del contexto (query `me`)."""
     id: strawberry.ID
@@ -1049,6 +1174,9 @@ def create_schema() -> strawberry.Schema:
         mutations["actualizarMisDatos"] = strawberry.mutation(mis_datos)
     except Exception as e:
         logger.warning(f"Omitiendo mutaciones de credenciales: {e}")
+
+    # --- Mutation: probar/ejecutar un proceso de vigilancia (fetch real de sus fuentes) ---
+    mutations["probarProcesoVigilancia"] = strawberry.mutation(_probar_proceso_vigilancia)
 
     # --- Query `me`: usuario autenticado del contexto ---
     async def _me(info: strawberry.Info) -> Optional[UsuarioActual]:
