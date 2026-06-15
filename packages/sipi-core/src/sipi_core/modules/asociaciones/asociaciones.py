@@ -19,6 +19,7 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin, ContactoMixin
 
 if TYPE_CHECKING:
     from sipi_core.modules.usuarios.users import Usuario
+    from sipi_core.modules.geografia.entidad_territorial import EntidadTerritorial
 
 
 class Asociacion(UUIDPKMixin, AuditMixin, ContactoMixin, Base):
@@ -40,6 +41,11 @@ class Asociacion(UUIDPKMixin, AuditMixin, ContactoMixin, Base):
         String(36), ForeignKey(f"{APP_SCHEMA}.provincias.id"), index=True)
     ambito_municipio_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), index=True)
+    # Cutover (Fase 2): ámbito como enlace único al árbol territorial recursivo (aditivo).
+    ambito_entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.entidades_territoriales.id", ondelete="SET NULL"), index=True)
+    ambito_entidad_territorial: Mapped[Optional["EntidadTerritorial"]] = relationship(
+        "EntidadTerritorial", foreign_keys=[ambito_entidad_territorial_id], viewonly=True)
 
     # foreign_keys explícito: AuditMixin añade FKs Asociacion→usuarios (created_by…),
     # así que el join de "usuarios de la asociación" debe usar Usuario.asociacion_id.

@@ -26,6 +26,7 @@ class OSMPlace(UUIDPKMixin, AuditMixin, Base):
     
     # Ubicación normalizada
     municipio_id: Mapped[Optional[str]] = mapped_column(String(36), index=True) # Link to our Municipio if mapped
+    entidad_territorial_id: Mapped[Optional[str]] = mapped_column(String(36), index=True) # Enlace blando a EntidadTerritorial (cutover Fase 2)
     addr_city: Mapped[Optional[str]] = mapped_column(String(100))
     addr_postcode: Mapped[Optional[str]] = mapped_column(String(20))
     

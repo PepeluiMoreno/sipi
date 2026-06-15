@@ -3,11 +3,12 @@
 from decimal import Decimal
 from typing import TYPE_CHECKING, Optional
 from sqlalchemy import String, ForeignKey, Float
-from sqlalchemy.orm import Mapped, mapped_column, declared_attr
+from sqlalchemy.orm import Mapped, mapped_column, declared_attr, relationship
 from sipi_core.db.registry import APP_SCHEMA
 
 if TYPE_CHECKING:
     from sipi_core.modules.geografia.geografia import Provincia, Municipio, ComunidadAutonoma
+    from sipi_core.modules.geografia.entidad_territorial import EntidadTerritorial
     from sipi_core.modules.catalogos.tipologias import TipoVia
 
 class DireccionMixin:
@@ -47,6 +48,20 @@ class DireccionMixin:
     comunidad_autonoma_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.comunidades_autonomas.id"), index=True)
     provincia_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.provincias.id"), index=True)
     municipio_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), index=True)  # ✅ CORREGIDO: municipios.id (minúscula)
+
+    # Cutover (Fase 2, strangler): enlace único al árbol territorial recursivo.
+    # Aditivo — convive con los FK viejos hasta retirar las tablas originales.
+    entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.entidades_territoriales.id", ondelete="SET NULL"), index=True)
+
+    @declared_attr
+    def entidad_territorial(cls) -> Mapped[Optional["EntidadTerritorial"]]:
+        # Relación de solo-lectura al árbol territorial (forward, sin back_populates).
+        return relationship(
+            "EntidadTerritorial",
+            foreign_keys=lambda: [cls.entidad_territorial_id],
+            viewonly=True,
+        )
     
     # Coordenadas
     latitud: Mapped[Optional[Decimal]] = mapped_column(Float(precision=10, asdecimal=True), nullable=True)

@@ -11,6 +11,7 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
     from sipi_core.modules.geografia.geografia import ComunidadAutonoma
+    from sipi_core.modules.geografia.entidad_territorial import EntidadTerritorial
 
 @strawberry.enum
 class NivelProteccion(str, enum.Enum):
@@ -74,6 +75,14 @@ class FiguraProteccion(UUIDPKMixin, AuditMixin, Base):
     comunidad_autonoma: Mapped[Optional["ComunidadAutonoma"]] = relationship(
         "ComunidadAutonoma",
         back_populates="figuras_proteccion"
+    )
+
+    # Cutover (Fase 2): enlace al árbol territorial recursivo (aditivo).
+    entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.entidades_territoriales.id", ondelete="SET NULL"), index=True
+    )
+    entidad_territorial: Mapped[Optional["EntidadTerritorial"]] = relationship(
+        "EntidadTerritorial", foreign_keys=[entidad_territorial_id], viewonly=True
     )
 
     __table_args__ = (

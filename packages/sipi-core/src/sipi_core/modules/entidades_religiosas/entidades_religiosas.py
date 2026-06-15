@@ -19,6 +19,7 @@ from sipi_core.modules.actores.actores_base import TitularBase
 
 if TYPE_CHECKING:
     from sipi_core.modules.geografia.geografia import Municipio
+    from sipi_core.modules.geografia.entidad_territorial import EntidadTerritorial
     from sipi_core.modules.inmuebles.inmuebles import Inmueble
     from sipi_core.modules.catalogos.tipologias import TipoEntidadReligiosa
     from sipi_core.modules.entidades_religiosas.entidades_religiosas import Parroquia
@@ -144,6 +145,10 @@ class Parroquia(UUIDPKMixin, AuditMixin, Base):
     municipio_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), nullable=True, index=True
     )
+    # Cutover (Fase 2): enlace al árbol territorial recursivo (aditivo).
+    entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.entidades_territoriales.id", ondelete="SET NULL"), index=True
+    )
 
     # Contacto
     nombre_via: Mapped[Optional[str]] = mapped_column(String(255))
@@ -165,6 +170,9 @@ class Parroquia(UUIDPKMixin, AuditMixin, Base):
         "Municipio",
         primaryjoin="foreign(Parroquia.municipio_id) == Municipio.id",
         viewonly=True,
+    )
+    entidad_territorial: Mapped[Optional["EntidadTerritorial"]] = relationship(
+        "EntidadTerritorial", foreign_keys=[entidad_territorial_id], viewonly=True,
     )
 
 
@@ -439,6 +447,10 @@ class Sede(UUIDPKMixin, AuditMixin, Base):
         nullable=True,
         index=True,
     )
+    # Cutover (Fase 2): enlace al árbol territorial recursivo (aditivo).
+    entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.entidades_territoriales.id", ondelete="SET NULL"), index=True,
+    )
 
     # ── Relaciones ────────────────────────────────────────────────────────────
     entidad_religiosa: Mapped["EntidadReligiosa"] = relationship(
@@ -452,4 +464,7 @@ class Sede(UUIDPKMixin, AuditMixin, Base):
     municipio: Mapped[Optional["Municipio"]] = relationship(
         "Municipio",
         primaryjoin="foreign(Sede.municipio_id) == Municipio.id",
+    )
+    entidad_territorial: Mapped[Optional["EntidadTerritorial"]] = relationship(
+        "EntidadTerritorial", foreign_keys=[entidad_territorial_id], viewonly=True,
     )

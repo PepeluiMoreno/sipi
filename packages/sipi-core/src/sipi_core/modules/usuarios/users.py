@@ -23,6 +23,7 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin, IdentificacionMixin, Conta
 if TYPE_CHECKING:
     from sipi_core.modules.acceso.permisos import RolTransaccion, RolFuncionalidad
     from sipi_core.modules.asociaciones.asociaciones import Asociacion
+    from sipi_core.modules.geografia.entidad_territorial import EntidadTerritorial
 
 
 @strawberry.enum
@@ -125,8 +126,13 @@ class UsuarioRol(UUIDPKMixin, Base):
         String(36), ForeignKey(f"{APP_SCHEMA}.provincias.id"), index=True)
     municipio_id: Mapped[Optional[str]] = mapped_column(
         String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), index=True)
+    # Cutover (Fase 2): territorio del rol como enlace al árbol recursivo (aditivo).
+    entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.entidades_territoriales.id", ondelete="SET NULL"), index=True)
 
     usuario: Mapped["Usuario"] = relationship(
         "Usuario", foreign_keys=[usuario_id], back_populates="roles_asignados")
     rol: Mapped["Rol"] = relationship(
         "Rol", foreign_keys=[rol_id], back_populates="usuarios_asignados")
+    entidad_territorial: Mapped[Optional["EntidadTerritorial"]] = relationship(
+        "EntidadTerritorial", foreign_keys=[entidad_territorial_id], viewonly=True)
