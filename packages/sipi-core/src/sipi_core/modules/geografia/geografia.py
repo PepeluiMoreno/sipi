@@ -6,7 +6,7 @@ from sipi_core.modules.actores.administraciones import Administracion
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Boolean, Float, ForeignKey, Index
 
-from sipi_core.db.registry import Base
+from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin, AuditMixin
 #from models import Inmueble, FiguraProteccion, Administracion
 
@@ -64,7 +64,7 @@ class Provincia(UUIDPKMixin, AuditMixin, Base):
     nombre_alternativo: Mapped[Optional[str]] = mapped_column(String(100))
     capital: Mapped[Optional[str]] = mapped_column(String(100))
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    comunidad_autonoma_id: Mapped[str] = mapped_column(String(36), ForeignKey("sipi.comunidades_autonomas.id"), index=True, nullable=False)
+    comunidad_autonoma_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.comunidades_autonomas.id"), index=True, nullable=False)
   
 
     # Relaciones
@@ -93,8 +93,8 @@ class Municipio(UUIDPKMixin, AuditMixin, Base):
     nombre_cooficial: Mapped[Optional[str]] = mapped_column(String(100))
     nombre_alternativo: Mapped[Optional[str]] = mapped_column(String(100))
     activo: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    provincia_id: Mapped[str] = mapped_column(String(36), ForeignKey("sipi.provincias.id"), index=True, nullable=False)
-    comunidad_autonoma_id: Mapped[str] = mapped_column(String(36), ForeignKey("sipi.comunidades_autonomas.id"), index=True, nullable=False)
+    provincia_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.provincias.id"), index=True, nullable=False)
+    comunidad_autonoma_id: Mapped[str] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.comunidades_autonomas.id"), index=True, nullable=False)
  
     
     # Relaciones
@@ -156,7 +156,7 @@ class Toponimo(UUIDPKMixin, AuditMixin, Base):
     # Cutover (Fase 2): referencia al modelo territorial recursivo unificado.
     # Sustituirá a (nivel, entidad_id), que se deprecan.
     entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
-        String(36), ForeignKey("sipi.entidades_territoriales.id", ondelete="SET NULL"), index=True)
+        String(36), ForeignKey(f"{APP_SCHEMA}.entidades_territoriales.id", ondelete="SET NULL"), index=True)
 
     __table_args__ = (
         Index("ix_toponimo_nivel_entidad", "nivel", "entidad_id"),
@@ -185,7 +185,7 @@ class EntidadLocalMenor(UUIDPKMixin, AuditMixin, Base):
     poblacion: Mapped[Optional[int]] = mapped_column()
 
     municipio_id: Mapped[Optional[str]] = mapped_column(
-        String(36), ForeignKey("sipi.municipios.id"), index=True, nullable=True
+        String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), index=True, nullable=True
     )
 
     # Relaciones

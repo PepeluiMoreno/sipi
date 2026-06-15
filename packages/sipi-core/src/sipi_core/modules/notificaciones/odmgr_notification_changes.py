@@ -22,7 +22,7 @@ from typing import Optional
 from sqlalchemy import String, Text, ForeignKey, DateTime, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from sipi_core.db.registry import Base
+from sipi_core.db.registry import Base, APP_SCHEMA
 from sipi_core.mixins import UUIDPKMixin
 
 
@@ -33,7 +33,7 @@ class OdmgrNotificationChange(UUIDPKMixin, Base):
     # Notificación padre
     notification_id: Mapped[str] = mapped_column(
         String(36),
-        ForeignKey("sipi.odmgr_notifications.id", ondelete="CASCADE"),
+        ForeignKey(f"{APP_SCHEMA}.odmgr_notifications.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
