@@ -4,6 +4,7 @@ import enum
 from datetime import datetime
 from typing import Optional, List, TYPE_CHECKING
 from sqlalchemy import String, Text, Boolean, DateTime, ForeignKey, Index, Enum as SQLEnum
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import strawberry
 
@@ -12,6 +13,7 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin
 
 if TYPE_CHECKING:
     from sipi_core.modules.usuarios.users import Usuario
+    from sipi_core.modules.comunicacion.vigilancia import ProcesoVigilancia
 
 
 @strawberry.enum
@@ -68,9 +70,17 @@ class Notificacion(UUIDPKMixin, Base):
         default=PrioridadNotif.NORMAL, nullable=False,
     )
     accion_url: Mapped[Optional[str]] = mapped_column(String(500))
-    # Vínculo polimórfico a la entidad de dominio (p. ej. Expediente)
+    # Vínculo polimórfico a la entidad de dominio (p. ej. Expediente, Inmueble)
     entidad_tipo: Mapped[Optional[str]] = mapped_column(String(50), index=True)
     entidad_id: Mapped[Optional[str]] = mapped_column(String(36), index=True)
+
+    # Proceso de vigilancia que la originó (avisos proceso->usuario)
+    proceso_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.procesos_vigilancia.id", ondelete="SET NULL"), index=True)
+    # Datos estructurados del hallazgo (url anuncio, score, municipio, decreto...)
+    payload: Mapped[Optional[dict]] = mapped_column(JSONB)
+    # Idempotencia: evita duplicar el mismo hallazgo en reejecuciones del proceso
+    clave_dedupe: Mapped[Optional[str]] = mapped_column(String(255), unique=True, index=True)
 
     leida: Mapped[bool] = mapped_column(Boolean, default=False, index=True, nullable=False)
     leida_at: Mapped[Optional[datetime]] = mapped_column(DateTime)
@@ -78,6 +88,8 @@ class Notificacion(UUIDPKMixin, Base):
 
     tipo: Mapped["TipoNotificacion"] = relationship("TipoNotificacion", back_populates="notificaciones")
     usuario: Mapped["Usuario"] = relationship("Usuario", foreign_keys=[usuario_id])
+    proceso: Mapped[Optional["ProcesoVigilancia"]] = relationship(
+        "ProcesoVigilancia", back_populates="notificaciones")
 
     __table_args__ = (
         Index("ix_notif_usuario_leida", "usuario_id", "leida"),

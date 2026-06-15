@@ -47,6 +47,12 @@ from sipi_core.modules.configuracion.configuracion import (
 from sipi_core.modules.comunicacion.notificacion import (
     TipoNotificacion, Notificacion, PrioridadNotif,
 )
+from sipi_core.modules.comunicacion.vigilancia import (
+    ProcesoVigilancia, ProcesoDestinatarioRol, ProcesoDestinatarioUsuario,
+)
+from sipi_core.modules.comunicacion.mensajeria import (
+    Canal, CanalMiembro, Mensaje,
+)
 
 # ============================================================================
 # TYPOLOGIES (APP Schema - Sin dependencias de actores)
@@ -222,6 +228,8 @@ __all__ = [
 
     # Comunicación
     'TipoNotificacion', 'Notificacion', 'PrioridadNotif',
+    'ProcesoVigilancia', 'ProcesoDestinatarioRol', 'ProcesoDestinatarioUsuario',
+    'Canal', 'CanalMiembro', 'Mensaje',
 
     # Typologies
     'TipoEstadoConservacion', 'TipoEstadoTratamiento', 'TipoRolTecnico',
