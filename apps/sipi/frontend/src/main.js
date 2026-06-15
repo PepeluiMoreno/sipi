@@ -4,6 +4,7 @@ import './style.css'
 
 import { createApp } from 'vue'
 import { createApolloProvider } from '@vue/apollo-option'
+import { DefaultApolloClient } from '@vue/apollo-composable'
 import { ApolloClient, createHttpLink, InMemoryCache } from '@apollo/client/core'
 import { setContext } from '@apollo/client/link/context'
 
@@ -11,6 +12,7 @@ import App from './App.vue'
 import router from './router'  // ✅ CORREGIDO
 import { createPinia } from 'pinia'
 import { registerUi } from './modules/core/components/ui'
+import { getToken } from './modules/auth/token'
 
 const pinia = createPinia()
 
@@ -21,7 +23,7 @@ const httpLink = createHttpLink({
 })
 
 const authLink = setContext((_, { headers }) => {
-  const token = localStorage.getItem('token')
+  const token = getToken()
   return {
     headers: {
       ...headers,
@@ -49,10 +51,10 @@ const app = createApp(App)
 app.use(router)
 app.use(pinia)
 app.use(apolloProvider)
+// `@vue/apollo-composable` (useQuery/useMutation) usa otra clave de inyección que
+// `@vue/apollo-option`; hay que proveer el cliente también aquí o falla con
+// "Apollo client with id default not found".
+app.provide(DefaultApolloClient, apolloClient)
 registerUi(app)   // widgets base del sistema de diseño (UiButton, UiPanel, PageShell…)
 
 app.mount('#app')
-
-console.log('🚀 Desarrollo: Mock data cargado')
-console.log('📍 Router cargado:', router)
-console.log('📍 Apollo Client cargado:', apolloClient)

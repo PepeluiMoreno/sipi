@@ -24,14 +24,16 @@ import logging
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent.parent / ".env")
 
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "SIPI-CORE"))
+# sipi_core viene instalado en el entorno (imagen sipi-api); solo añadimos el src de la ETL.
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+import sipi_core.models  # noqa: F401 — registra TODOS los modelos (resuelve relaciones del mapper)
 from sipi_core.db.sessions import AsyncDatabaseManager
-from modules.census.loader import listado_ceeLoader
+from modules.cee.loader import listado_ceeLoader
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)

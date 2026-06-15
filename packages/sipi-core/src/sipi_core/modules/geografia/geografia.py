@@ -153,6 +153,10 @@ class Toponimo(UUIDPKMixin, AuditMixin, Base):
     nivel: Mapped[str] = mapped_column(String(50), nullable=False)
     # UUID de la entidad referenciada (sin FK dura para que sirva a cualquier nivel)
     entidad_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    # Cutover (Fase 2): referencia al modelo territorial recursivo unificado.
+    # Sustituirá a (nivel, entidad_id), que se deprecan.
+    entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("sipi.entidades_territoriales.id", ondelete="SET NULL"), index=True)
 
     __table_args__ = (
         Index("ix_toponimo_nivel_entidad", "nivel", "entidad_id"),

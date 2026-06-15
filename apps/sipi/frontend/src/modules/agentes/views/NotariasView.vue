@@ -1,145 +1,89 @@
+<!-- NotariasView — estándar de agentes: FilterSidebar vertical + maestro-detalle (sin modal). -->
 <template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Notarías</h1>
-        <p class="text-gray-600">Gestión de notarías</p>
-      </div>
-    </div>
+  <AgenteCrudShell
+    titulo="Notarías"
+    :total="total"
+    :editando="editando"
+    nuevo-label="Nueva notaría"
+    @nuevo="nuevo"
+  >
+    <template #filtros>
+      <NotariaFiltros @filter-change="handleFilterChange" />
+    </template>
 
-    <NotariaFiltros
-      :comunidades-autonomas="comunidadesAutonomas"
-      :provincias="provincias"
-      :localidades="localidades"
-      @filter-change="handleFilterChange"
-    />
+    <template #lista>
+      <NotariaDataGrid
+        :items="items"
+        :loading="loading"
+        :total="total"
+        :has-more="hasMore"
+        @create="nuevo"
+        @edit="editar"
+        @delete="handleDelete"
+        @load-more="cargarMas"
+      />
+    </template>
 
-    <NotariaDataGrid 
-      :items="items"
-      :loading="loading"
-      :pagination="pagination"
-      @create="openCreateModal"
-      @edit="openEditModal"
-      @delete="handleDelete"
-      @change-page="handlePageChange"
-    />
-
-    <NotariaFormModal
-      :show="showModal"
-      :notaria="selectedNotaria"
-      :localidades="localidades"
-      :loading="saving"
-      @close="closeModal"
-      @save="handleSave"
-    />
-  </div>
+    <template #form>
+      <NotariaForm
+        :notaria="selectedNotaria"
+        :loading="saving"
+        @cancelar="cerrarForm"
+        @save="handleSave"
+      />
+    </template>
+  </AgenteCrudShell>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useNotaria } from '../composables/useNotaria'
-import { useTipologiaBase } from '../../tipologias/composables/useTipologiaBase'
+import AgenteCrudShell from '../../core/components/AgenteCrudShell.vue'
 import NotariaFiltros from '../components/notaria/NotariaFiltros.vue'
 import NotariaDataGrid from '../components/notaria/NotariaDataGrid.vue'
-import NotariaFormModal from '../components/notaria/NotariaFormModal.vue'
+import NotariaForm from '../components/notaria/NotariaForm.vue'
 
 const notariaService = useNotaria()
-const localidadService = useTipologiaBase('municipios', { conContacto: false })
-const ccaaService = useTipologiaBase('comunidadesAutonomas', { conContacto: false })
-const provinciaService = useTipologiaBase('provincias', { conContacto: false })
+const { items, loading, hasMore } = notariaService
 
-const items = ref([])
-const localidades = ref([])
-const comunidadesAutonomas = ref([])
-const provincias = ref([])
-const loading = ref(false)
+const total = ref(0)
 const saving = ref(false)
-const showModal = ref(false)
+const editando = ref(false)
 const selectedNotaria = ref(null)
 const filters = ref({})
 
-onMounted(async () => {
-  await loadComunidadesAutonomas()
-  await loadProvincias()
-  await loadLocalidades()
-  await loadNotarias()
-})
+onMounted(loadNotarias)
 
-const loadComunidadesAutonomas = async () => {
+async function loadNotarias () {
   try {
-    const { items: ccaas } = await ccaaService.listar()
-    comunidadesAutonomas.value = ccaas
-  } catch (error) {
-    console.error('Error cargando comunidades autónomas:', error)
-  }
-}
-
-const loadProvincias = async () => {
-  try {
-    const { items: provs } = await provinciaService.listar()
-    provincias.value = provs
-  } catch (error) {
-    console.error('Error cargando provincias:', error)
-  }
-}
-
-const loadLocalidades = async () => {
-  try {
-    const { items: locs } = await localidadService.listar()
-    localidades.value = locs
-  } catch (error) {
-    console.error('Error cargando localidades:', error)
-  }
-}
-
-const loadNotarias = async () => {
-  loading.value = true
-  try {
-    const { items: nots } = await notariaService.listar(filters.value)
-    items.value = nots
+    const r = await notariaService.listar(filters.value)
+    if (r) total.value = r.total
   } catch (error) {
     console.error('Error cargando notarías:', error)
-  } finally {
-    loading.value = false
   }
 }
 
 const handleFilterChange = async (newFilters) => {
   filters.value = newFilters
-  notariaService.pagination.page = 1
   await loadNotarias()
 }
 
-const handlePageChange = async (newPage) => {
-  notariaService.cambiarPagina(newPage)
-  await loadNotarias()
+const cargarMas = async () => {
+  const r = await notariaService.cargarMas()
+  if (r) total.value = r.total
 }
 
-const openCreateModal = () => {
-  selectedNotaria.value = null
-  showModal.value = true
-}
-
-const openEditModal = (id) => {
-  selectedNotaria.value = items.value.find(n => n.id === id)
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  selectedNotaria.value = null
-}
+const nuevo = () => { selectedNotaria.value = null; editando.value = true }
+const editar = (id) => { selectedNotaria.value = items.value.find(n => n.id === id) || null; editando.value = true }
+const cerrarForm = () => { editando.value = false; selectedNotaria.value = null }
 
 const handleSave = async (data) => {
   saving.value = true
   try {
-    if (data.id) {
-      await notariaService.actualizar(data.id, data)
-    } else {
-      await notariaService.crear(data)
-    }
+    if (data.id) await notariaService.actualizar(data.id, data)
+    else await notariaService.crear(data)
     await loadNotarias()
-    closeModal()
+    cerrarForm()
   } catch (error) {
     console.error('Error guardando notaría:', error)
   } finally {
@@ -148,8 +92,7 @@ const handleSave = async (data) => {
 }
 
 const handleDelete = async (id) => {
-  if (!confirm('¿Está seguro de eliminar esta notaría?')) return
-  
+  if (!confirm('¿Eliminar esta notaría?')) return
   try {
     await notariaService.eliminar(id)
     await loadNotarias()
@@ -157,6 +100,4 @@ const handleDelete = async (id) => {
     console.error('Error eliminando notaría:', error)
   }
 }
-
-const { pagination } = notariaService
 </script>

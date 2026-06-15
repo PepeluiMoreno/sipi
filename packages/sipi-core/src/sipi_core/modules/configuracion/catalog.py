@@ -25,6 +25,11 @@ PARAMETROS: List[ParamDef] = [
     ParamDef("expediente.certeza.umbral_auto_ratificar", "0.85", "float", "sipi", "expediente",
              "Confianza mínima para auto-ratificar un hallazgo CIERTO"),
     ParamDef("notif.email.activo", "false", "bool", "sipi", "comunicacion", "Enviar notificaciones por email"),
+    # Seguridad / sesión (Parámetros generales)
+    ParamDef("seguridad.timeout_inactividad_min", "30", "int", "sipi", "seguridad",
+             "Minutos de inactividad tras los que se cierra la sesión (0 = sin timeout)"),
+    ParamDef("seguridad.timeout_sesion_min", "480", "int", "sipi", "seguridad",
+             "Duración máxima de la sesión en minutos (0 = sin límite)"),
     # Survey (vigilancia)
     ParamDef("survey.idealista.intervalo_min", "60", "int", "survey", "vigilancia",
              "Intervalo (min) entre barridos de Idealista"),

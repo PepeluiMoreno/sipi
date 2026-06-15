@@ -16,7 +16,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from sipi_core.modules.usuarios.users import Usuario, Rol
 from sipi_core.modules.acceso.transaccion import Transaccion
-from sipi_core.modules.acceso.permisos import RolTransaccion
+from sipi_core.modules.acceso.funcionalidad import FuncionalidadTransaccion
+from sipi_core.modules.acceso.permisos import RolTransaccion, RolFuncionalidad
 from sipi_core.modules.acceso.auditoria import AuditoriaAcceso
 
 ROLES_TOTALES = {"admin"}
@@ -43,12 +44,19 @@ async def transacciones_de(db: AsyncSession, usuario: Usuario) -> Set[str]:
         res = await db.execute(select(Transaccion.codigo))
         return set(res.scalars())
     rol_ids = [r.id for r in usuario.roles]
-    res = await db.execute(
+    # Vía directa rol→transacción (legacy) ∪ vía permiso rol→funcionalidad→transacción
+    res1 = await db.execute(
         select(Transaccion.codigo)
         .join(RolTransaccion, RolTransaccion.transaccion_id == Transaccion.id)
         .where(RolTransaccion.rol_id.in_(rol_ids))
     )
-    return set(res.scalars())
+    res2 = await db.execute(
+        select(Transaccion.codigo)
+        .join(FuncionalidadTransaccion, FuncionalidadTransaccion.transaccion_id == Transaccion.id)
+        .join(RolFuncionalidad, RolFuncionalidad.funcionalidad_id == FuncionalidadTransaccion.funcionalidad_id)
+        .where(RolFuncionalidad.rol_id.in_(rol_ids))
+    )
+    return set(res1.scalars()) | set(res2.scalars())
 
 
 async def puede(db: AsyncSession, usuario: Optional[Usuario], transaccion: str) -> bool:

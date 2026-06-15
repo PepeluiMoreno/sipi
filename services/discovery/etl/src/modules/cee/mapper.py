@@ -1,5 +1,5 @@
 """
-CensusMapper - Mapea columnas CSV del censo a modelo Inmueble
+listado_ceeMapper - Mapea columnas del CSV del listado CEE a modelo Inmueble
 
 Estrategia: Opción 2 (Conservadora)
 - Crea un único registro de Inmueble con el título completo
@@ -11,7 +11,7 @@ from typing import Dict, Any, Optional
 from datetime import datetime
 import logging
 
-from sipi_core.db.models.inmuebles import EstadoCicloVida, GeoQuality
+from sipi_core.modules.inmuebles.inmuebles import EstadoCicloVida, GeoQuality
 
 logger = logging.getLogger(__name__)
 
@@ -61,8 +61,10 @@ class listado_ceeMapper:
             # Estructura de datos mapeada
             mapped_data = {
                 "inmueble": {
-                    "nombre": titulo if titulo else tipo,  # Nombre = Titulo, fallback a Tipo
-                    "descripcion": f"Tipo: {tipo}. Titular: {row.get('Titular', 'N/A')}",
+                    # nombre es VARCHAR(255) en BD → truncar. El título completo (los CEE son
+                    # frases largas) se preserva íntegro en `descripcion`, que es TEXT.
+                    "nombre": (titulo if titulo else tipo)[:255],
+                    "descripcion": f"{titulo}. Tipo: {tipo}. Titular: {row.get('Titular', 'N/A')}".lstrip(". "),
                     # Campos de ubicación (por ahora nombres, luego resolveremos IDs)
                     "comunidad_autonoma_name": row.get("Comunidad Autónoma", "").strip(),
                     "provincia_name": row.get("Provincia", "").strip(),

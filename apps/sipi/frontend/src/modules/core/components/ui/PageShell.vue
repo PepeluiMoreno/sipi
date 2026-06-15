@@ -4,7 +4,7 @@
 <template>
   <div class="h-full min-h-0 flex flex-col">
     <header v-if="title || $slots.title || $slots.actions"
-            class="shrink-0 h-12 px-4 flex items-center justify-between border-b border-zinc-200 bg-white">
+            class="shrink-0 h-11 px-3 flex items-center justify-between border-b border-zinc-200 bg-white">
       <div class="flex items-center gap-2 min-w-0">
         <UiIcon v-if="icon" :name="icon" class="text-zinc-400" />
         <slot name="title">
@@ -14,7 +14,7 @@
       </div>
       <div class="flex items-center gap-2"><slot name="actions" /></div>
     </header>
-    <div :class="['flex-1 min-h-0', padded ? 'p-4' : '']">
+    <div :class="['flex-1 min-h-0', padded ? 'p-3' : '']">
       <slot />
     </div>
   </div>

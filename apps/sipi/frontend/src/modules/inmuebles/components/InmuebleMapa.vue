@@ -48,6 +48,9 @@ let markers = []
 
 onMounted(() => {
   initMap()
+  // El contenedor puede aparecer dentro de una modal/transición: recalcular tamaño
+  // para que las teselas no queden en gris.
+  setTimeout(() => map && map.invalidateSize(), 200)
 })
 
 // Watch para actualizar mapa cuando cambien los inmuebles (filtros aplicados)

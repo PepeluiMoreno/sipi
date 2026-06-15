@@ -1,14 +1,11 @@
 import { ref, computed } from 'vue'
-import { useMutation, useQuery } from '@vue/apollo-composable'
+import { useMutation, useLazyQuery } from '@vue/apollo-composable'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../../stores/auth'
-import { 
-  LOGIN_MUTATION, 
-  LOGOUT_MUTATION, 
-  REGISTER_MUTATION,
-  REFRESH_TOKEN_MUTATION,
-  GET_CURRENT_USER_QUERY 
-} from '../graphql/authQueries'
+import { useOrgConfigStore } from '../../../stores/orgConfig'
+import { stopSessionGuard } from '../../../composables/useSessionGuard'
+import { LOGIN_MUTATION, GET_CURRENT_USER_QUERY } from '../graphql/authQueries'
+import { CONFIGURACIONES } from '../../configuracion/graphql/configQueries'
 
 export function useAuth() {
   const router = useRouter()
@@ -18,39 +15,42 @@ export function useAuth() {
 
   const isAuthenticated = computed(() => authStore.isAuthenticated)
 
-  // Query para obtener el usuario actual
-  const { onResult: onUserResult } = useQuery(GET_CURRENT_USER_QUERY, null, {
-    enabled: isAuthenticated.value,
-    fetchPolicy: 'network-only'
-  })
-
-  onUserResult((result) => {
-    if (result.data?.currentUser) {
-      authStore.setUser(result.data.currentUser)
+  const orgConfig = useOrgConfigStore()
+  const { mutate: loginMutation } = useMutation(LOGIN_MUTATION)
+  const { load: cargarConfig, onResult: onConfig } = useLazyQuery(CONFIGURACIONES, null, { fetchPolicy: 'network-only' })
+  onConfig((r) => orgConfig.aplicarConfiguraciones(r.data?.configuraciones?.items ?? []))
+  const { load: cargarMe, onResult: onMe } = useLazyQuery(
+    GET_CURRENT_USER_QUERY, null, { fetchPolicy: 'network-only' }
+  )
+  onMe((r) => {
+    if (r.data?.me) {
+      authStore.setUser(r.data.me)
+    } else if (authStore.token) {
+      // Token inválido/caducado: limpiar y exigir login de nuevo.
+      authStore.clearAuth()
+      if (router.currentRoute.value.name !== 'Login') router.push('/login')
     }
   })
 
-  // Mutation de login
-  const { mutate: loginMutation } = useMutation(LOGIN_MUTATION)
-  
-  const login = async (credentials) => {
+  // Restaura/actualiza el usuario actual (roles incluidos) usando el token vigente.
+  const cargarUsuarioActual = () => { if (authStore.token) cargarMe() }
+
+  const login = async ({ nombreUsuario, contrasena, remember = true }) => {
     loading.value = true
     error.value = null
-    
     try {
-      const { data } = await loginMutation(credentials)
-      
-      if (data?.login?.success) {
-        const { token: newToken, user: userData } = data.login
-        authStore.setToken(newToken)
-        authStore.setUser(userData)
-        
+      const { data } = await loginMutation({ nombreUsuario, contrasena })
+      const res = data?.login
+      if (res?.ok && res.token) {
+        authStore.setToken(res.token, remember)
+        authStore.setUser({ id: res.usuarioId, nombreUsuario: res.nombreUsuario, roles: [] })
+        cargarMe()       // enriquece con nombre/roles
+        cargarConfig()   // parámetros de sesión (timeout)
         router.push('/')
         return { success: true }
-      } else {
-        error.value = data?.login?.message || 'Error en el login'
-        return { success: false, error: error.value }
       }
+      error.value = res?.mensaje || 'Usuario o contraseña incorrectos'
+      return { success: false, error: error.value }
     } catch (err) {
       error.value = err.message
       return { success: false, error: err.message }
@@ -59,60 +59,15 @@ export function useAuth() {
     }
   }
 
-  // Mutation de registro
-  const { mutate: registerMutation } = useMutation(REGISTER_MUTATION)
-  
-  const register = async (userData) => {
-    loading.value = true
-    error.value = null
-    
-    try {
-      const { data } = await registerMutation({ input: userData })
-      
-      if (data?.register?.success) {
-        return { success: true, message: data.register.message }
-      } else {
-        error.value = data?.register?.message || 'Error en el registro'
-        return { success: false, error: error.value }
-      }
-    } catch (err) {
-      error.value = err.message
-      return { success: false, error: err.message }
-    } finally {
-      loading.value = false
-    }
+  // Logout es cliente: detener la vigilancia y descartar el token.
+  const logout = () => {
+    stopSessionGuard()
+    authStore.clearAuth()
+    router.push('/login')
   }
 
-  // Logout
-  const { mutate: logoutMutation } = useMutation(LOGOUT_MUTATION)
-  
-  const logout = async () => {
-    try {
-      await logoutMutation()
-    } catch (err) {
-      console.error('Error en logout:', err)
-    } finally {
-      authStore.clearAuth()
-      router.push('/login')
-    }
-  }
-
-  // Refresh token
-  const { mutate: refreshTokenMutation } = useMutation(REFRESH_TOKEN_MUTATION)
-  
-  const refreshToken = async () => {
-    try {
-      const { data } = await refreshTokenMutation()
-      if (data?.refreshToken?.success) {
-        authStore.setToken(data.refreshToken.token)
-        return true
-      }
-    } catch (err) {
-      console.error('Error refreshing token:', err)
-      logout()
-    }
-    return false
-  }
+  // El alta de usuarios la hace un administrador (Control de acceso), no auto-registro.
+  const register = async () => ({ success: false, error: 'El alta de usuarios la realiza un administrador.' })
 
   return {
     user: computed(() => authStore.user),
@@ -121,8 +76,8 @@ export function useAuth() {
     error,
     isAuthenticated,
     login,
-    register,
     logout,
-    refreshToken
+    register,
+    cargarUsuarioActual,
   }
 }

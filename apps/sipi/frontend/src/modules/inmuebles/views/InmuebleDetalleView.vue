@@ -11,10 +11,12 @@
       </div>
     </header>
 
-    <!-- Cabecera con info del inmueble -->
-    <InmuebleDetailHeader v-if="inmueble" :inmueble="inmueble" class="shrink-0" />
+    <!-- Resumen compacto del inmueble (media anchura) -->
+    <div v-if="inmueble" class="shrink-0 px-4 bg-white border-b border-zinc-200">
+      <InmuebleDetailHeader :inmueble="inmueble" class="w-1/2 max-w-xl" />
+    </div>
 
-    <!-- Pestañas (la barra es fija; solo scrollea el panel) -->
+    <!-- Solapas a ancho completo -->
     <TabGroup as="div" class="flex-1 min-h-0 flex flex-col" @change="cambiarTab">
       <TabList class="shrink-0 flex items-center gap-1 px-4 bg-white border-b border-zinc-200">
         <Tab v-for="t in tabs" :key="t" v-slot="{ selected }" as="template">
@@ -23,12 +25,13 @@
       </TabList>
 
       <TabPanels class="flex-1 min-h-0 overflow-auto p-4">
-        <TabPanel>
+        <TabPanel class="h-full">
           <InmuebleFormDatosGenerales
             :modelValue="formData"
             @update:modelValue="formData = $event"
             :catalogos="catalogos"
             :errores="errores"
+            @geolocalizar="onGeolocalizar"
           />
         </TabPanel>
         <TabPanel><InmuebleFormDocumentos :inmueble-id="inmuebleId" /></TabPanel>
@@ -128,6 +131,13 @@ const eliminar = async () => {
   } catch (err) {
     console.error(err)
   }
+}
+
+// Pendiente: cablear al servicio de geolocalización del backend (cascada fusión OSM →
+// geocoder con validación point-in-polygon). NO inventa coordenadas. Por ahora solo
+// registra la petición con el contexto de dirección.
+const onGeolocalizar = (contexto) => {
+  console.info('[geolocalizar] solicitud pendiente de cascada backend', contexto)
 }
 
 const volver = () => {

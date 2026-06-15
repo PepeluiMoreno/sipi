@@ -9,45 +9,13 @@ import { gql } from '@apollo/client/core'
 // ========================================
 
 export const LISTAR = gql`
-  query ListarNotarias(
-    $filter: NotariaFilterInput
-    $offset: Int = 0
-    $limit: Int = 50
-  ) {
-    notarias(filter: $filter, offset: $offset, limit: $limit) {
-      id
-      nombre
-      nombreNotario
-      numeroIdentificacion
-      email
-      telefono
-      direccion
-      codigoPostal
-      municipio {
-        id
-        nombre
-        provincia {
-          id
-          nombre
-          comunidadAutonoma {
-            id
-            nombre
-          }
-        }
+  query ListarNotarias($search: String, $offset: Int = 0, $limit: Int = 50) {
+    notarias(search: $search, offset: $offset, limit: $limit) {
+      items {
+        id codigoOficial nombre emailCorporativo emailPersonal telefono telefonoMovil
+        nombreVia numero codigoPostal comunidadAutonomaId provinciaId municipioId
       }
-      colegioProfesional {
-        id
-        nombre
-      }
-      titulares {
-        id
-        nombre
-        apellidos
-        fechaInicio
-        fechaFin
-      }
-      createdAt
-      updatedAt
+      total
     }
   }
 `

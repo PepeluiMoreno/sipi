@@ -2,12 +2,15 @@
 """
 Contexto GraphQL: resuelve el usuario actual a partir de la petición.
 
-NOTA: aún no hay autenticación real (JWT). Como gancho de desarrollo, el usuario
-se identifica por cabecera `X-Usuario-Id` (o `Authorization: Bearer <usuario_id>`).
-Sustituir por verificación de token real cuando exista login. La lógica de
-autorización (RBAC) NO depende de cómo se identifique el usuario.
+El usuario se identifica por un **JWT** firmado (`Authorization: Bearer <token>`),
+emitido por la mutation `login` y verificado aquí (firma + expiración). El `sub`
+del token es el id de usuario. La autorización (RBAC) opera sobre ese usuario.
+
+Escape de desarrollo: con `SIPI_DEV_AUTH=1` se admite la cabecera `X-Usuario-Id`
+(sin verificación) para pruebas locales. Desactivado por defecto.
 """
 from __future__ import annotations
+import os
 from typing import Any, Dict, Optional
 
 from sqlalchemy import select
@@ -15,15 +18,20 @@ from sqlalchemy.orm import selectinload
 from starlette.requests import Request
 
 from sipi_core.modules.usuarios.users import Usuario
+from sipi_core.modules.usuarios.security import decode_access_token, get_jwt_secret
 
 
 def _extraer_usuario_id(request: Request) -> Optional[str]:
-    uid = request.headers.get("x-usuario-id")
-    if uid:
-        return uid.strip()
     auth = request.headers.get("authorization", "")
     if auth.lower().startswith("bearer "):
-        return auth[7:].strip() or None
+        token = auth[7:].strip()
+        payload = decode_access_token(token, get_jwt_secret()) if token else None
+        return payload.get("sub") if payload else None
+    # Escape de desarrollo (no usar en producción)
+    if os.getenv("SIPI_DEV_AUTH") == "1":
+        uid = request.headers.get("x-usuario-id")
+        if uid:
+            return uid.strip()
     return None
 
 

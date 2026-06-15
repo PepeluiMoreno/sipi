@@ -1,15 +1,9 @@
 import { useAgenteBase } from './useAgenteBase'
+import * as queries from '../graphql/entidadReligiosaQueries.js'
 
 /**
- * Composable para Entidades Religiosas
- * Usa el composable base que se conecta automáticamente con el esquema GraphQL autogenerado
+ * Composable para Entidades Religiosas — delega en useAgenteBase con sus queries reales.
  */
 export function useEntidadReligiosa() {
-  return useAgenteBase('entidadesReligiosas', {
-    nombreSingular: 'entidadReligiosa',
-    nombrePlural: 'entidadesReligiosas',
-    conTitulares: true,
-    conContacto: true,
-    conDireccion: true
-  })
+  return useAgenteBase('entidadesReligiosas', queries)
 }

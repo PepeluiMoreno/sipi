@@ -1,118 +1,115 @@
+<!-- EntidadesReligiosasView — estándar: FilterSidebar + maestro-detalle (lista arriba, form debajo) + paginación a altura. -->
 <template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Entidades Religiosas</h1>
-        <p class="text-gray-600">Gestión de órdenes, congregaciones e institutos de vida consagrada</p>
-      </div>
-    </div>
+  <AgenteCrudShell
+    titulo="Entidades religiosas"
+    :total="total"
+    :editando="editando"
+    :seleccion="seleccion"
+    nuevo-label="Nueva entidad"
+    @nuevo="nuevo"
+  >
+    <template #filtros>
+      <EntidadReligiosaFiltros :tipos-entidad="tiposEntidad" @filter-change="handleFilterChange" />
+    </template>
 
-    <EntidadReligiosaFiltros
-      :comunidades-autonomas="comunidadesAutonomas"
-      :provincias="provincias"
-      :localidades="localidades"
-      :tipos-entidad="tiposEntidad"
-      @filter-change="handleFilterChange"
-    />
+    <template #lista>
+      <EntidadReligiosaDataGrid
+        :items="items"
+        :loading="loading"
+        :total="total"
+        :page="page"
+        :page-size="pageSize"
+        :selected-id="selectedId"
+        @create="nuevo"
+        @ver="ver"
+        @edit="editar"
+        @delete="handleDelete"
+        @change-page="cambiarPagina"
+        @update:page-size="onPageSize"
+      />
+    </template>
 
-    <EntidadReligiosaDataGrid
-      :items="items"
-      :loading="loading"
-      :pagination="pagination"
-      @create="openCreateModal"
-      @edit="openEditModal"
-      @delete="handleDelete"
-      @change-page="handlePageChange"
-    />
-
-    <EntidadReligiosaFormModal
-      :show="showModal"
-      :entidad="selectedEntidad"
-      :localidades="localidades"
-      :tipos-entidad="tiposEntidad"
-      :loading="saving"
-      @close="closeModal"
-      @save="handleSave"
-    />
-  </div>
+    <template #form>
+      <EntidadReligiosaForm
+        :entidad="selectedEntidad"
+        :tipos-entidad="tiposEntidad"
+        :loading="saving"
+        :readonly="readonly"
+        @cancelar="cerrarForm"
+        @editar="modo = 'editar'"
+        @save="handleSave"
+      />
+    </template>
+  </AgenteCrudShell>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useApolloClient } from '@vue/apollo-composable'
 import { useEntidadReligiosa } from '../composables/useEntidadReligiosa'
-import { useTipologiaBase } from '../../tipologias/composables/useTipologiaBase'
+import { LISTAR, LISTAR_TIPOS } from '../graphql/entidadReligiosaQueries'
+import AgenteCrudShell from '../../core/components/AgenteCrudShell.vue'
 import EntidadReligiosaFiltros from '../components/entidadReligiosa/EntidadReligiosaFiltros.vue'
 import EntidadReligiosaDataGrid from '../components/entidadReligiosa/EntidadReligiosaDataGrid.vue'
-import EntidadReligiosaFormModal from '../components/entidadReligiosa/EntidadReligiosaFormModal.vue'
+import EntidadReligiosaForm from '../components/entidadReligiosa/EntidadReligiosaForm.vue'
 
-const entidadService = useEntidadReligiosa()
-const localidadService = useTipologiaBase('municipios', { conContacto: false })
-const ccaaService = useTipologiaBase('comunidadesAutonomas', { conContacto: false })
-const provinciaService = useTipologiaBase('provincias', { conContacto: false })
-const tipoEntidadService = useTipologiaBase('tiposEntidadReligiosa', { conContacto: false })
+const entidadService = useEntidadReligiosa() // solo para mutaciones (crear/actualizar/eliminar)
+const { resolveClient } = useApolloClient()
 
 const items = ref([])
-const localidades = ref([])
-const comunidadesAutonomas = ref([])
-const provincias = ref([])
-const tiposEntidad = ref([])
+const total = ref(0)
 const loading = ref(false)
-const saving = ref(false)
-const showModal = ref(false)
-const selectedEntidad = ref(null)
+const page = ref(1)
+const pageSize = ref(15)
 const filters = ref({})
+const tiposEntidad = ref([])
+
+const saving = ref(false)
+const modo = ref(null)              // null | 'nuevo' | 'ver' | 'editar'
+const selectedEntidad = ref(null)
+
+const editando = computed(() => modo.value !== null)
+const seleccion = computed(() => modo.value === 'ver' || modo.value === 'editar')
+const selectedId = computed(() => (seleccion.value ? selectedEntidad.value?.id ?? null : null))
+const readonly = computed(() => modo.value === 'ver')
+const totalPaginas = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
 onMounted(async () => {
-  await loadComunidadesAutonomas()
-  await loadProvincias()
-  await loadLocalidades()
-  await loadTiposEntidad()
-  await loadEntidades()
+  await loadTipos()
+  await fetchPage()
 })
 
-const loadComunidadesAutonomas = async () => {
+const loadTipos = async () => {
   try {
-    const { items: ccaas } = await ccaaService.listar()
-    comunidadesAutonomas.value = ccaas
-  } catch (error) {
-    console.error('Error cargando comunidades autónomas:', error)
-  }
+    const { data } = await resolveClient().query({ query: LISTAR_TIPOS, fetchPolicy: 'cache-first' })
+    tiposEntidad.value = data?.tiposEntidadReligiosa?.items ?? []
+  } catch (e) { console.error('Error cargando tipos:', e) }
 }
 
-const loadProvincias = async () => {
-  try {
-    const { items: provs } = await provinciaService.listar()
-    provincias.value = provs
-  } catch (error) {
-    console.error('Error cargando provincias:', error)
+// Traduce el objeto de filtros del UI → filters:[FilterInput] (array→IN, escalar→EQ).
+const construirFilters = (f = {}) => {
+  const fl = []
+  for (const [campo, valor] of Object.entries(f)) {
+    if (campo === 'search') continue
+    if (valor === null || valor === undefined || valor === '') continue
+    if (Array.isArray(valor)) { if (valor.length) fl.push({ field: campo, operator: 'IN', values: valor.map(String) }); continue }
+    fl.push({ field: campo, operator: 'EQ', value: String(valor) })
   }
+  return fl
 }
 
-const loadLocalidades = async () => {
-  try {
-    const { items: locs } = await localidadService.listar()
-    localidades.value = locs
-  } catch (error) {
-    console.error('Error cargando localidades:', error)
-  }
-}
-
-const loadTiposEntidad = async () => {
-  try {
-    const { items: tipos } = await tipoEntidadService.listar()
-    tiposEntidad.value = tipos
-  } catch (error) {
-    console.error('Error cargando tipos de entidad:', error)
-  }
-}
-
-const loadEntidades = async () => {
+const fetchPage = async () => {
   loading.value = true
   try {
-    const { items: ents } = await entidadService.listar(filters.value)
-    items.value = ents
-  } catch (error) {
-    console.error('Error cargando entidades religiosas:', error)
+    const variables = { offset: (page.value - 1) * pageSize.value, limit: pageSize.value }
+    if (typeof filters.value.search === 'string' && filters.value.search.trim()) variables.search = filters.value.search.trim()
+    const fl = construirFilters(filters.value)
+    if (fl.length) variables.filters = fl
+    const { data } = await resolveClient().query({ query: LISTAR, variables, fetchPolicy: 'network-only' })
+    items.value = data?.entidadesReligiosas?.items ?? []
+    total.value = data?.entidadesReligiosas?.total ?? 0
+  } catch (e) {
+    console.error('Error cargando entidades religiosas:', e)
   } finally {
     loading.value = false
   }
@@ -120,57 +117,50 @@ const loadEntidades = async () => {
 
 const handleFilterChange = async (newFilters) => {
   filters.value = newFilters
-  entidadService.pagination.page = 1
-  await loadEntidades()
+  page.value = 1
+  await fetchPage()
 }
 
-const handlePageChange = async (newPage) => {
-  entidadService.cambiarPagina(newPage)
-  await loadEntidades()
+const cambiarPagina = async (p) => {
+  page.value = Math.min(Math.max(1, p), totalPaginas.value)
+  await fetchPage()
 }
 
-const openCreateModal = () => {
-  selectedEntidad.value = null
-  showModal.value = true
+const onPageSize = async (n) => {
+  if (!n || n === pageSize.value) return
+  pageSize.value = n
+  page.value = 1
+  await fetchPage()
 }
 
-const openEditModal = (id) => {
-  selectedEntidad.value = items.value.find(e => e.id === id)
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  selectedEntidad.value = null
-}
+// Maestro-detalle: la fila seleccionada se muestra colapsada arriba y el form debajo.
+const nuevo = () => { selectedEntidad.value = null; modo.value = 'nuevo' }
+const ver = (id) => { selectedEntidad.value = items.value.find(e => e.id === id) || null; modo.value = 'ver' }
+const editar = (id) => { selectedEntidad.value = items.value.find(e => e.id === id) || null; modo.value = 'editar' }
+const cerrarForm = () => { modo.value = null; selectedEntidad.value = null }
 
 const handleSave = async (data) => {
   saving.value = true
   try {
-    if (data.id) {
-      await entidadService.actualizar(data.id, data)
-    } else {
-      await entidadService.crear(data)
-    }
-    await loadEntidades()
-    closeModal()
-  } catch (error) {
-    console.error('Error guardando entidad religiosa:', error)
+    if (data.id) await entidadService.actualizar(data.id, data)
+    else await entidadService.crear(data)
+    await fetchPage()
+    cerrarForm()
+  } catch (e) {
+    console.error('Error guardando entidad religiosa:', e)
   } finally {
     saving.value = false
   }
 }
 
 const handleDelete = async (id) => {
-  if (!confirm('¿Está seguro de eliminar esta entidad religiosa?')) return
-
+  if (!confirm('¿Eliminar esta entidad religiosa?')) return
   try {
     await entidadService.eliminar(id)
-    await loadEntidades()
-  } catch (error) {
-    console.error('Error eliminando entidad religiosa:', error)
+    if (selectedEntidad.value?.id === id) cerrarForm()
+    await fetchPage()
+  } catch (e) {
+    console.error('Error eliminando entidad religiosa:', e)
   }
 }
-
-const { pagination } = entidadService
 </script>

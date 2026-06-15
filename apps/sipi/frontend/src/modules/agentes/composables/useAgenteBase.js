@@ -57,17 +57,36 @@ export function useAgenteBase(entityName, queries, options = {}) {
         try {
             const client = getClient()
 
+            const variables = { offset: append ? offset.value : 0, limit: limit.value }
+
+            // Traducción del objeto de filtros del UI → API genérica:
+            //   search → arg `search` (ILIKE sobre nombre, lo resuelve el servidor)
+            //   array  → { field, operator: IN, values }
+            //   escalar→ { field, operator: EQ, value }
+            const fl = []
+            for (const [campo, valor] of Object.entries(filters || {})) {
+                if (campo === 'search') {
+                    if (typeof valor === 'string' && valor.trim()) variables.search = valor.trim()
+                    continue
+                }
+                if (valor === null || valor === undefined || valor === '') continue
+                if (Array.isArray(valor)) {
+                    if (valor.length) fl.push({ field: campo, operator: 'IN', values: valor.map(String) })
+                    continue
+                }
+                fl.push({ field: campo, operator: 'EQ', value: String(valor) })
+            }
+            if (fl.length) variables.filters = fl
+
             const { data } = await client.query({
                 query: queries.LISTAR,
-                variables: {
-                    filter: filters,
-                    offset: append ? offset.value : 0,
-                    limit: limit.value
-                },
+                variables,
                 fetchPolicy
             })
 
-            const resultados = data?.[entityName] || []
+            // API genérica: { items, total }
+            const conexion = data?.[entityName] || {}
+            const resultados = conexion.items || []
 
             if (append) {
                 items.value = [...items.value, ...resultados]
@@ -76,14 +95,11 @@ export function useAgenteBase(entityName, queries, options = {}) {
                 offset.value = 0
             }
 
-            // Si recibimos menos items que el limit, no hay más
             hasMore.value = resultados.length === limit.value
-
-            // Guardar filtros activos
             activeFilters.value = filters
 
             loading.value = false
-            return items.value
+            return { items: items.value, total: conexion.total ?? items.value.length }
         } catch (err) {
             error.value = `Error al cargar ${entityName}: ${err.message}`
             console.error(`Error en listar ${entityName}:`, err)

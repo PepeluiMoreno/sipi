@@ -19,7 +19,12 @@ from sipi_core.mixins import UUIDPKMixin, AuditMixin
 # ============================================================================
 # USERS (DEBE IR PRIMERO - AuditMixin y muchos otros dependen de esto)
 # ============================================================================
-from sipi_core.modules.usuarios.users import Usuario, Rol, TipoRol
+from sipi_core.modules.usuarios.users import Usuario, Rol, TipoRol, UsuarioRol
+
+# ============================================================================
+# ASOCIACIONES (organizaciones con acceso). El usuario ES el miembro (lleva asociacion_id).
+# ============================================================================
+from sipi_core.modules.asociaciones.asociaciones import Asociacion
 
 # ============================================================================
 # ACCESO (RBAC: permisos por transacción) — depende de usuarios/roles
@@ -58,10 +63,11 @@ from sipi_core.modules.catalogos.tipologias import (
 # GEOGRAPHY (APP Schema - Sin dependencias de actores)
 # ============================================================================
 from sipi_core.modules.geografia.geografia import (
-    ComunidadAutonoma, 
-    Provincia, 
+    ComunidadAutonoma,
+    Provincia,
     Municipio
 )
+from sipi_core.modules.geografia.entidad_territorial import EntidadTerritorial
 
 # ============================================================================
 # ACTORS BASE (Clases base abstractas sin dependencias)
@@ -202,7 +208,10 @@ __all__ = [
     'UUIDPKMixin', 'AuditMixin',
 
     # User
-    'Usuario', 'Rol', 'TipoRol',
+    'Usuario', 'Rol', 'TipoRol', 'UsuarioRol',
+
+    # Asociaciones (el usuario es el miembro)
+    'Asociacion',
 
     # Acceso (RBAC)
     'Transaccion', 'TipoTransaccion', 'Funcionalidad', 'FuncionalidadTransaccion',
@@ -222,7 +231,7 @@ __all__ = [
     'TipoUsoInmueble',
 
     # Geography (GIS Schema)
-    'ComunidadAutonoma', 'Provincia', 'Municipio',
+    'ComunidadAutonoma', 'Provincia', 'Municipio', 'EntidadTerritorial',
 
     # Actor base classes
     'PersonaMixin', 'TitularBase',

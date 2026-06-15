@@ -1,95 +1,66 @@
 // src/modules/inmuebles/composables/useInmueble.js
+// Datos reales vía GraphQL auto-generado. SIN mock.
 import { ref, computed } from 'vue'
-import { useMutation, useQuery } from '@vue/apollo-composable'
-import { 
-  GET_INMUEBLES, 
-  GET_INMUEBLE, 
-  CREATE_INMUEBLE, 
-  UPDATE_INMUEBLE, 
-  DELETE_INMUEBLE 
+import { useApolloClient } from '@vue/apollo-composable'
+import {
+  GET_INMUEBLES,
+  GET_INMUEBLE,
+  CREATE_INMUEBLE,
+  UPDATE_INMUEBLE,
+  DELETE_INMUEBLE
 } from '../graphql/inmuebleQueries'
-import { mockInmuebles } from '@/mocks'
-
-const USE_MOCK = import.meta.env.DEV
 
 export function useInmueble() {
   const inmuebles = ref([])
   const inmueble = ref(null)
   const loading = ref(false)
   const error = ref(null)
-  const filters = ref({
-    search: '',
-    estados: {},
-    comunidadAutonoma: null,
-    provincia: null,
-    localidad: null,
-    tipoInmueble: null
-  })
+
+  const { resolveClient } = useApolloClient()
+  const getClient = () => resolveClient()
 
   const hasInmuebles = computed(() => inmuebles.value.length > 0)
   const isEmpty = computed(() => !loading.value && !inmuebles.value.length)
   const filteredCount = computed(() => inmuebles.value.length)
 
-  const { refetch: refetchInmuebles } = useQuery(GET_INMUEBLES, null, {
-    enabled: !USE_MOCK,
-    fetchPolicy: 'cache-and-network'
-  })
-
-  const { mutate: createMutation } = useMutation(CREATE_INMUEBLE)
-  const { mutate: updateMutation } = useMutation(UPDATE_INMUEBLE)
-  const { mutate: deleteMutation } = useMutation(DELETE_INMUEBLE)
+  // Traduce el objeto de filtros (claves camelCase = columnas) a FilterInput[]:
+  // array → IN, escalar → EQ. Ignora `search` (va aparte) y objetos (p.ej. estados:{}).
+  const construirFilters = (p = {}) => {
+    const filters = []
+    for (const [campo, valor] of Object.entries(p)) {
+      if (campo === 'search') continue
+      if (valor === null || valor === undefined || valor === '') continue
+      if (Array.isArray(valor)) {
+        if (valor.length) filters.push({ field: campo, operator: 'IN', values: valor.map(String) })
+        continue
+      }
+      if (typeof valor === 'object') continue
+      filters.push({ field: campo, operator: 'EQ', value: String(valor) })
+    }
+    return filters
+  }
 
   const listar = async (filterParams = {}) => {
     loading.value = true
     error.value = null
-
     try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 300))
-        let result = [...mockInmuebles]
-
-        if (filterParams.search) {
-          const term = filterParams.search.toLowerCase()
-          result = result.filter(i => 
-            i.denominacion_principal?.toLowerCase().includes(term) ||
-            i.direccion?.toLowerCase().includes(term) ||
-            i.codigo_bien_interes_cultural?.toLowerCase().includes(term)
-          )
-        }
-
-        if (filterParams.estados && Object.values(filterParams.estados).some(Boolean)) {
-          const activos = Object.entries(filterParams.estados)
-            .filter(([_, v]) => v)
-            .map(([k]) => k)
-          result = result.filter(i => activos.includes(i.estado))
-        }
-
-        if (filterParams.comunidadAutonoma) {
-          result = result.filter(i => i.comunidad_autonoma === filterParams.comunidadAutonoma)
-        }
-
-        if (filterParams.provincia) {
-          result = result.filter(i => i.provincia === filterParams.provincia)
-        }
-
-        if (filterParams.localidad) {
-          result = result.filter(i => i.localidad === filterParams.localidad)
-        }
-
-        if (filterParams.tipoInmueble) {
-          result = result.filter(i => i.tipo_inmueble === filterParams.tipoInmueble)
-        }
-
-        inmuebles.value = result
-        Object.assign(filters.value, filterParams)
-        return { items: result, total: result.length }
+      const variables = { offset: 0, limit: 200 }
+      if (typeof filterParams?.search === 'string' && filterParams.search.trim()) {
+        variables.search = filterParams.search.trim()
       }
+      const filters = construirFilters(filterParams)
+      if (filters.length) variables.filters = filters
 
-      const { data } = await refetchInmuebles(filterParams)
+      const { data } = await getClient().query({
+        query: GET_INMUEBLES,
+        variables,
+        fetchPolicy: 'network-only'
+      })
       inmuebles.value = data?.inmuebles?.items || []
-      return data?.inmuebles
+      return { items: inmuebles.value, total: data?.inmuebles?.total ?? inmuebles.value.length }
     } catch (err) {
       error.value = err.message
+      console.error('Error al listar inmuebles:', err)
       throw err
     } finally {
       loading.value = false
@@ -99,19 +70,17 @@ export function useInmueble() {
   const obtener = async (id) => {
     loading.value = true
     error.value = null
-
     try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 200))
-        inmueble.value = mockInmuebles.find(i => i.id == id) || null
-        return inmueble.value
-      }
-
-      const { data } = await useQuery(GET_INMUEBLE, { id }).refetch()
-      inmueble.value = data?.inmueble
+      const { data } = await getClient().query({
+        query: GET_INMUEBLE,
+        variables: { id },
+        fetchPolicy: 'network-only'
+      })
+      inmueble.value = data?.inmueble || null
       return inmueble.value
     } catch (err) {
       error.value = err.message
+      console.error('Error al obtener inmueble:', err)
       throw err
     } finally {
       loading.value = false
@@ -121,22 +90,16 @@ export function useInmueble() {
   const crear = async (input) => {
     loading.value = true
     error.value = null
-
     try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        const nuevo = { id: Date.now(), ...input, created_at: new Date().toISOString() }
-        mockInmuebles.push(nuevo)
-        inmueble.value = nuevo
-        return nuevo
-      }
-
-      const { data } = await createMutation({ input })
+      const { data } = await getClient().mutate({
+        mutation: CREATE_INMUEBLE,
+        variables: { data: input }
+      })
       inmueble.value = data?.createInmueble
-      await listar(filters.value)
       return inmueble.value
     } catch (err) {
       error.value = err.message
+      console.error('Error al crear inmueble:', err)
       throw err
     } finally {
       loading.value = false
@@ -146,24 +109,16 @@ export function useInmueble() {
   const actualizar = async (id, input) => {
     loading.value = true
     error.value = null
-
     try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        const index = mockInmuebles.findIndex(i => i.id == id)
-        if (index !== -1) {
-          mockInmuebles[index] = { ...mockInmuebles[index], ...input, updated_at: new Date().toISOString() }
-          inmueble.value = mockInmuebles[index]
-        }
-        return inmueble.value
-      }
-
-      const { data } = await updateMutation({ id, input })
+      const { data } = await getClient().mutate({
+        mutation: UPDATE_INMUEBLE,
+        variables: { data: { id, ...input } }
+      })
       inmueble.value = data?.updateInmueble
-      await listar(filters.value)
       return inmueble.value
     } catch (err) {
       error.value = err.message
+      console.error('Error al actualizar inmueble:', err)
       throw err
     } finally {
       loading.value = false
@@ -173,81 +128,36 @@ export function useInmueble() {
   const eliminar = async (id) => {
     loading.value = true
     error.value = null
-
     try {
-      if (USE_MOCK) {
-        await new Promise(resolve => setTimeout(resolve, 500))
-        const index = mockInmuebles.findIndex(i => i.id == id)
-        if (index !== -1) mockInmuebles.splice(index, 1)
-        return true
-      }
-
-      await deleteMutation({ id })
-      await listar(filters.value)
+      await getClient().mutate({ mutation: DELETE_INMUEBLE, variables: { id } })
+      inmuebles.value = inmuebles.value.filter((i) => i.id !== id)
       return true
     } catch (err) {
       error.value = err.message
+      console.error('Error al eliminar inmueble:', err)
       throw err
     } finally {
       loading.value = false
     }
   }
 
-  const limpiarFiltros = () => {
-    filters.value = {
-      search: '',
-      estados: {},
-      comunidadAutonoma: null,
-      provincia: null,
-      localidad: null,
-      tipoInmueble: null
-    }
-    listar()
-  }
-
-  const obtenerCatalogos = async () => {
-    if (USE_MOCK) {
-      const { 
-        ESTADOS, 
-        TIPOS_INMUEBLE, 
-        COMUNIDADES_AUTONOMAS, 
-        PROVINCIAS, 
-        LOCALIDADES, 
-        REGISTROS_PROPIEDAD,
-        TIPOS_DOCUMENTO,
-        ESTADOS_CONSERVACION
-      } = await import('@/mocks')
-      
-      return {
-        estados: ESTADOS,
-        tiposInmueble: TIPOS_INMUEBLE,
-        comunidadesAutonomas: COMUNIDADES_AUTONOMAS,
-        provincias: PROVINCIAS,
-        localidades: LOCALIDADES,
-        registrosPropiedad: REGISTROS_PROPIEDAD,
-        tiposDocumento: TIPOS_DOCUMENTO,
-        estadosConservacion: ESTADOS_CONSERVACION
-      }
-    }
-    
-    return { 
-      estados: [], 
-      tiposInmueble: [], 
-      comunidadesAutonomas: [], 
-      provincias: [], 
-      localidades: [], 
-      registrosPropiedad: [],
-      tiposDocumento: [],
-      estadosConservacion: []
-    }
-  }
+  // Catálogos: pendientes de cablear a las tipologías reales ({items}). Sin mock.
+  const obtenerCatalogos = async () => ({
+    estados: [],
+    tiposInmueble: [],
+    comunidadesAutonomas: [],
+    provincias: [],
+    localidades: [],
+    registrosPropiedad: [],
+    tiposDocumento: [],
+    estadosConservacion: []
+  })
 
   return {
     inmuebles,
     inmueble,
     loading,
     error,
-    filters,
     hasInmuebles,
     isEmpty,
     filteredCount,
@@ -256,7 +166,6 @@ export function useInmueble() {
     crear,
     actualizar,
     eliminar,
-    limpiarFiltros,
     obtenerCatalogos
   }
 }

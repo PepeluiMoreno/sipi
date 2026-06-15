@@ -3,7 +3,7 @@ import { useAgenteBase } from './useAgenteBase'
 import * as queries from '../graphql/registroPropiedadQueries.js'
 
 export function useRegistroPropiedad() {
-  const base = useAgenteBase('registrosPropiedad', queries)
+  const base = useAgenteBase('registrosPropiedades', queries)
 
   const registrosPropiedad = computed(() => base.items.value)
   const registroPropiedad = computed(() => base.item.value)

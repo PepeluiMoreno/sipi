@@ -1,30 +1,28 @@
 import { gql } from '@apollo/client/core'
 
 export const LOGIN_MUTATION = gql`
-  mutation Login($email: String!, $password: String!) {
-    login(email: $email, password: $password) {
-      success
-      token
-      user {
-        id
-        nombre
-        apellidos
-        email
-        nombre_usuario
-        email_verificado
-        telefono
-        direccion
-        avatar
-        roles {
-          id
-          nombre
-          descripcion
-        }
-        created_at
-        updated_at
-      }
-      message
+  mutation Login($nombreUsuario: String!, $contrasena: String!) {
+    login(nombreUsuario: $nombreUsuario, contrasena: $contrasena) {
+      ok token usuarioId nombreUsuario mensaje
     }
+  }
+`
+
+// Autoservicio: "Mis datos"
+export const MIS_DATOS_QUERY = gql`
+  query MisDatos {
+    me { id nombreUsuario nombre apellidos cargo asociacionId
+         emailCorporativo emailPersonal telefono telefonoMovil aceptaNotificaciones }
+  }
+`
+export const ACTUALIZAR_MIS_DATOS_MUTATION = gql`
+  mutation ActualizarMisDatos($nombre: String, $apellidos: String, $cargo: String,
+                              $emailCorporativo: String, $emailPersonal: String,
+                              $telefono: String, $telefonoMovil: String, $aceptaNotificaciones: Boolean) {
+    actualizarMisDatos(nombre: $nombre, apellidos: $apellidos, cargo: $cargo,
+                       emailCorporativo: $emailCorporativo, emailPersonal: $emailPersonal,
+                       telefono: $telefono, telefonoMovil: $telefonoMovil,
+                       aceptaNotificaciones: $aceptaNotificaciones) { ok mensaje }
   }
 `
 
@@ -64,26 +62,8 @@ export const REFRESH_TOKEN_MUTATION = gql`
 `
 
 export const GET_CURRENT_USER_QUERY = gql`
-  query GetCurrentUser {
-    currentUser {
-      id
-      nombre
-      apellidos
-      email
-      nombre_usuario
-      email_verificado
-      telefono
-      direccion
-      avatar
-      roles {
-        id
-        nombre
-        descripcion
-        permisos
-      }
-      created_at
-      updated_at
-    }
+  query Me {
+    me { id nombreUsuario nombre apellidos isSistema asociacionId roles }
   }
 `
 

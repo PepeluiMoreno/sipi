@@ -196,15 +196,7 @@
       class="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg"
     >
       <ArrowPathIcon class="w-12 h-12 text-gray-400 mx-auto mb-4" />
-      <h4 class="text-lg font-medium text-gray-900 mb-2">No hay transmisiones</h4>
-      <p class="text-gray-500 mb-4">Registre la primera transmisión de este inmueble</p>
-      <button
-        @click="agregarTransmision"
-        class="btn btn-primary"
-      >
-        <PlusIcon class="w-4 h-4 mr-2" />
-        Crear Primera Transmisión
-      </button>
+      <h4 class="text-lg font-medium text-gray-900">No hay transmisiones</h4>
     </div>
   </div>
 </template>

@@ -8,8 +8,8 @@
     <div class="flex flex-1 min-h-0">
       <DashboardSidebar class="shrink-0" />
 
-      <!-- Gutter común a todas las vistas: margen a ambos lados (y arriba/abajo) -->
-      <main class="flex-1 min-h-0 overflow-hidden px-6 py-4">
+      <!-- Gutter común a todas las vistas: ajustado para no desperdiciar espacio -->
+      <main class="flex-1 min-h-0 overflow-hidden px-3 py-3">
         <router-view />
       </main>
     </div>

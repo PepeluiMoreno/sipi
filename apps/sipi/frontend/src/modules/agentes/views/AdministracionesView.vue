@@ -1,105 +1,89 @@
+<!-- AdministracionesView — estándar de agentes: FilterSidebar vertical + maestro-detalle (sin modal). -->
 <template>
-  <div class="space-y-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Administraciones</h1>
-        <p class="text-gray-600">Gestión de administraciones patrimoniales</p>
-      </div>
-    </div>
+  <AgenteCrudShell
+    titulo="Administraciones"
+    :total="total"
+    :editando="editando"
+    nuevo-label="Nueva administración"
+    @nuevo="nuevo"
+  >
+    <template #filtros>
+      <AdministracionFiltros @filter-change="handleFilterChange" />
+    </template>
 
-    <AdministracionFiltros
-      @filter-change="handleFilterChange"
-    />
+    <template #lista>
+      <AdministracionDataGrid
+        :items="items"
+        :loading="loading"
+        :total="total"
+        :has-more="hasMore"
+        @create="nuevo"
+        @edit="editar"
+        @delete="handleDelete"
+        @load-more="cargarMas"
+      />
+    </template>
 
-    <AdministracionDataGrid
-      :items="items"
-      :loading="loading"
-      :pagination="pagination"
-      @create="openCreateModal"
-      @edit="openEditModal"
-      @delete="handleDelete"
-      @change-page="handlePageChange"
-    />
-
-    <AdministracionFormModal
-      :show="showModal"
-      :administracion="selectedAdministracion"
-      :loading="saving"
-      @close="closeModal"
-      @save="handleSave"
-    />
-  </div>
+    <template #form>
+      <AdministracionForm
+        :administracion="selectedAdministracion"
+        :loading="saving"
+        @cancelar="cerrarForm"
+        @save="handleSave"
+      />
+    </template>
+  </AgenteCrudShell>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAdministracion } from '../composables/useAdministracion'
+import AgenteCrudShell from '../../core/components/AgenteCrudShell.vue'
 import AdministracionFiltros from '../components/administracion/AdministracionFiltros.vue'
 import AdministracionDataGrid from '../components/administracion/AdministracionDataGrid.vue'
-import AdministracionFormModal from '../components/administracion/AdministracionFormModal.vue'
+import AdministracionForm from '../components/administracion/AdministracionForm.vue'
 
 const administracionService = useAdministracion()
+const { items, loading, hasMore } = administracionService
 
-const items = ref([])
-const loading = ref(false)
+const total = ref(0)
 const saving = ref(false)
-const showModal = ref(false)
+const editando = ref(false)
 const selectedAdministracion = ref(null)
 const filters = ref({})
-const pagination = administracionService.pagination
 
-onMounted(async () => {
-  await loadAdministraciones()
-})
+onMounted(loadAdministraciones)
 
-const loadAdministraciones = async () => {
-  loading.value = true
+async function loadAdministraciones () {
   try {
-    const { items: adms } = await administracionService.listar(filters.value)
-    items.value = adms
+    const r = await administracionService.listar(filters.value)
+    if (r) total.value = r.total
   } catch (error) {
     console.error('Error cargando administraciones:', error)
-  } finally {
-    loading.value = false
   }
 }
 
 const handleFilterChange = async (newFilters) => {
   filters.value = newFilters
-  pagination.value.page = 1
   await loadAdministraciones()
 }
 
-const handlePageChange = async (newPage) => {
-  administracionService.cambiarPagina(newPage)
-  await loadAdministraciones()
+const cargarMas = async () => {
+  const r = await administracionService.cargarMas()
+  if (r) total.value = r.total
 }
 
-const openCreateModal = () => {
-  selectedAdministracion.value = null
-  showModal.value = true
-}
-
-const openEditModal = (id) => {
-  selectedAdministracion.value = items.value.find(a => a.id === id)
-  showModal.value = true
-}
-
-const closeModal = () => {
-  showModal.value = false
-  selectedAdministracion.value = null
-}
+const nuevo = () => { selectedAdministracion.value = null; editando.value = true }
+const editar = (id) => { selectedAdministracion.value = items.value.find(a => a.id === id) || null; editando.value = true }
+const cerrarForm = () => { editando.value = false; selectedAdministracion.value = null }
 
 const handleSave = async (data) => {
   saving.value = true
   try {
-    if (data.id) {
-      await administracionService.actualizar(data.id, data)
-    } else {
-      await administracionService.crear(data)
-    }
+    if (data.id) await administracionService.actualizar(data.id, data)
+    else await administracionService.crear(data)
     await loadAdministraciones()
-    closeModal()
+    cerrarForm()
   } catch (error) {
     console.error('Error guardando administración:', error)
   } finally {
@@ -108,8 +92,7 @@ const handleSave = async (data) => {
 }
 
 const handleDelete = async (id) => {
-  if (!confirm('¿Está seguro de eliminar esta administración?')) return
-  
+  if (!confirm('¿Eliminar esta administración?')) return
   try {
     await administracionService.eliminar(id)
     await loadAdministraciones()

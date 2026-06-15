@@ -292,17 +292,21 @@ def _make_list_resolver(model, gql_type, list_type):
         search: Optional[str] = None,
         filters: Optional[List[FilterInput]] = None,
         sort: Optional[List[SortInput]] = None,
+        eliminados: bool = False,
     ) -> list_type:
         from app.db.sessions.async_session import async_session_maker
         async with async_session_maker() as db:
             try:
+                if not await _exigir_crud(info, db, model.__name__, "consultar"):
+                    return list_type(items=[], total=0)
                 stmt = select(model)
                 count_stmt = select(func.count()).select_from(model)
 
-                # Soft-delete: excluir registros con deleted_at IS NOT NULL
-                if hasattr(model, 'deleted_at'):
-                    stmt = stmt.where(model.deleted_at.is_(None))
-                    count_stmt = count_stmt.where(model.deleted_at.is_(None))
+                # Soft-delete: por defecto excluye eliminados; `eliminados:true` → papelera.
+                if 'deleted_at' in model.__table__.columns:
+                    cond = model.deleted_at.is_not(None) if eliminados else model.deleted_at.is_(None)
+                    stmt = stmt.where(cond)
+                    count_stmt = count_stmt.where(cond)
 
                 # Eager-load relaciones ManyToOne para evitar lazy-loading en async
                 for rel_attr in eager_attrs:
@@ -331,6 +335,25 @@ def _make_list_resolver(model, gql_type, list_type):
                             continue
                         op = f.operator.value if hasattr(f.operator, "value") else f.operator
                         v, vs = f.value, f.values or []
+                        # Coerción de tipos: FilterInput.value/values llegan como String,
+                        # pero las columnas boolean/int necesitan el valor en su tipo Python.
+                        try:
+                            _pytype = col_attr.type.python_type
+                        except Exception:
+                            _pytype = str
+                        def _coerce(_raw, _t=_pytype):
+                            if _raw is None:
+                                return None
+                            if _t is bool:
+                                return str(_raw).strip().lower() in ("true", "1", "yes", "t", "si", "sí")
+                            if _t is int:
+                                try:
+                                    return int(_raw)
+                                except (TypeError, ValueError):
+                                    return _raw
+                            return _raw
+                        v = _coerce(v)
+                        vs = [_coerce(x) for x in vs]
                         cond = None
                         if op == "eq":       cond = col_attr == v
                         elif op == "ne":     cond = col_attr != v
@@ -404,6 +427,8 @@ def _make_get_resolver(model, gql_type):
         from app.db.sessions.async_session import async_session_maker
         async with async_session_maker() as db:
             try:
+                if not await _exigir_crud(info, db, model.__name__, "consultar"):
+                    return None
                 stmt = select(model).where(model.id == id)
                 if hasattr(model, 'deleted_at'):
                     stmt = stmt.where(model.deleted_at.is_(None))
@@ -420,6 +445,70 @@ def _make_get_resolver(model, gql_type):
 
     resolver.__annotations__["return"] = Optional[gql_type]
     return resolver
+
+
+# ---------------------------------------------------------------------------
+# Enforcement RBAC del CRUD autogenerado: entidad → prefijo de transacción.
+# Solo se exige si la transacción `{prefijo}.{accion}` existe en el catálogo;
+# si no, la operación queda abierta (entidades internas, acciones no definidas).
+# ---------------------------------------------------------------------------
+from sipi_core.modules.acceso import catalog as _acc_catalog  # noqa: E402
+_TX_CODES = set(_acc_catalog.todas_las_transacciones())
+
+_ENTITY_TX_PREFIX = {
+    "Inmueble": "inmueble", "Inmatriculacion": "inmueble", "InmuebleDenominacion": "inmueble",
+    "InmuebleCita": "inmueble", "InmuebleUso": "inmueble", "InmuebleNivelProteccion": "inmueble",
+    "InmuebleOSMExt": "inmueble", "InmuebleWDExt": "inmueble",
+    "EntidadReligiosa": "entidad_religiosa", "EntidadReligiosaTitular": "entidad_religiosa",
+    "Diocesis": "entidad_religiosa", "DiocesisTitular": "entidad_religiosa",
+    "ProvinciaEclesiastica": "entidad_religiosa", "Parroquia": "entidad_religiosa",
+    "Administracion": "administracion", "AdministracionTitular": "administracion",
+    "Notaria": "notaria", "NotariaTitular": "notaria",
+    "RegistroPropiedad": "registro", "RegistroPropiedadTitular": "registro",
+    "AgenciaInmobiliaria": "agente", "ColegioProfesional": "agente", "Tecnico": "agente", "Privado": "agente",
+    "Documento": "documento", "InmuebleDocumento": "documento",
+    "Transmision": "transmision", "TransmisionAnunciante": "transmision",
+    "Transmitente": "transmision", "Adquiriente": "transmision",
+    "Intervencion": "intervencion", "IntervencionTecnico": "intervencion",
+    "IntervencionSubvencion": "intervencion", "SubvencionAdministracion": "intervencion",
+    "ComunidadAutonoma": "geografia", "Provincia": "geografia", "Municipio": "geografia",
+    "Configuracion": "config", "HistorialConfiguracion": "config",
+    "Asociacion": "acceso", "Usuario": "acceso", "UsuarioRol": "acceso", "Rol": "acceso",
+    "RolTransaccion": "acceso", "RolFuncionalidad": "acceso", "Funcionalidad": "acceso",
+    "FuncionalidadTransaccion": "acceso", "Transaccion": "acceso",
+}
+_CATALOGO_EXTRA = {"FiguraProteccion", "NivelProteccion", "FuenteDocumental", "FuenteHistoriografica"}
+
+
+def _tx_prefix(model_name: str) -> Optional[str]:
+    if model_name in _ENTITY_TX_PREFIX:
+        return _ENTITY_TX_PREFIX[model_name]
+    if model_name.startswith("Tipo") or model_name in _CATALOGO_EXTRA:
+        return "catalogo"
+    return None
+
+
+# Módulos sin CRUD por acción: cualquier escritura usa su transacción única.
+_ESCRITURA_UNICA = {"config": "editar", "catalogo": "editar", "geografia": "editar", "acceso": "administrar"}
+
+
+async def _exigir_crud(info, db, model_name: str, accion: str) -> bool:
+    """True si autorizado (o no aplica); False si denegado (audita el intento)."""
+    prefix = _tx_prefix(model_name)
+    if not prefix:
+        return True
+    # Lectura → siempre `{prefix}.consultar`; escritura → acción única del módulo si aplica.
+    accion_tx = accion if accion == "consultar" else _ESCRITURA_UNICA.get(prefix, accion)
+    codigo = f"{prefix}.{accion_tx}"
+    if codigo not in _TX_CODES:
+        return True
+    from app.graphql.authz import exigir, PermisoDenegado
+    try:
+        await exigir(info, db, codigo)
+        return True
+    except PermisoDenegado:
+        await db.commit()  # persistir la auditoría del intento denegado
+        return False
 
 
 def _make_create_resolver(model, gql_type):
@@ -447,11 +536,14 @@ def _make_create_resolver(model, gql_type):
         from app.db.sessions.async_session import async_session_maker
         async with async_session_maker() as db:
             try:
+                if not await _exigir_crud(info, db, model.__name__, "crear"):
+                    return None
                 import uuid
                 from datetime import datetime, timezone
                 row_data = {k: v for k, v in vars(data).items() if v is not None}
                 row_data.setdefault("id", str(uuid.uuid4()))
-                row_data.setdefault("created_at", datetime.now(timezone.utc))
+                # Columnas TIMESTAMP WITHOUT TIME ZONE → naive (asyncpg rechaza aware)
+                row_data.setdefault("created_at", datetime.now(timezone.utc).replace(tzinfo=None))
                 instance = model(**row_data)
                 db.add(instance)
                 await db.commit()
@@ -491,6 +583,8 @@ def _make_update_resolver(model, gql_type):
         from app.db.sessions.async_session import async_session_maker
         async with async_session_maker() as db:
             try:
+                if not await _exigir_crud(info, db, model.__name__, "editar"):
+                    return None
                 from datetime import datetime, timezone
                 row = (await db.execute(select(model).where(model.id == data.id))).scalar_one_or_none()
                 if row is None:
@@ -499,7 +593,7 @@ def _make_update_resolver(model, gql_type):
                     if k != "id" and v is not None:
                         setattr(row, k, v)
                 if hasattr(row, "updated_at"):
-                    row.updated_at = datetime.now(timezone.utc)
+                    row.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 await db.commit()
                 await db.refresh(row)
                 return _to_gql(row, gql_type)
@@ -517,12 +611,14 @@ def _make_delete_resolver(model):
         from app.db.sessions.async_session import async_session_maker
         async with async_session_maker() as db:
             try:
+                if not await _exigir_crud(info, db, model.__name__, "borrar"):
+                    return False
                 row = (await db.execute(select(model).where(model.id == id))).scalar_one_or_none()
                 if row is None:
                     return False
                 if hasattr(row, "deleted_at"):
                     from datetime import datetime, timezone
-                    row.deleted_at = datetime.now(timezone.utc)
+                    row.deleted_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 else:
                     await db.delete(row)
                 await db.commit()
@@ -533,6 +629,50 @@ def _make_delete_resolver(model):
                 return False
 
     resolver.__annotations__["return"] = bool
+    return resolver
+
+
+def _make_restore_resolver(model):
+    """Papelera: restaura un registro soft-deleted (deleted_at → NULL). Permiso: editar."""
+    async def resolver(info: strawberry.Info, id: strawberry.ID) -> bool:
+        from app.db.sessions.async_session import async_session_maker
+        async with async_session_maker() as db:
+            try:
+                if not await _exigir_crud(info, db, model.__name__, "editar"):
+                    return False
+                row = (await db.execute(select(model).where(model.id == id))).scalar_one_or_none()
+                if row is None:
+                    return False
+                row.deleted_at = None
+                if hasattr(row, "deleted_by_id"):
+                    row.deleted_by_id = None
+                await db.commit()
+                return True
+            except Exception as e:
+                logger.error(f"Error restaurando {model.__name__} {id}: {e}", exc_info=True)
+                await db.rollback()
+                return False
+    return resolver
+
+
+def _make_purge_resolver(model):
+    """Papelera: borrado físico definitivo. Permiso: borrar."""
+    async def resolver(info: strawberry.Info, id: strawberry.ID) -> bool:
+        from app.db.sessions.async_session import async_session_maker
+        async with async_session_maker() as db:
+            try:
+                if not await _exigir_crud(info, db, model.__name__, "borrar"):
+                    return False
+                row = (await db.execute(select(model).where(model.id == id))).scalar_one_or_none()
+                if row is None:
+                    return False
+                await db.delete(row)
+                await db.commit()
+                return True
+            except Exception as e:
+                logger.error(f"Error purgando {model.__name__} {id}: {e}", exc_info=True)
+                await db.rollback()
+                return False
     return resolver
 
 
@@ -548,6 +688,42 @@ class HallazgoAccionResult:
     estado: Optional[str] = None
     expediente_id: Optional[str] = None
     mensaje: Optional[str] = None
+
+
+@strawberry.type
+class UsuarioAccionResult:
+    """Resultado de registrar un usuario o fijar su contraseña."""
+    ok: bool
+    id: Optional[strawberry.ID] = None
+    mensaje: Optional[str] = None
+
+
+@strawberry.type
+class AuthResult:
+    """Resultado de autenticación: token de acceso (JWT) si las credenciales valen."""
+    ok: bool
+    token: Optional[str] = None
+    usuario_id: Optional[strawberry.ID] = None
+    nombre_usuario: Optional[str] = None
+    mensaje: Optional[str] = None
+
+
+@strawberry.type
+class UsuarioActual:
+    """Usuario autenticado del contexto (query `me`)."""
+    id: strawberry.ID
+    nombre_usuario: str
+    nombre: Optional[str] = None
+    apellidos: Optional[str] = None
+    is_sistema: bool = False
+    asociacion_id: Optional[str] = None
+    cargo: Optional[str] = None
+    email_corporativo: Optional[str] = None
+    email_personal: Optional[str] = None
+    telefono: Optional[str] = None
+    telefono_movil: Optional[str] = None
+    acepta_notificaciones: bool = False
+    roles: list[str] = strawberry.field(default_factory=list)
 
 
 # tipo_evento del hallazgo → estado de ciclo de vida que fija en el expediente
@@ -633,6 +809,158 @@ def _make_hallazgo_transicion_resolvers():
     return verificar_hallazgo, descartar_hallazgo
 
 
+def _make_usuario_credencial_resolvers():
+    """Mutations de credenciales (el hashing ocurre en el servidor):
+
+    - `registrarUsuario`: da de alta un usuario (= miembro de una asociación, o
+      especial si no se indica asociación) con su contraseña. Los roles se asignan
+      aparte (`createUsuarioRol`).
+    - `establecerContrasena`: fija/resetea la contraseña de un usuario.
+    """
+    import uuid
+    from datetime import datetime, timezone
+
+    async def registrar_usuario(
+        info: strawberry.Info,
+        nombre_usuario: str,
+        contrasena: str,
+        nombre: str,
+        asociacion_id: Optional[str] = None,
+        apellidos: Optional[str] = None,
+        identificacion: Optional[str] = None,
+        email_corporativo: Optional[str] = None,
+        email_personal: Optional[str] = None,
+        telefono: Optional[str] = None,
+        telefono_movil: Optional[str] = None,
+        cargo: Optional[str] = None,
+        acepta_notificaciones: bool = False,
+        is_sistema: bool = False,
+    ) -> UsuarioAccionResult:
+        from app.db.sessions.async_session import async_session_maker
+        from sipi_core.modules.usuarios.users import Usuario
+        from sipi_core.modules.usuarios.security import hash_password
+        from sqlalchemy import select
+        async with async_session_maker() as db:
+            try:
+                from app.graphql.authz import exigir, PermisoDenegado as _PD
+                try:
+                    await exigir(info, db, "acceso.administrar")
+                except _PD as e:
+                    await db.commit()
+                    return UsuarioAccionResult(ok=False, mensaje=str(e))
+                dup = (await db.execute(
+                    select(Usuario).where(Usuario.nombre_usuario == nombre_usuario).limit(1)
+                )).scalar_one_or_none()
+                if dup is not None:
+                    return UsuarioAccionResult(ok=False, mensaje="El nombre de usuario ya existe")
+                u = Usuario(
+                    id=str(uuid.uuid4()),
+                    nombre_usuario=nombre_usuario,
+                    hashed_contrasena=hash_password(contrasena),
+                    nombre=nombre,
+                    apellidos=apellidos,
+                    identificacion=identificacion,
+                    email_corporativo=email_corporativo,
+                    email_personal=email_personal,
+                    telefono=telefono,
+                    telefono_movil=telefono_movil,
+                    asociacion_id=asociacion_id,
+                    cargo=cargo,
+                    acepta_notificaciones=acepta_notificaciones,
+                    is_sistema=is_sistema,
+                    email_verificado=False,
+                    created_at=datetime.now(timezone.utc).replace(tzinfo=None),
+                )
+                db.add(u)
+                await db.commit()
+                return UsuarioAccionResult(ok=True, id=u.id)
+            except Exception as e:
+                logger.error(f"Error registrando usuario: {e}", exc_info=True)
+                await db.rollback()
+                return UsuarioAccionResult(ok=False, mensaje=str(e))
+
+    async def establecer_contrasena(
+        info: strawberry.Info, usuario_id: strawberry.ID, contrasena: str
+    ) -> UsuarioAccionResult:
+        from app.db.sessions.async_session import async_session_maker
+        from sipi_core.modules.usuarios.users import Usuario
+        from sipi_core.modules.usuarios.security import hash_password
+        async with async_session_maker() as db:
+            try:
+                from app.graphql.authz import exigir, PermisoDenegado as _PD
+                try:
+                    await exigir(info, db, "acceso.administrar")
+                except _PD as e:
+                    await db.commit()
+                    return UsuarioAccionResult(ok=False, mensaje=str(e))
+                u = await db.get(Usuario, str(usuario_id))
+                if u is None:
+                    return UsuarioAccionResult(ok=False, mensaje="Usuario no encontrado")
+                u.hashed_contrasena = hash_password(contrasena)
+                await db.commit()
+                return UsuarioAccionResult(ok=True, id=usuario_id)
+            except Exception as e:
+                logger.error(f"Error fijando contraseña: {e}", exc_info=True)
+                await db.rollback()
+                return UsuarioAccionResult(ok=False, mensaje=str(e))
+
+    async def login(info: strawberry.Info, nombre_usuario: str, contrasena: str) -> AuthResult:
+        from app.db.sessions.async_session import async_session_maker
+        from sipi_core.modules.usuarios.users import Usuario
+        from sipi_core.modules.usuarios.security import (
+            verify_password, create_access_token, get_jwt_secret,
+        )
+        from sqlalchemy import select
+        async with async_session_maker() as db:
+            u = (await db.execute(
+                select(Usuario).where(Usuario.nombre_usuario == nombre_usuario).limit(1)
+            )).scalar_one_or_none()
+            if u is None or not u.hashed_contrasena or not verify_password(contrasena, u.hashed_contrasena):
+                return AuthResult(ok=False, mensaje="Usuario o contraseña incorrectos")
+            token = create_access_token(u.id, get_jwt_secret())
+            return AuthResult(ok=True, token=token, usuario_id=u.id, nombre_usuario=u.nombre_usuario)
+
+    async def actualizar_mis_datos(
+        info: strawberry.Info,
+        nombre: Optional[str] = None,
+        apellidos: Optional[str] = None,
+        email_corporativo: Optional[str] = None,
+        email_personal: Optional[str] = None,
+        telefono: Optional[str] = None,
+        telefono_movil: Optional[str] = None,
+        cargo: Optional[str] = None,
+        acepta_notificaciones: Optional[bool] = None,
+    ) -> UsuarioAccionResult:
+        """Autoservicio: el usuario autenticado actualiza sus propios datos personales."""
+        from app.db.sessions.async_session import async_session_maker
+        from app.graphql.authz import usuario_de
+        from sipi_core.modules.usuarios.users import Usuario
+        ctx = usuario_de(info)
+        if ctx is None:
+            return UsuarioAccionResult(ok=False, mensaje="No autenticado")
+        async with async_session_maker() as db:
+            try:
+                u = await db.get(Usuario, ctx.id)
+                if u is None:
+                    return UsuarioAccionResult(ok=False, mensaje="Usuario no encontrado")
+                if nombre is not None: u.nombre = nombre
+                if apellidos is not None: u.apellidos = apellidos
+                if email_corporativo is not None: u.email_corporativo = email_corporativo
+                if email_personal is not None: u.email_personal = email_personal
+                if telefono is not None: u.telefono = telefono
+                if telefono_movil is not None: u.telefono_movil = telefono_movil
+                if cargo is not None: u.cargo = cargo
+                if acepta_notificaciones is not None: u.acepta_notificaciones = acepta_notificaciones
+                await db.commit()
+                return UsuarioAccionResult(ok=True, id=u.id)
+            except Exception as e:
+                logger.error(f"Error en actualizar_mis_datos: {e}", exc_info=True)
+                await db.rollback()
+                return UsuarioAccionResult(ok=False, mensaje=str(e))
+
+    return registrar_usuario, establecer_contrasena, login, actualizar_mis_datos
+
+
 def create_schema() -> strawberry.Schema:
     logger.info("Construyendo schema GraphQL...")
     # Limpiar registry al iniciar para evitar artefactos de recargas en desarrollo
@@ -686,6 +1014,14 @@ def create_schema() -> strawberry.Schema:
         except Exception as e:
             logger.warning(f"Omitiendo mutación delete para {name}: {e}")
 
+        # Papelera: restaurar/purgar (solo entidades con soft-delete)
+        try:
+            if "deleted_at" in model.__table__.columns:
+                mutations[f"restaurar{name}"] = strawberry.mutation(_make_restore_resolver(model))
+                mutations[f"purgar{name}"] = strawberry.mutation(_make_purge_resolver(model))
+        except Exception as e:
+            logger.warning(f"Omitiendo restaurar/purgar para {name}: {e}")
+
     if not queries:
         raise ValueError("No se generaron queries")
 
@@ -696,6 +1032,32 @@ def create_schema() -> strawberry.Schema:
         mutations["descartarHallazgo"] = strawberry.mutation(descartar)
     except Exception as e:
         logger.warning(f"Omitiendo mutaciones de hallazgo (RBAC): {e}")
+
+    # --- Mutations de credenciales (login/registro/contraseña) ---
+    try:
+        registrar, establecer, login, mis_datos = _make_usuario_credencial_resolvers()
+        mutations["registrarUsuario"] = strawberry.mutation(registrar)
+        mutations["establecerContrasena"] = strawberry.mutation(establecer)
+        mutations["login"] = strawberry.mutation(login)
+        mutations["actualizarMisDatos"] = strawberry.mutation(mis_datos)
+    except Exception as e:
+        logger.warning(f"Omitiendo mutaciones de credenciales: {e}")
+
+    # --- Query `me`: usuario autenticado del contexto ---
+    async def _me(info: strawberry.Info) -> Optional[UsuarioActual]:
+        ctx = info.context or {}
+        u = ctx.get("usuario") if isinstance(ctx, dict) else getattr(ctx, "usuario", None)
+        if u is None:
+            return None
+        return UsuarioActual(
+            id=u.id, nombre_usuario=u.nombre_usuario, nombre=u.nombre, apellidos=u.apellidos,
+            is_sistema=bool(u.is_sistema), asociacion_id=u.asociacion_id, cargo=u.cargo,
+            email_corporativo=u.email_corporativo, email_personal=u.email_personal,
+            telefono=u.telefono, telefono_movil=u.telefono_movil,
+            acepta_notificaciones=bool(u.acepta_notificaciones),
+            roles=[(r.codigo or r.id) for r in (u.roles or [])],
+        )
+    queries["me"] = strawberry.field(_me)
 
     Query = strawberry.type(type("Query", (), queries))
     Mutation = strawberry.type(type("Mutation", (), mutations)) if mutations else None

@@ -1,7 +1,7 @@
 """
-CensusLoader - Carga datos del censo de inmuebles desde CSV
+listado_ceeLoader - Carga inmuebles inmatriculados desde los CSVs del listado CEE
 
-Lee archivos CSV del censo de inmatriculaciones y los carga en la base de datos.
+Lee los CSVs del listado de inmatriculaciones de la CEE y los carga en la base de datos.
 Resuelve IDs de entidades relacionadas (municipios, tipos, registros, etc.)
 """
 
@@ -182,13 +182,13 @@ class listado_ceeLoader:
             mun_key = f"{prov_id}:{mun_name}"
             mun_id = self._cache_municipios.get(mun_key)
 
-        # Resolver Tipo de Inmueble
+        # Resolver Tipo de Inmueble SOLO contra el catálogo canónico.
+        # El "Tipo" del CSV es texto libre (descripciones), no una tipología limpia:
+        # NO se auto-crean tipos (evitaría miles de tipos basura). El texto queda
+        # preservado en `descripcion`; la clasificación a un tipo canónico se hará
+        # en una pasada posterior. Si no casa con un tipo canónico → tipo_inmueble_id = NULL.
         tipo_name = inmueble.get("tipo_inmueble_name", "").lower()
         tipo_id = self._cache_tipos_inmueble.get(tipo_name)
-
-        # Si el tipo no existe, crear uno nuevo (auto-discovery)
-        if not tipo_id and tipo_name:
-            tipo_id = await self._get_or_create_tipo_inmueble(tipo_name)
 
         # Resolver Registro de Propiedad
         reg_name = inmatriculacion.get("registro_propiedad_name", "").lower()
@@ -244,21 +244,27 @@ class listado_ceeLoader:
         return tipo.id
 
     async def _save_batch(self, batch: List[Dict[str, Any]]):
-        """Guarda un lote de inmuebles en la base de datos"""
-        for data in batch:
-            # Crear Inmueble
-            inmueble = Inmueble(**data["inmueble"])
-            self.session.add(inmueble)
-            await self.session.flush()  # Necesario para obtener inmueble.id
+        """Guarda un lote de inmuebles en la base de datos.
 
-            # Crear Inmatriculacion
-            inmat_data = data["inmatriculacion"]
-            inmat_data["inmueble_id"] = inmueble.id
-            inmatriculacion = Inmatriculacion(**inmat_data)
-            self.session.add(inmatriculacion)
+        Si el commit/flush falla (p.ej. dato fuera de rango), hace rollback para
+        dejar la sesión utilizable y re-lanza: así un lote malo no aborta toda la
+        carga en cascada (el llamante cuenta el error y sigue con el siguiente lote).
+        """
+        try:
+            for data in batch:
+                inmueble = Inmueble(**data["inmueble"])
+                self.session.add(inmueble)
+                await self.session.flush()  # Necesario para obtener inmueble.id
 
-        await self.session.commit()
-        logger.info(f"Batch guardado: {len(batch)} inmuebles")
+                inmat_data = data["inmatriculacion"]
+                inmat_data["inmueble_id"] = inmueble.id
+                self.session.add(Inmatriculacion(**inmat_data))
+
+            await self.session.commit()
+            logger.info(f"Batch guardado: {len(batch)} inmuebles")
+        except Exception:
+            await self.session.rollback()
+            raise
 
     def get_stats(self) -> Dict[str, int]:
         """Retorna estadísticas de la carga"""

@@ -221,6 +221,12 @@ def procesar_excel(excel_path: Path, output_dir: Path):
 
         df_final = pd.DataFrame(filas)
 
+        # Normalizar el nombre de la columna de título (las hojas alternan 'Titulo'/'Título';
+        # si no, Tenerife se quedaba sin denominación al cargar).
+        for _alt in ('Título', 'TÍTULO', 'TITULO'):
+            if _alt in df_final.columns and 'Titulo' not in df_final.columns:
+                df_final = df_final.rename(columns={_alt: 'Titulo'})
+
         cols = ['Comunidad Autónoma', 'Provincia']
         for c in df_final.columns:
             if c not in cols and c not in ('Nº Orden', 'Total'):
@@ -247,6 +253,23 @@ def procesar_excel(excel_path: Path, output_dir: Path):
         for col in ('Comunidad Autónoma', 'Provincia', 'REGISTRO', 'Municipio'):
             if col in df_final.columns:
                 df_final[col] = df_final[col].apply(normalizar_texto)
+
+        # ── Denominación (refinamiento en la etapa de TRANSFORMACIÓN) ───────────────
+        # Si la fila no trae Título, se compone una denominación legible a partir de
+        # Tipo + Municipio (p. ej. "Solar en Ademuz", "Iglesia parroquial en …"), ya
+        # capitalizados/normalizados arriba. Así el seeding nunca deja denominaciones
+        # vacías ni genéricas de una sola palabra. El enriquecimiento con OSM/Wikidata
+        # es una pasada posterior (cuando esos datos estén cargados).
+        if 'Titulo' in df_final.columns:
+            def _denominacion(r):
+                tit = r.get('Titulo')
+                if pd.notna(tit) and str(tit).strip():
+                    return str(tit).strip()
+                tipo = str(r.get('Tipo') or '').strip()
+                muni = str(r.get('Municipio') or '').strip()
+                base = tipo if tipo else 'Inmueble'
+                return f"{base} en {muni}" if muni else base
+            df_final['Titulo'] = df_final.apply(_denominacion, axis=1)
 
         for prov, count in df_final['Provincia'].value_counts().items():
             estadisticas.append({

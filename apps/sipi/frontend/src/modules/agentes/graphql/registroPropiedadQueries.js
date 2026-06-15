@@ -9,41 +9,13 @@ import { gql } from '@apollo/client/core'
 // ========================================
 
 export const LISTAR = gql`
-  query ListarRegistrosPropiedad(
-    $filter: RegistroPropiedadFilterInput
-    $offset: Int = 0
-    $limit: Int = 50
-  ) {
-    registrosPropiedad(filter: $filter, offset: $offset, limit: $limit) {
-      id
-      nombre
-      nombreRegistrador
-      numeroIdentificacion
-      email
-      telefono
-      direccion
-      codigoPostal
-      municipio {
-        id
-        nombre
-        provincia {
-          id
-          nombre
-          comunidadAutonoma {
-            id
-            nombre
-          }
-        }
+  query ListarRegistrosPropiedad($search: String, $offset: Int = 0, $limit: Int = 50) {
+    registrosPropiedades(search: $search, offset: $offset, limit: $limit) {
+      items {
+        id nombre apellidos identificacion emailCorporativo emailPersonal telefono telefonoMovil
+        nombreVia numero codigoPostal comunidadAutonomaId provinciaId municipioId
       }
-      titulares {
-        id
-        nombre
-        apellidos
-        fechaInicio
-        fechaFin
-      }
-      createdAt
-      updatedAt
+      total
     }
   }
 `

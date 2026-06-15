@@ -6,30 +6,19 @@ import { gql } from '@apollo/client/core'
 // Queries para cargar datos geográficos
 const CARGAR_CCAA = gql`
   query CargarComunidadesAutonomas {
-    comunidadesAutonomas(limit: 50) {
-      id
-      nombre
-    }
+    comunidadesAutonomas(limit: 50) { items { id nombre } }
   }
 `
 
 const CARGAR_PROVINCIAS = gql`
   query CargarProvincias {
-    provincias(limit: 100) {
-      id
-      nombre
-      comunidadAutonomaId
-    }
+    provincias(limit: 200) { items { id nombre comunidadAutonomaId } }
   }
 `
 
 const CARGAR_MUNICIPIOS = gql`
   query CargarMunicipios {
-    municipios(limit: 10000) {
-      id
-      nombre
-      provinciaId
-    }
+    municipios(limit: 10000) { items { id nombre provinciaId } }
   }
 `
 
@@ -96,6 +85,24 @@ export const useGeografiaStore = defineStore('geografia', () => {
     return munis
   }
 
+  // Navegación ascendente (para posicionar una cascada al editar un registro existente)
+  const getProvinciaIdDeMunicipio = (municipioId) => {
+    if (!municipioId) return null
+    return municipios.value.find((m) => m.id === municipioId)?.provinciaId ?? null
+  }
+
+  const getComunidadIdDeProvincia = (provinciaId) => {
+    if (!provinciaId) return null
+    return provincias.value.find((p) => p.id === provinciaId)?.comunidadAutonomaId ?? null
+  }
+
+  // Dado un municipioId devuelve {comunidadAutonomaId, provinciaId, municipioId} para la cascada
+  const getUbicacionDeMunicipio = (municipioId) => {
+    const provinciaId = getProvinciaIdDeMunicipio(municipioId)
+    const comunidadAutonomaId = getComunidadIdDeProvincia(provinciaId)
+    return { comunidadAutonomaId, provinciaId, municipioId: municipioId || null }
+  }
+
   // Obtener IDs de municipios para filtros Strawchemy
   const getMunicipioIdsDeProvincia = (provinciaId) => {
     return getMunicipiosDeProvincia(provinciaId).map(m => m.id)
@@ -126,11 +133,11 @@ export const useGeografiaStore = defineStore('geografia', () => {
         client.query({ query: CARGAR_MUNICIPIOS, fetchPolicy: 'network-only' })
       ])
 
-      comunidadesAutonomas.value = [...(ccaaResult.data?.comunidadesAutonomas || [])]
+      comunidadesAutonomas.value = [...(ccaaResult.data?.comunidadesAutonomas?.items || [])]
         .sort((a, b) => a.nombre.localeCompare(b.nombre))
 
-      provincias.value = provResult.data?.provincias || []
-      municipios.value = muniResult.data?.municipios || []
+      provincias.value = provResult.data?.provincias?.items || []
+      municipios.value = muniResult.data?.municipios?.items || []
 
       initialized.value = true
       console.log(`[GeografiaStore] Datos cargados: ${comunidadesAutonomas.value.length} CCAA, ${provincias.value.length} provincias, ${municipios.value.length} municipios`)
@@ -167,6 +174,9 @@ export const useGeografiaStore = defineStore('geografia', () => {
     getMunicipiosDeCcaa,
     getMunicipioIdsDeProvincia,
     getMunicipioIdsDeCcaa,
+    getProvinciaIdDeMunicipio,
+    getComunidadIdDeProvincia,
+    getUbicacionDeMunicipio,
 
     // Actions
     cargarDatos,

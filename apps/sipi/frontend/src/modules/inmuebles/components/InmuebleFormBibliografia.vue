@@ -60,13 +60,7 @@
     <!-- Empty state -->
     <div v-else class="text-center py-12">
       <BookOpenIcon class="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <p class="text-gray-500 mb-4">No hay referencias bibliográficas</p>
-      <button
-        @click="abrirNueva"
-        class="text-blue-600 hover:text-blue-700 font-medium"
-      >
-        Añadir primera referencia
-      </button>
+      <p class="text-gray-500">No hay referencias bibliográficas</p>
     </div>
 
     <!-- Modal -->

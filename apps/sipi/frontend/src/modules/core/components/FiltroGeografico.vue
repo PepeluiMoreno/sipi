@@ -1,15 +1,15 @@
 <template>
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <div :class="compact ? 'flex flex-wrap items-center gap-2' : (vertical ? 'grid grid-cols-1 gap-3' : 'grid grid-cols-1 md:grid-cols-3 gap-4')">
     <!-- Comunidad Autónoma -->
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">
+    <div :class="compact ? '' : ''">
+      <label v-if="!compact" class="block text-sm font-medium text-gray-700 mb-1">
         <MapIcon class="w-4 h-4 inline mr-1" />
         Comunidad Autónoma
       </label>
       <select
         v-model="selectedComunidad"
         @change="onComunidadChange"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+        :class="selectClass"
         :disabled="disabled || loading"
       >
         <option value="">{{ loading ? 'Cargando...' : 'Todas las CC.AA.' }}</option>
@@ -24,8 +24,8 @@
     </div>
 
     <!-- Provincia -->
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">
+    <div :class="compact ? '' : ''">
+      <label v-if="!compact" class="block text-sm font-medium text-gray-700 mb-1">
         <MapPinIcon class="w-4 h-4 inline mr-1" />
         Provincia
       </label>
@@ -33,7 +33,7 @@
         v-model="selectedProvincia"
         @change="onProvinciaChange"
         :disabled="!selectedComunidad || disabled || loading"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        :class="[selectClass, 'disabled:bg-gray-100 disabled:cursor-not-allowed']"
       >
         <option value="">{{ loading ? 'Cargando...' : 'Todas las provincias' }}</option>
         <option
@@ -47,8 +47,8 @@
     </div>
 
     <!-- Municipio -->
-    <div>
-      <label class="block text-sm font-medium text-gray-700 mb-1">
+    <div :class="compact ? '' : ''">
+      <label v-if="!compact" class="block text-sm font-medium text-gray-700 mb-1">
         <BuildingOffice2Icon class="w-4 h-4 inline mr-1" />
         Municipio
       </label>
@@ -56,7 +56,7 @@
         v-model="selectedMunicipio"
         @change="onMunicipioChange"
         :disabled="!selectedProvincia || disabled || loading"
-        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+        :class="[selectClass, 'disabled:bg-gray-100 disabled:cursor-not-allowed']"
       >
         <option value="">{{ loading ? 'Cargando...' : 'Todos los municipios' }}</option>
         <option
@@ -88,8 +88,25 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  // compact: barra inline (sin etiquetas, selects estrechos) para paneles de filtro
+  compact: {
+    type: Boolean,
+    default: false
+  },
+  // vertical: apila CCAA → Provincia → Municipio en una sola columna (panel vertical)
+  vertical: {
+    type: Boolean,
+    default: false
   }
 })
+
+// Clases de los <select> según el modo
+const selectClass = computed(() =>
+  props.compact
+    ? 'w-44 px-2 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+    : 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+)
 
 const emit = defineEmits(['update:modelValue', 'change'])
 

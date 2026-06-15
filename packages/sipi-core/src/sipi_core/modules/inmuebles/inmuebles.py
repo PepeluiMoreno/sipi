@@ -13,6 +13,7 @@ from sipi_core.modules.expedientes.expedientes import EstadoCicloVida, GeoQualit
 if TYPE_CHECKING:
     from sipi_core.modules.expedientes.expedientes import Expediente
     from sipi_core.modules.geografia.geografia import ComunidadAutonoma, Provincia, Municipio
+    from sipi_core.modules.geografia.entidad_territorial import EntidadTerritorial
     from sipi_core.modules.catalogos.tipologias import (
         TipoInmueble,
         TipoEstadoConservacion,
@@ -44,6 +45,12 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     comunidad_autonoma_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.comunidades_autonomas.id"), index=True)
     provincia_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.provincias.id"), index=True)
     municipio_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey(f"{APP_SCHEMA}.municipios.id"), index=True)
+    # Referencia territorial única (modelo recursivo): el nodo más profundo que se
+    # conoce (municipio o entidad local menor). La localización "ELM – Municipio" se
+    # calcula subiendo por parent_id. La fija la geolocalización; coexiste con
+    # municipio_id durante el cutover (Fase 2).
+    entidad_territorial_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey(f"{APP_SCHEMA}.entidades_territoriales.id", ondelete="SET NULL"), index=True)
     direccion: Mapped[Optional[str]] = mapped_column(String(500))
     # Referencia catastral (20 caracteres). Llave a Catastro (uso/superficie/titular).
     # El CEE no la trae; se descubre/enriquece (cascada de geolocalización).
@@ -123,6 +130,8 @@ class Inmueble(UUIDPKMixin, AuditMixin, Base):
     comunidad_autonoma: Mapped[Optional["ComunidadAutonoma"]] = relationship("ComunidadAutonoma", back_populates="inmuebles")
     provincia: Mapped[Optional["Provincia"]] = relationship("Provincia", back_populates="inmuebles")
     municipio: Mapped[Optional["Municipio"]] = relationship("Municipio", back_populates="inmuebles")
+    entidad_territorial: Mapped[Optional["EntidadTerritorial"]] = relationship(
+        "EntidadTerritorial", foreign_keys=[entidad_territorial_id])
 
     # Relaciones tipológicas y de estado
     tipo_inmueble: Mapped[Optional["TipoInmueble"]] = relationship("TipoInmueble", back_populates="inmuebles")

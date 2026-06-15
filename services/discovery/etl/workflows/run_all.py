@@ -101,6 +101,7 @@ PASOS = {
     "L12": (LOAD_DIR / "cargar_notarios.py",                     "Carga notarías desde ODMGR (CGN API)"),
     "L13": (LOAD_DIR / "cargar_colegios_profesionales.py",       "Carga colegios profesionales desde ODMGR (CSCAE+CGATE)"),
     "L14": (LOAD_DIR / "cargar_agencias_inmobiliarias.py",       "Carga agencias inmobiliarias desde ODMGR (RERA+Fotocasa)"),
+    "L15": (LOAD_DIR / "cargar_entidades_territoriales.py",      "Consolida jerarquía territorial recursiva (tras L1/L3–L6)"),
     # E8: extract/osm/ — post-MVP
 }
 
@@ -124,6 +125,7 @@ ORDEN_DEFAULT = [
     "L12",  # Notarías desde ODMGR
     "L13",  # Colegios profesionales desde ODMGR
     "L14",  # Agencias inmobiliarias desde ODMGR
+    "L15",  # Consolidación: jerarquía territorial recursiva (entidades_territoriales)
 ]
 
 

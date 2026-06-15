@@ -1,65 +1,64 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { gql } from '@apollo/client/core'
 import { useApolloClient } from '@vue/apollo-composable'
 
-export function useTipologiaBase(catalogoNombre, options = {}) {
-  const { conContacto = false } = options
+/**
+ * Composable base para catálogos/tipologías.
+ *
+ * La API GraphQL es genérica y homogénea para todas las entidades:
+ *   <catalogo>(limit: Int!, offset: Int!, search: String, filters: [FilterInput!]) {
+ *     items { id nombre } total
+ *   }
+ *
+ * Por eso ya NO dependemos de un fichero de queries por catálogo (muchos estaban
+ * desfasados con la forma antigua de Strawchemy: `$filter: XFilterInput` y selección
+ * de campos directamente sobre la lista). Construimos la query dinámicamente: para un
+ * desplegable solo necesitamos `id` y `nombre`.
+ *
+ * @param {String} catalogoNombre  Nombre del campo de lista en GraphQL (p.ej. 'tiposEntidadReligiosa')
+ */
+export function useTipologiaBase(catalogoNombre /*, options = {} */) {
   const items = ref([])
   const loading = ref(false)
   const error = ref(null)
-  const pagination = ref({ page: 1, pageSize: 50, total: 0 })
+  const pagination = ref({ page: 1, pageSize: 500, total: 0 })
 
-  // Obtener el cliente Apollo durante el setup del composable
   const { resolveClient } = useApolloClient()
   const getClient = () => resolveClient()
 
-  // Import dinámico pero con import() en lugar de require()
-  const loadQueries = async () => {
-    const module = await import(`../graphql/${catalogoNombre}Queries.js`)
-    return module
-  }
+  const LISTAR = gql`
+    query ListarCatalogo($limit: Int!, $offset: Int!, $search: String) {
+      ${catalogoNombre}(limit: $limit, offset: $offset, search: $search) {
+        items { id nombre }
+        total
+      }
+    }
+  `
 
-  const listar = async (filter = {}, options = {}) => {
+  /**
+   * @param {Object} _filter  (ignorado — compatibilidad de firma)
+   * @param {Object} options  { limit, offset, search }
+   */
+  const listar = async (_filter = {}, options = {}) => {
     loading.value = true
     error.value = null
-
     try {
-      const queries = await loadQueries()
-      const { LISTAR } = queries
-
-      // Usar el cliente Apollo directamente
       const client = getClient()
-
-      // Permitir pasar limit personalizado o null para sin límite
-      const limit = options.limit !== undefined ? options.limit : pagination.value.pageSize
-      const offset = options.offset !== undefined ? options.offset : (pagination.value.page - 1) * pagination.value.pageSize
-
-      const variables = {
-        filter
-      }
-
-      // Solo agregar limit y offset si limit no es null
-      if (limit !== null) {
-        variables.limit = limit
-        variables.offset = offset
-      }
+      const limit = options.limit ?? pagination.value.pageSize
+      const offset = options.offset ?? 0
+      const search = typeof options.search === 'string' && options.search.trim()
+        ? options.search.trim()
+        : null
 
       const { data } = await client.query({
         query: LISTAR,
-        variables,
-        fetchPolicy: 'cache-first' // Usar caché de Apollo primero
+        variables: { limit, offset, search },
+        fetchPolicy: 'cache-first'
       })
 
-      const response = data?.[catalogoNombre]
-      items.value = response || []
-
-      // Sin paginación total del servidor, asumimos que si vienen menos que el límite, es la última página
-      if (limit !== null) {
-        pagination.value.total = items.value.length < limit
-          ? offset + items.value.length
-          : offset + items.value.length + 1
-      } else {
-        pagination.value.total = items.value.length
-      }
+      const conexion = data?.[catalogoNombre] || {}
+      items.value = conexion.items || []
+      pagination.value.total = conexion.total ?? items.value.length
 
       return { items: items.value, total: pagination.value.total }
     } catch (err) {
@@ -71,11 +70,5 @@ export function useTipologiaBase(catalogoNombre, options = {}) {
     }
   }
 
-  return {
-    items,
-    loading,
-    error,
-    pagination,
-    listar
-  }
+  return { items, loading, error, pagination, listar }
 }

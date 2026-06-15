@@ -48,9 +48,12 @@
           <h3 class="font-semibold text-gray-900">Últimos Inmuebles</h3>
         </div>
         <div class="p-6">
+          <div v-if="!ultimosInmuebles.length" class="text-center text-gray-500 py-8">
+            <p>No hay inmuebles</p>
+          </div>
           <div v-for="inmueble in ultimosInmuebles" :key="inmueble.id" class="p-3 bg-gray-50 rounded-lg mb-3">
-            <p class="font-medium">{{ inmueble.direccion }}</p>
-            <p class="text-xs text-gray-500">Estado: {{ inmueble.estado }}</p>
+            <p class="font-medium">{{ inmueble.nombre || inmueble.direccion || 'Sin denominación' }}</p>
+            <p class="text-xs text-gray-500">{{ inmueble.direccion || '—' }}</p>
           </div>
         </div>
       </div>
@@ -72,8 +75,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useApolloClient } from '@vue/apollo-composable'
 // Importación CORREGIDA - core está dentro de modules
 import { useAuthStore } from '../../../stores/auth'
+import { GET_INMUEBLES } from '../../inmuebles/graphql/inmuebleQueries'
 import {
   BuildingOfficeIcon,
   HomeIcon,
@@ -96,26 +101,28 @@ const stats = ref({
 
 const ultimosInmuebles = ref([])
 
+const { resolveClient } = useApolloClient()
+
 const loadDashboardData = async () => {
   try {
-    // En desarrollo, usar mock data
-    if (import.meta.env.DEV) {
-      stats.value = {
-        inmuebles_detectados: 156,
-        inmatriculados: 89,
-        bics_catalogados: 23,
-        en_venta: 12,
-        vendidos: 45
-      }
-      ultimosInmuebles.value = [
-        { id: '1', direccion: 'Calle Mayor 123, Madrid', estado: 'Inmatriculado' },
-        { id: '2', direccion: 'Plaza de la Catedral, Toledo', estado: 'BIC Catalogado' },
-        { id: '3', direccion: 'Avenida Constitución, Sevilla', estado: 'En Venta' }
-      ]
-      return
-    }
-    
-    // TODO: Implementar query Apollo/GraphQL para estadísticas
+    const client = resolveClient()
+    // Total + últimos inmuebles reales
+    const { data } = await client.query({
+      query: GET_INMUEBLES,
+      variables: { limit: 5 },
+      fetchPolicy: 'network-only'
+    })
+    stats.value.inmuebles_detectados = data?.inmuebles?.total ?? 0
+    ultimosInmuebles.value = data?.inmuebles?.items ?? []
+
+    // En venta (conteo real con filtro server-side)
+    const { data: dv } = await client.query({
+      query: GET_INMUEBLES,
+      variables: { limit: 1, filters: [{ field: 'enVenta', operator: 'EQ', value: 'true' }] },
+      fetchPolicy: 'network-only'
+    })
+    stats.value.en_venta = dv?.inmuebles?.total ?? 0
+    // inmatriculados / bics / vendidos: pendientes de criterio real en el modelo (sin mock → 0)
   } catch (error) {
     console.error('Error cargando datos del dashboard:', error)
   }

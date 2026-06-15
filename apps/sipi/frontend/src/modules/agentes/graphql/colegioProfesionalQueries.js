@@ -10,32 +10,23 @@ import { gql } from '@apollo/client/core'
 
 export const LISTAR = gql`
   query ListarColegiosProfesionales(
-    $filter: ColegioProfesionalFilterInput
+    $search: String
     $offset: Int = 0
-    $limit: Int = 50
+    $limit: Int = 500
+    $filters: [FilterInput!]
   ) {
-    colegiosProfesionales(filter: $filter, offset: $offset, limit: $limit) {
-      id
-      nombre
-      nombreResponsable
-      email
-      telefono
-      direccion
-      codigoPostal
-      municipio {
+    colegiosProfesionales(search: $search, offset: $offset, limit: $limit, filters: $filters) {
+      items {
         id
         nombre
-        provincia {
-          id
-          nombre
-          comunidadAutonoma {
-            id
-            nombre
-          }
-        }
+        nombreResponsable
+        email
+        telefono
+        direccion
+        codigoPostal
+        municipioSede { id nombre }
       }
-      createdAt
-      updatedAt
+      total
     }
   }
 `
@@ -160,9 +151,6 @@ export const ACTUALIZAR = gql`
 
 export const ELIMINAR = gql`
   mutation EliminarColegioProfesional($id: ID!) {
-    deleteColegiosProfesionales(filter: { id: { eq: $id } }) {
-      id
-      nombre
-    }
+    deleteColegioProfesional(id: $id)
   }
 `

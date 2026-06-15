@@ -15,14 +15,14 @@ import { gql } from '@apollo/client/core'
 // ========================================
 
 export const LISTAR = gql`
-  query ListarAdministraciones(
-    $filter: AdministracionFilterInput
-    $offset: Int = 0
-    $limit: Int = 50
-  ) {
-    administraciones(filter: $filter, offset: $offset, limit: $limit) {
-      id
-      nombre
+  query ListarAdministraciones($search: String, $offset: Int = 0, $limit: Int = 50) {
+    administraciones(search: $search, offset: $offset, limit: $limit) {
+      items {
+        id nombre codigoOficial ambito nivelJerarquico tipoOrgano activa
+        emailCorporativo emailPersonal telefono telefonoMovil sitioWeb notas
+        nombreVia numero codigoPostal comunidadAutonomaId provinciaId municipioId
+      }
+      total
     }
   }
 `

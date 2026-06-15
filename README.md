@@ -1,4 +1,4 @@
-# SIPI — Sistema de Información del Patrimonio Inmobiliario
+# SIPI — Sistema de Información del Patrimonio Inmatriculado
 
 Monorepo único de SIPI: dos aplicaciones que comparten un mismo núcleo de dominio.
 
@@ -73,6 +73,13 @@ cd packages/sipi-core/src/sipi_core
 export DATABASE_URL=postgresql://sipi:<pwd>@localhost:5433/sipi
 export DEFINED_SCHEMAS=sipi APP_SCHEMA=sipi GIS_SCHEMA=sipi DEFAULT_SCHEMA=sipi
 alembic upgrade head
+
+# 3b) Seed inicial: RBAC (roles/transacciones) + superadministrador
+python -m sipi_core.modules.acceso.services.seed         # roles, transacciones, permisos (idempotente)
+python -m sipi_core.modules.usuarios.seed_superadmin     # usuario 'superadmin' con rol admin
+#   La contraseña se lee de SIPI_SUPERADMIN_PASSWORD (env / GitHub Secret / secret manager).
+#   Si no está, se GENERA y se imprime una sola vez. Nunca se commitea: solo el hash va a la BD.
+#   export SIPI_SUPERADMIN_PASSWORD=...  (opcional; sin ella, contraseña aleatoria al crear)
 
 # 4) Stack completo
 docker compose up -d        # db + api (GraphQL en :8040/graphql) + frontend (:5173)

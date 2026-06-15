@@ -1,21 +1,17 @@
-<!-- InmueblesView.vue — lista de inmuebles a altura completa, sin scroll de página -->
+<!-- InmueblesView — lista de inmuebles con el FilterSidebar VERTICAL estándar (filtrado real server-side). -->
 <template>
   <div class="flex h-full min-h-0 bg-zinc-100">
-    <InmueblesSidebar
-      v-model:filters="filters"
-      :estados="catalogos.estados"
-      :tipos-inmueble="catalogos.tiposInmueble"
-      :comunidades-autonomas="catalogos.comunidadesAutonomas"
-      :provincias="catalogos.provincias"
-      :localidades="catalogos.localidades"
-      @apply="aplicarFiltros"
-      @clear="limpiarFiltros"
+    <FilterSidebar
+      con-geografia
+      busqueda-placeholder="Nombre, dirección…"
+      :facetas="facetas"
+      @change="onFiltros"
     />
 
     <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
       <InmuebleToolbar
         v-model:view="vistaActiva"
-        :total="filteredCount"
+        :total="total"
         @nuevo="irANuevo"
       />
 
@@ -27,11 +23,7 @@
           icon="inmueble"
           title="No hay inmuebles"
           description="Aún no hay inmuebles que coincidan con los filtros."
-        >
-          <template #action>
-            <UiButton variant="primary" icon="plus" @click="irANuevo">Crear inmueble</UiButton>
-          </template>
-        </UiEmptyState>
+        />
 
         <div v-else-if="vistaActiva === 'cards'"
              class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -56,67 +48,41 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useApolloClient } from '@vue/apollo-composable'
+import { gql } from '@apollo/client/core'
 import { useInmueble } from '../composables/useInmueble'
-import InmueblesSidebar from '../components/InmueblesSidebar.vue'
+import FilterSidebar from '@/modules/core/components/FilterSidebar.vue'
 import InmuebleToolbar from '../components/InmuebleToolbar.vue'
 import InmuebleCard from '../components/InmuebleCard.vue'
 import InmuebleMapa from '../components/InmuebleMapa.vue'
 
 const router = useRouter()
+const { resolveClient } = useApolloClient()
 const vistaActiva = ref('cards')
-const filters = ref({
-  search: '',
-  estados: {},
-  comunidadAutonoma: null,
-  provincia: null,
-  localidad: null,
-  tipoInmueble: null
-})
+const total = ref(0)
+const facetas = ref([])
 
-const catalogos = ref({
-  estados: [],
-  tiposInmueble: [],
-  comunidadesAutonomas: [],
-  provincias: [],
-  localidades: []
-})
+const { inmuebles, loading, isEmpty, listar } = useInmueble()
 
-const {
-  inmuebles,
-  loading,
-  isEmpty,
-  filteredCount,
-  listar,
-  obtenerCatalogos
-} = useInmueble()
-
-const aplicarFiltros = async () => {
-  await listar(filters.value)
+const cargar = async (f = {}) => {
+  const r = await listar(f)
+  total.value = r?.total ?? 0
 }
+const onFiltros = (f) => cargar(f)
 
-const limpiarFiltros = () => {
-  filters.value = {
-    search: '',
-    estados: {},
-    comunidadAutonoma: null,
-    provincia: null,
-    localidad: null,
-    tipoInmueble: null
-  }
-  listar()
-}
+const irADetalle = (id) => router.push(`/inmuebles/${id}`)
+const irANuevo = () => router.push('/inmuebles/nuevo')
 
-const irADetalle = (id) => {
-  router.push(`/inmuebles/${id}`)
-}
-
-const irANuevo = () => {
-  router.push('/inmuebles/nuevo')
-}
+const LISTAR_TIPOS = gql`query ListarTiposInmueble { tiposInmueble(limit: 100) { items { id nombre } } }`
 
 onMounted(async () => {
-  catalogos.value = await obtenerCatalogos()
-  console.log('🔍 Catálogos cargados:', catalogos.value)
-  await listar()
+  try {
+    const { data } = await resolveClient().query({ query: LISTAR_TIPOS, fetchPolicy: 'cache-first' })
+    const tipos = data?.tiposInmueble?.items ?? []
+    facetas.value = [{ key: 'tipoInmuebleId', label: 'Tipo', tipo: 'checkboxes', opciones: tipos }]
+  } catch (e) {
+    console.error('Error cargando tipos de inmueble:', e)
+  }
+  await cargar()
 })
 </script>

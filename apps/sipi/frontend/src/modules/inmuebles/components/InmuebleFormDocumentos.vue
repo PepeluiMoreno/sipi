@@ -27,13 +27,7 @@
     <!-- Empty state -->
     <div v-else class="text-center py-12">
       <DocumentIcon class="w-16 h-16 text-gray-300 mx-auto mb-4" />
-      <p class="text-gray-500 mb-4">No hay documentos asociados</p>
-      <button
-        @click="abrirUpload"
-        class="text-blue-600 hover:text-blue-700 font-medium"
-      >
-        Añadir primer documento
-      </button>
+      <p class="text-gray-500">No hay documentos asociados</p>
     </div>
 
     <!-- Upload modal -->
@@ -141,7 +135,6 @@ import { ref, onMounted } from 'vue'
 import { Dialog, DialogPanel, DialogTitle, TransitionRoot, TransitionChild } from '@headlessui/vue'
 import { PlusIcon, DocumentIcon } from '@heroicons/vue/24/outline'
 import DocumentoCard from './DocumentoCard.vue'
-import { mockDocumentos } from '@/mocks'
 
 const props = defineProps({
   inmuebleId: [String, Number]
@@ -159,12 +152,11 @@ const nuevoDoc = ref({
 })
 
 onMounted(async () => {
-  // Cargar tipos de documento
-  const { TIPOS_DOCUMENTO } = await import('@/mocks')
-  tiposDocumento.value = TIPOS_DOCUMENTO
-  
-  // Cargar documentos del inmueble (mock)
-  documentos.value = mockDocumentos.filter(d => d.inmueble_id == props.inmuebleId)
+  // Pendiente: cablear a la query real de documentos del inmueble.
+  // Sin mock: se parte de listas vacías.
+  void props.inmuebleId
+  tiposDocumento.value = []
+  documentos.value = []
 })
 
 const abrirUpload = () => {

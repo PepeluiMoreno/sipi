@@ -1,16 +1,5 @@
 <template>
   <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-    <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-      <h2 class="text-lg font-semibold text-gray-900">Registros de Propiedad</h2>
-      <button 
-        @click="$emit('create')"
-        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
-      >
-        <PlusIcon class="w-4 h-4 mr-2" />
-        Nuevo Registro
-      </button>
-    </div>
-
     <div v-if="hasItems" class="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       <RegistroPropiedadCard 
         v-for="registro in items" 
@@ -24,12 +13,6 @@
     <div v-else-if="!loading" class="p-12 text-center">
       <DocumentDuplicateIcon class="w-12 h-12 mx-auto text-gray-300 mb-4" />
       <p class="text-gray-500">No se encontraron registros</p>
-      <button 
-        @click="$emit('create')"
-        class="mt-4 text-green-600 hover:text-green-700 font-medium"
-      >
-        Crear el primer registro
-      </button>
     </div>
 
     <div v-if="loading" class="p-12 text-center">
@@ -57,8 +40,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { 
-  PlusIcon, 
+import {
   DocumentDuplicateIcon,
   ArrowPathIcon
 } from '@heroicons/vue/24/outline'
