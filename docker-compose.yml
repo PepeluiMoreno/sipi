@@ -113,6 +113,23 @@ services:
     networks: [sipi-network]
     restart: unless-stopped
 
+  # Scheduler de vigilancia (DEV, opt-in): ejecuta los procesos en su frecuencia_cron.
+  #   docker compose --profile vigilancia up -d vigilancia-scheduler
+  vigilancia-scheduler:
+    image: python:3.11-slim
+    container_name: sipi-vigilancia-scheduler
+    profiles: ["vigilancia"]
+    command: sh -c "pip install --no-cache-dir croniter >/dev/null 2>&1 && python /app/scheduler_vigilancia.py"
+    environment:
+      SIPI_API_URL: ${SIPI_API_URL:-http://api:8040/graphql/}
+      SCHED_INTERVAL: ${SCHED_INTERVAL:-60}
+      PYTHONUNBUFFERED: 1
+    volumes:
+      - ./services/discovery/survey/scripts/scheduler_vigilancia.py:/app/scheduler_vigilancia.py:ro
+    depends_on: [api]
+    networks: [sipi-network]
+    restart: unless-stopped
+
 networks:
   sipi-network:
     driver: bridge

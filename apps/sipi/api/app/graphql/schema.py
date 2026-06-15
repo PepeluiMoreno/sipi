@@ -866,7 +866,9 @@ async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
                               f"Keywords inclusión: {ninc}, exclusión: {nexc}.")
             except Exception as e:  # noqa: BLE001
                 lineas.append(f"• {nombre} [{fetcher}]: ERROR — {e}")
-        if persistir and creados:
+        if persistir:
+            from datetime import datetime as _dt, timezone as _tz
+            proc.ultima_ejecucion = _dt.now(_tz.utc)
             await db.commit()
         return ProbarResult(ok=ok_any, mensaje="\n".join(lineas), muestras=muestras, creados=creados)
 
