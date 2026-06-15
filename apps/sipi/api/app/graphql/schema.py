@@ -836,9 +836,12 @@ async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
                 continue
             try:
                 t0 = _time.time()
-                with _httpx.Client(timeout=15, follow_redirects=True,
-                                   headers={"User-Agent": "sipi-vigilancia/run"}) as cli:
-                    resp = cli.post(url, data=query or None) if metodo == "POST" else cli.get(url, params=query or None)
+                # AsyncClient: NO bloquea el event loop durante la descarga (si fuese
+                # síncrono, una ejecución lenta congelaría toda la API, login incluido).
+                async with _httpx.AsyncClient(timeout=12, follow_redirects=True,
+                                              headers={"User-Agent": "sipi-vigilancia/run"}) as cli:
+                    resp = await (cli.post(url, data=query or None) if metodo == "POST"
+                                  else cli.get(url, params=query or None))
                 ms = int((_time.time() - t0) * 1000)
                 texto = resp.text or ""
                 _, ninc, nexc = _vig_score(texto, incl, excl)
