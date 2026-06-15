@@ -298,6 +298,32 @@ export function useAgenteBase(entityName, queries, options = {}) {
     }
 
     /**
+     * Purgar (borrado físico permanente). Requiere queries.PURGAR; si no, hace soft-delete.
+     * @param {String} id - UUID de la entidad
+     */
+    const purgar = async (id) => {
+        if (!queries.PURGAR) return eliminar(id)
+        loading.value = true
+        error.value = null
+        try {
+            const { mutate } = useMutation(queries.PURGAR)
+            const { data, errors } = await mutate({ id })
+            if (errors && errors.length > 0) {
+                throw new Error(errors[0].message)
+            }
+            items.value = items.value.filter(i => i.id !== id)
+            if (item.value?.id === id) item.value = null
+            loading.value = false
+            return data
+        } catch (err) {
+            error.value = `Error al purgar ${entityName}: ${err.message}`
+            console.error(`Error en purgar ${entityName}:`, err)
+            loading.value = false
+            throw err
+        }
+    }
+
+    /**
      * Cargar siguiente página (paginación infinita)
      */
     const cargarMas = async () => {
@@ -354,6 +380,7 @@ export function useAgenteBase(entityName, queries, options = {}) {
         crear,
         actualizar,
         eliminar,
+        purgar,
         cargarMas,
         reset,
         cambiarLimite

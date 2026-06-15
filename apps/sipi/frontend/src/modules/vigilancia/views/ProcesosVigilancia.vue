@@ -26,12 +26,15 @@
       />
     </template>
   </AgenteCrudShell>
+
+  <EliminarConfirmModal v-model="eliminarOpen" :nombre="eliminarNombre" @confirm="onConfirmEliminar" />
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useProcesoVigilancia } from '../composables/useProcesoVigilancia'
 import AgenteCrudShell from '../../core/components/AgenteCrudShell.vue'
+import EliminarConfirmModal from '../../core/components/ui/EliminarConfirmModal.vue'
 import ProcesoVigilanciaFiltros from '../components/ProcesoVigilanciaFiltros.vue'
 import ProcesoVigilanciaDataGrid from '../components/ProcesoVigilanciaDataGrid.vue'
 import ProcesoVigilanciaForm from '../components/ProcesoVigilanciaForm.vue'
@@ -44,6 +47,10 @@ const saving = ref(false)
 const editando = ref(false)
 const selected = ref(null)
 const filters = ref({})
+
+const eliminarOpen = ref(false)
+const eliminarId = ref(null)
+const eliminarNombre = ref('')
 
 onMounted(cargar)
 
@@ -77,9 +84,23 @@ const handleSave = async (data) => {
   }
 }
 
-const handleDelete = async (id) => {
-  if (!confirm('¿Eliminar este proceso de vigilancia?')) return
-  try { await service.eliminar(id); await cargar() }
-  catch (e) { console.error('Error eliminando proceso:', e) }
+const handleDelete = (id) => {
+  eliminarId.value = id
+  eliminarNombre.value = items.value.find(p => p.id === id)?.nombre || ''
+  eliminarOpen.value = true
+}
+
+const onConfirmEliminar = async (permanente) => {
+  const id = eliminarId.value
+  if (!id) return
+  try {
+    if (permanente) await service.purgar(id)
+    else await service.eliminar(id)
+    await cargar()
+  } catch (e) {
+    console.error('Error eliminando proceso:', e)
+  } finally {
+    eliminarId.value = null
+  }
 }
 </script>

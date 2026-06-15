@@ -28,7 +28,13 @@ export const ACTUALIZAR = gql`
 
 export const ELIMINAR = gql`
   mutation EliminarProceso($id: ID!) {
-    deleteProcesoVigilancia(id: $id) { id }
+    deleteProcesoVigilancia(id: $id)
+  }
+`
+
+export const PURGAR = gql`
+  mutation PurgarProceso($id: ID!) {
+    purgarProcesoVigilancia(id: $id)
   }
 `
 
