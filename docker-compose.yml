@@ -82,6 +82,37 @@ services:
       - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.tls=true"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-tls.service=${APP_PREFIX:-sipi}"
 
+  # ETL consumidor de ODM (DEV: build local, sin GHCR). Opt-in con `--profile etl`.
+  #   Migrar BD:        docker compose --profile etl run --rm -e SIPI_ETL_MODE=migrate etl
+  #   Backfill one-shot: docker compose --profile etl run --rm -e SIPI_ETL_MODE=poblar etl
+  #   Receptor webhook:  docker compose --profile etl up -d etl     (modo por defecto)
+  etl:
+    build:
+      context: .
+      dockerfile: services/discovery/etl/Dockerfile
+    image: sipi-etl:dev
+    container_name: sipi-etl
+    profiles: ["etl"]
+    environment:
+      SIPI_ETL_MODE: ${SIPI_ETL_MODE:-webhook}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://sipi:sipi@db:5432/sipi}
+      # Esquema B: todo en sipi (igual que la API)
+      APP_SCHEMA: sipi
+      GIS_SCHEMA: sipi
+      DEFAULT_SCHEMA: sipi
+      DATABASE_SCHEMA: sipi
+      # Conexión a ODM (rellenar en .env cuando se use poblar/webhook)
+      ODM_BASE_URL: ${ODM_BASE_URL:-}
+      ODM_WEBHOOK_SECRET: ${ODM_WEBHOOK_SECRET:-}
+      ODM_APP_TOKEN: ${ODM_APP_TOKEN:-}
+      POBLAR_ARGS: ${POBLAR_ARGS:---todo}
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [sipi-network]
+    restart: unless-stopped
+
 networks:
   sipi-network:
     driver: bridge
