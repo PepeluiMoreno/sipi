@@ -1,8 +1,10 @@
 name: Deploy SIPI
 
+# Solo manual. En DESARROLLO no se despliega por push ni se usa GHCR: se corre el
+# docker local del optiplex (docker compose, ver README). Este workflow queda para
+# un despliegue de producción futuro (requiere los secrets DEPLOY_HOST/USER/KEY y
+# SIPI_ENV_PRODUCTION); se lanza a mano desde la pestaña Actions.
 on:
-  push:
-    branches: [main, master]
   workflow_dispatch:
 
 env:
