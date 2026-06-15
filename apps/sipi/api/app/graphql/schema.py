@@ -727,10 +727,29 @@ class MuestraProbar:
 
 @strawberry.type
 class ProbarResult:
-    """Resultado de «Probar ahora» de un proceso de vigilancia."""
+    """Resultado de probar/ejecutar un proceso de vigilancia."""
     ok: bool
     mensaje: Optional[str] = None
     muestras: List[MuestraProbar] = strawberry.field(default_factory=list)
+    creados: int = 0  # nº de Hallazgo creados (solo en ejecutar)
+
+
+def _vig_score(texto: str, incl: list, excl: list):
+    """Confianza 0..1 por densidad de keywords (inclusión suma, exclusión resta)."""
+    low = (texto or "").lower()
+    ni = sum(low.count(k) for k in incl)
+    ne = sum(low.count(k) for k in excl)
+    if not incl and not excl:
+        return 0.5, ni, ne
+    conf = 0.5 + 0.15 * ni - 0.25 * ne
+    return max(0.0, min(1.0, conf)), ni, ne
+
+
+def _vig_tipo_evento(tipo_proceso: str):
+    from sipi_core.models import TipoEventoExpediente as _T
+    return {"portal_inmobiliario": _T.PUESTA_EN_VENTA,
+            "desacralizacion": _T.CAMBIO_DE_USO,
+            "prensa": _T.CAMBIO_VISITABILIDAD}.get(tipo_proceso, _T.PUESTA_EN_VENTA)
 
 
 def _probar_construir_request(fetcher: str, fp: dict):
@@ -773,71 +792,93 @@ def _probar_items_json(resp) -> list:
     return out
 
 
-async def _probar_proceso_vigilancia(info: "strawberry.Info", proceso_id: strawberry.ID,
-                                     fuente_id: Optional[str] = None) -> ProbarResult:
-    """Prueba en caliente las fuentes de un proceso: conectividad real + muestreo JSON
-    + recuento de keywords inclusión/exclusión sobre lo descargado. La extracción HTML
-    fina (selectores) es del motor de survey; aquí validamos que la fuente responde."""
+async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
+                   fuente_id: Optional[str], persistir: bool) -> ProbarResult:
+    """Motor de vigilancia: descarga las fuentes activas de un proceso (httpx),
+    muestrea ítems (JSON para API REST), puntúa por keywords y —si `persistir`—
+    crea `Hallazgo` (PENDIENTE, con certeza/confianza, dedupe por url). La extracción
+    HTML fina por selectores es del motor de survey (bs4); aquí va lo verificable."""
     import time as _time
     import httpx as _httpx
     from app.db.sessions.async_session import async_session_maker
     from sqlalchemy import select as _select
-    from sipi_core.models import ProcesoVigilancia as _PV
+    from sipi_core.models import ProcesoVigilancia as _PV, Hallazgo as _H
+    from sipi_core.models import EstadoHallazgo as _EH, CertezaHallazgo as _CH
 
     async with async_session_maker() as db:
         proc = (await db.execute(_select(_PV).where(_PV.id == str(proceso_id)))).scalar_one_or_none()
-    if proc is None:
-        return ProbarResult(ok=False, mensaje="Proceso no encontrado.")
-    params = proc.parametros or {}
-    fuentes = params.get("fuentes") or []
-    if fuente_id:
-        fuentes = [f for f in fuentes if f.get("id") == fuente_id]
-    fuentes = [f for f in fuentes if f.get("activa", True)]
-    if not fuentes:
-        return ProbarResult(ok=False, mensaje="El proceso no tiene fuentes activas que probar. "
-                                              "Añade una fuente con su fetcher (API/HTML/RSS).")
-    incl = [k.lower() for k in (params.get("keywords_inclusion") or []) if k]
-    excl = [k.lower() for k in (params.get("keywords_exclusion") or []) if k]
+        if proc is None:
+            return ProbarResult(ok=False, mensaje="Proceso no encontrado.")
+        params = proc.parametros or {}
+        fuentes = params.get("fuentes") or []
+        if fuente_id:
+            fuentes = [f for f in fuentes if f.get("id") == fuente_id]
+        fuentes = [f for f in fuentes if f.get("activa", True)]
+        if not fuentes:
+            return ProbarResult(ok=False, mensaje="El proceso no tiene fuentes activas. "
+                                                  "Añade una fuente con su fetcher (API/HTML/RSS).")
+        incl = [k.lower() for k in (params.get("keywords_inclusion") or []) if k]
+        excl = [k.lower() for k in (params.get("keywords_exclusion") or []) if k]
+        umbral = float(params.get("umbral_score") or 60)
+        tipo_evento = _vig_tipo_evento(proc.tipo)
 
-    muestras: List[MuestraProbar] = []
-    lineas: list = []
-    ok_any = False
-    for f in fuentes[:5]:
-        nombre = f.get("nombre") or "(fuente)"
-        fetcher = f.get("fetcher") or "?"
-        fp = f.get("params") or {}
-        url, metodo, query = _probar_construir_request(fetcher, fp)
-        if not url:
-            lineas.append(f"• {nombre} [{fetcher}]: sin URL configurada.")
-            continue
-        try:
-            t0 = _time.time()
-            with _httpx.Client(timeout=15, follow_redirects=True,
-                               headers={"User-Agent": "sipi-vigilancia/probar"}) as cli:
-                if metodo == "POST":
-                    resp = cli.post(url, data=query or None)
-                else:
-                    resp = cli.get(url, params=query or None)
-            ms = int((_time.time() - t0) * 1000)
-            texto = resp.text or ""
-            low = texto.lower()
-            ninc = sum(low.count(k) for k in incl)
-            nexc = sum(low.count(k) for k in excl)
-            extra = ""
-            if fetcher == "api_rest" and "json" in resp.headers.get("content-type", "").lower():
-                its = _probar_items_json(resp)
-                for it in its[:8]:
-                    muestras.append(MuestraProbar(fuente=nombre, titulo=it.get("titulo"),
-                                                  url=it.get("url"), precio=it.get("precio")))
-                extra = f", {len(its)} ítems JSON"
-            if 200 <= resp.status_code < 400:
-                ok_any = True
-            lineas.append(f"• {nombre} [{fetcher}]: HTTP {resp.status_code} "
-                          f"({len(texto)//1024} KB, {ms} ms){extra}. "
-                          f"Keywords inclusión: {ninc}, exclusión: {nexc}.")
-        except Exception as e:  # noqa: BLE001
-            lineas.append(f"• {nombre} [{fetcher}]: ERROR — {e}")
-    return ProbarResult(ok=ok_any, mensaje="\n".join(lineas), muestras=muestras)
+        muestras: List[MuestraProbar] = []
+        lineas: list = []
+        ok_any = False
+        creados = 0
+        for f in fuentes[:5]:
+            nombre = f.get("nombre") or "(fuente)"
+            fetcher = f.get("fetcher") or "?"
+            fp = f.get("params") or {}
+            url, metodo, query = _probar_construir_request(fetcher, fp)
+            if not url:
+                lineas.append(f"• {nombre} [{fetcher}]: sin URL configurada.")
+                continue
+            try:
+                t0 = _time.time()
+                with _httpx.Client(timeout=15, follow_redirects=True,
+                                   headers={"User-Agent": "sipi-vigilancia/run"}) as cli:
+                    resp = cli.post(url, data=query or None) if metodo == "POST" else cli.get(url, params=query or None)
+                ms = int((_time.time() - t0) * 1000)
+                texto = resp.text or ""
+                _, ninc, nexc = _vig_score(texto, incl, excl)
+                items = _probar_items_json(resp) if (fetcher == "api_rest" and "json" in resp.headers.get("content-type", "").lower()) else []
+                for it in items[:25]:
+                    titulo = it.get("titulo"); iurl = it.get("url")
+                    conf, _, _ = _vig_score(f"{titulo or ''} {it.get('precio') or ''}", incl, excl)
+                    muestras.append(MuestraProbar(fuente=nombre, titulo=titulo, url=iurl,
+                                                  precio=it.get("precio"), score=round(conf * 100, 1)))
+                    if persistir and iurl:
+                        ya = (await db.execute(_select(_H).where(
+                            _H.proceso_id == proc.id, _H.url_evidencia == iurl))).scalar_one_or_none()
+                        if ya is None:
+                            db.add(_H(proceso_id=proc.id, fuente=nombre, tipo_evento=tipo_evento,
+                                      estado=_EH.PENDIENTE,
+                                      certeza=_CH.CIERTO if conf * 100 >= umbral else _CH.DUDOSO,
+                                      confianza=round(conf, 3), titulo=(titulo or "")[:255] or None,
+                                      url_evidencia=iurl, datos=it))
+                            creados += 1
+                if 200 <= resp.status_code < 400:
+                    ok_any = True
+                extra = f", {len(items)} ítems" + (f", {creados} hallazgos" if persistir else "")
+                lineas.append(f"• {nombre} [{fetcher}]: HTTP {resp.status_code} "
+                              f"({len(texto)//1024} KB, {ms} ms){extra}. "
+                              f"Keywords inclusión: {ninc}, exclusión: {nexc}.")
+            except Exception as e:  # noqa: BLE001
+                lineas.append(f"• {nombre} [{fetcher}]: ERROR — {e}")
+        if persistir and creados:
+            await db.commit()
+        return ProbarResult(ok=ok_any, mensaje="\n".join(lineas), muestras=muestras, creados=creados)
+
+
+async def _probar_proceso_vigilancia(info: "strawberry.Info", proceso_id: strawberry.ID,
+                                     fuente_id: Optional[str] = None) -> ProbarResult:
+    return await _vig_run(info, proceso_id, fuente_id, persistir=False)
+
+
+async def _ejecutar_proceso_vigilancia(info: "strawberry.Info", proceso_id: strawberry.ID,
+                                       fuente_id: Optional[str] = None) -> ProbarResult:
+    return await _vig_run(info, proceso_id, fuente_id, persistir=True)
 
 
 @strawberry.type
@@ -1175,8 +1216,9 @@ def create_schema() -> strawberry.Schema:
     except Exception as e:
         logger.warning(f"Omitiendo mutaciones de credenciales: {e}")
 
-    # --- Mutation: probar/ejecutar un proceso de vigilancia (fetch real de sus fuentes) ---
+    # --- Mutations: probar (dry-run) / ejecutar (crea Hallazgo) un proceso de vigilancia ---
     mutations["probarProcesoVigilancia"] = strawberry.mutation(_probar_proceso_vigilancia)
+    mutations["ejecutarProcesoVigilancia"] = strawberry.mutation(_ejecutar_proceso_vigilancia)
 
     # --- Query `me`: usuario autenticado del contexto ---
     async def _me(info: strawberry.Info) -> Optional[UsuarioActual]:

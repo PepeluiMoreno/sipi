@@ -51,13 +51,20 @@ export const HALLAZGOS_PROCESO = gql`
   }
 `
 
-// Ejecuta/prueba un proceso ahora mismo (fetch real de sus fuentes).
+// Probar (dry-run, no guarda) un proceso ahora mismo.
 export const PROBAR_PROCESO = gql`
   mutation ProbarProceso($procesoId: ID!, $fuenteId: String) {
     probarProcesoVigilancia(procesoId: $procesoId, fuenteId: $fuenteId) {
-      ok
-      mensaje
-      muestras { fuente titulo url precio score }
+      ok mensaje creados muestras { fuente titulo url precio score }
+    }
+  }
+`
+
+// Ejecutar (fetch real + crea Hallazgo) un proceso ahora mismo.
+export const EJECUTAR_PROCESO = gql`
+  mutation EjecutarProceso($procesoId: ID!, $fuenteId: String) {
+    ejecutarProcesoVigilancia(procesoId: $procesoId, fuenteId: $fuenteId) {
+      ok mensaje creados muestras { fuente titulo url precio score }
     }
   }
 `

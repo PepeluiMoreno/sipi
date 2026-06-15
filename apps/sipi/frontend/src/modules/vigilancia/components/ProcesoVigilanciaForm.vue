@@ -111,11 +111,16 @@
 
       <!-- ===== HALLAZGOS ===== -->
       <div v-show="tab === 'hallazgos'" class="space-y-3">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
           <p class="text-sm text-zinc-500">Últimos hallazgos obtenidos por este proceso.</p>
-          <UiButton size="sm" icon="search" :loading="probando" :disabled="!form.id" @click="probar">
-            Probar ahora
-          </UiButton>
+          <div class="flex gap-2 shrink-0">
+            <UiButton size="sm" variant="secondary" icon="search" :loading="probando" :disabled="!form.id" @click="probar">
+              Probar
+            </UiButton>
+            <UiButton size="sm" variant="primary" icon="check" :loading="ejecutando" :disabled="!form.id" @click="ejecutar">
+              Ejecutar ahora
+            </UiButton>
+          </div>
         </div>
         <p v-if="!form.id" class="text-xs text-amber-600">Guarda el proceso antes de probarlo.</p>
         <p v-if="probarMsg" class="text-sm rounded bg-zinc-50 border border-zinc-200 px-3 py-2">{{ probarMsg }}</p>
@@ -160,7 +165,7 @@ import { ref, reactive, watch } from 'vue'
 import { useApolloClient } from '@vue/apollo-composable'
 import { tipoLabel, SEVERIDADES } from '../catalog/vigilanciaCatalog'
 import { fuenteNueva } from '../catalog/fetcherCatalog'
-import { HALLAZGOS_PROCESO, PROBAR_PROCESO } from '../graphql/vigilanciaQueries'
+import { HALLAZGOS_PROCESO, PROBAR_PROCESO, EJECUTAR_PROCESO } from '../graphql/vigilanciaQueries'
 import KeywordInput from './KeywordInput.vue'
 import FuenteEditor from './FuenteEditor.vue'
 import FrecuenciaCron from './FrecuenciaCron.vue'
@@ -221,6 +226,7 @@ const { resolveClient } = useApolloClient()
 const hallazgos = ref([])
 const muestras = ref([])
 const probando = ref(false)
+const ejecutando = ref(false)
 const probarMsg = ref('')
 
 async function cargarHallazgos() {
@@ -247,6 +253,24 @@ async function probar() {
     probarMsg.value = 'No se pudo ejecutar la prueba (¿motor de fetch disponible?): ' + (e?.message || e)
   } finally {
     probando.value = false
+  }
+}
+
+async function ejecutar() {
+  if (!form.id) return
+  ejecutando.value = true; probarMsg.value = ''; muestras.value = []
+  try {
+    const { data } = await resolveClient().mutate({
+      mutation: EJECUTAR_PROCESO, variables: { procesoId: form.id, fuenteId: null },
+    })
+    const r = data?.ejecutarProcesoVigilancia
+    probarMsg.value = (r?.creados ? `${r.creados} hallazgo(s) creados.\n` : '') + (r?.mensaje || '')
+    muestras.value = r?.muestras ?? []
+    await cargarHallazgos()
+  } catch (e) {
+    probarMsg.value = 'No se pudo ejecutar: ' + (e?.message || e)
+  } finally {
+    ejecutando.value = false
   }
 }
 
