@@ -149,10 +149,9 @@ export const ACTUALIZAR = gql`
 `
 
 export const ELIMINAR = gql`
-  mutation EliminarRegistroPropiedad($id: ID!) {
-    deleteRegistrosPropiedad(filter: { id: { eq: $id } }) {
-      id
-      nombre
-    }
-  }
+  mutation EliminarRegistroPropiedad($id: ID!) { deleteRegistroPropiedad(id: $id) }
+`
+
+export const PURGAR = gql`
+  mutation PurgarRegistroPropiedad($id: ID!) { purgarRegistroPropiedad(id: $id) }
 `

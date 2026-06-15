@@ -33,6 +33,8 @@
       />
     </template>
   </AgenteCrudShell>
+
+  <EliminarConfirmModal v-model="eliminarOpen" :nombre="eliminarNombre" @confirm="onConfirmEliminar" />
 </template>
 
 <script setup>
@@ -42,6 +44,7 @@ import AgenteCrudShell from '../../core/components/AgenteCrudShell.vue'
 import AdministracionFiltros from '../components/administracion/AdministracionFiltros.vue'
 import AdministracionDataGrid from '../components/administracion/AdministracionDataGrid.vue'
 import AdministracionForm from '../components/administracion/AdministracionForm.vue'
+import EliminarConfirmModal from '../../core/components/ui/EliminarConfirmModal.vue'
 
 const administracionService = useAdministracion()
 const { items, loading, hasMore } = administracionService
@@ -51,6 +54,10 @@ const saving = ref(false)
 const editando = ref(false)
 const selectedAdministracion = ref(null)
 const filters = ref({})
+
+const eliminarOpen = ref(false)
+const eliminarId = ref(null)
+const eliminarNombre = ref('')
 
 onMounted(loadAdministraciones)
 
@@ -91,13 +98,23 @@ const handleSave = async (data) => {
   }
 }
 
-const handleDelete = async (id) => {
-  if (!confirm('¿Eliminar esta administración?')) return
+const handleDelete = (id) => {
+  eliminarId.value = id
+  eliminarNombre.value = items.value.find(a => a.id === id)?.nombre || ''
+  eliminarOpen.value = true
+}
+
+const onConfirmEliminar = async (permanente) => {
+  const id = eliminarId.value
+  if (!id) return
   try {
-    await administracionService.eliminar(id)
+    if (permanente) await administracionService.purgar(id)
+    else await administracionService.eliminar(id)
     await loadAdministraciones()
   } catch (error) {
     console.error('Error eliminando administración:', error)
+  } finally {
+    eliminarId.value = null
   }
 }
 </script>

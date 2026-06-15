@@ -167,6 +167,14 @@ export const ELIMINAR_ADMINISTRACION = gql`
   }
 `
 
+// Bare ELIMINAR/PURGAR (formato singular real del schema) que espera useAgenteBase.
+export const ELIMINAR = gql`
+  mutation EliminarAdministracionSingular($id: ID!) { deleteAdministracion(id: $id) }
+`
+export const PURGAR = gql`
+  mutation PurgarAdministracion($id: ID!) { purgarAdministracion(id: $id) }
+`
+
 export const ELIMINAR_ADMINISTRACIONES_FILTRO = gql`
   mutation EliminarAdministracionesFiltro($filter: AdministracionFilterInput!) {
     deleteAdministraciones(filter: $filter) {

@@ -32,6 +32,8 @@
       />
     </template>
   </AgenteCrudShell>
+
+  <EliminarConfirmModal v-model="eliminarOpen" :nombre="eliminarNombre" @confirm="onConfirmEliminar" />
 </template>
 
 <script setup>
@@ -42,6 +44,7 @@ import AgenteCrudShell from '../../core/components/AgenteCrudShell.vue'
 import RegistroPropiedadFiltros from '../components/registroPropiedad/RegistroPropiedadFiltros.vue'
 import RegistroPropiedadDataGrid from '../components/registroPropiedad/RegistroPropiedadDataGrid.vue'
 import RegistroPropiedadForm from '../components/registroPropiedad/RegistroPropiedadForm.vue'
+import EliminarConfirmModal from '../../core/components/ui/EliminarConfirmModal.vue'
 
 const registroService = useRegistroPropiedad()
 const geografiaStore = useGeografiaStore()
@@ -54,6 +57,10 @@ const editando = ref(false)
 const selectedRegistro = ref(null)
 const filters = ref({})
 const total = ref(0)
+
+const eliminarOpen = ref(false)
+const eliminarId = ref(null)
+const eliminarNombre = ref('')
 
 onMounted(async () => {
   await geografiaStore.cargarDatos()
@@ -98,13 +105,23 @@ const handleSave = async (data) => {
   }
 }
 
-const handleDelete = async (id) => {
-  if (!confirm('¿Eliminar este registro?')) return
+const handleDelete = (id) => {
+  eliminarId.value = id
+  eliminarNombre.value = items.value.find(r => r.id === id)?.nombre || ''
+  eliminarOpen.value = true
+}
+
+const onConfirmEliminar = async (permanente) => {
+  const id = eliminarId.value
+  if (!id) return
   try {
-    await registroService.eliminar(id)
+    if (permanente) await registroService.purgar(id)
+    else await registroService.eliminar(id)
     await loadRegistros()
   } catch (error) {
     console.error('Error eliminando registro:', error)
+  } finally {
+    eliminarId.value = null
   }
 }
 </script>

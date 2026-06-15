@@ -33,6 +33,8 @@
       />
     </template>
   </AgenteCrudShell>
+
+  <EliminarConfirmModal v-model="eliminarOpen" :nombre="eliminarNombre" @confirm="onConfirmEliminar" />
 </template>
 
 <script setup>
@@ -42,6 +44,7 @@ import AgenteCrudShell from '../../core/components/AgenteCrudShell.vue'
 import NotariaFiltros from '../components/notaria/NotariaFiltros.vue'
 import NotariaDataGrid from '../components/notaria/NotariaDataGrid.vue'
 import NotariaForm from '../components/notaria/NotariaForm.vue'
+import EliminarConfirmModal from '../../core/components/ui/EliminarConfirmModal.vue'
 
 const notariaService = useNotaria()
 const { items, loading, hasMore } = notariaService
@@ -51,6 +54,10 @@ const saving = ref(false)
 const editando = ref(false)
 const selectedNotaria = ref(null)
 const filters = ref({})
+
+const eliminarOpen = ref(false)
+const eliminarId = ref(null)
+const eliminarNombre = ref('')
 
 onMounted(loadNotarias)
 
@@ -91,13 +98,23 @@ const handleSave = async (data) => {
   }
 }
 
-const handleDelete = async (id) => {
-  if (!confirm('¿Eliminar esta notaría?')) return
+const handleDelete = (id) => {
+  eliminarId.value = id
+  eliminarNombre.value = items.value.find(n => n.id === id)?.nombre || ''
+  eliminarOpen.value = true
+}
+
+const onConfirmEliminar = async (permanente) => {
+  const id = eliminarId.value
+  if (!id) return
   try {
-    await notariaService.eliminar(id)
+    if (permanente) await notariaService.purgar(id)
+    else await notariaService.eliminar(id)
     await loadNotarias()
   } catch (error) {
     console.error('Error eliminando notaría:', error)
+  } finally {
+    eliminarId.value = null
   }
 }
 </script>

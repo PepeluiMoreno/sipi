@@ -38,3 +38,6 @@ export const ACTUALIZAR = gql`
 export const ELIMINAR = gql`
   mutation EliminarEntidadReligiosa($id: ID!) { deleteEntidadReligiosa(id: $id) }
 `
+export const PURGAR = gql`
+  mutation PurgarEntidadReligiosa($id: ID!) { purgarEntidadReligiosa(id: $id) }
+`

@@ -41,6 +41,8 @@
       />
     </template>
   </AgenteCrudShell>
+
+  <EliminarConfirmModal v-model="eliminarOpen" :nombre="eliminarNombre" @confirm="onConfirmEliminar" />
 </template>
 
 <script setup>
@@ -52,6 +54,7 @@ import AgenteCrudShell from '../../core/components/AgenteCrudShell.vue'
 import EntidadReligiosaFiltros from '../components/entidadReligiosa/EntidadReligiosaFiltros.vue'
 import EntidadReligiosaDataGrid from '../components/entidadReligiosa/EntidadReligiosaDataGrid.vue'
 import EntidadReligiosaForm from '../components/entidadReligiosa/EntidadReligiosaForm.vue'
+import EliminarConfirmModal from '../../core/components/ui/EliminarConfirmModal.vue'
 
 const entidadService = useEntidadReligiosa() // solo para mutaciones (crear/actualizar/eliminar)
 const { resolveClient } = useApolloClient()
@@ -62,6 +65,10 @@ const loading = ref(false)
 const page = ref(1)
 const pageSize = ref(15)
 const filters = ref({})
+
+const eliminarOpen = ref(false)
+const eliminarId = ref(null)
+const eliminarNombre = ref('')
 const tiposEntidad = ref([])
 
 const saving = ref(false)
@@ -153,14 +160,24 @@ const handleSave = async (data) => {
   }
 }
 
-const handleDelete = async (id) => {
-  if (!confirm('¿Eliminar esta entidad religiosa?')) return
+const handleDelete = (id) => {
+  eliminarId.value = id
+  eliminarNombre.value = items.value.find(e => e.id === id)?.nombre || ''
+  eliminarOpen.value = true
+}
+
+const onConfirmEliminar = async (permanente) => {
+  const id = eliminarId.value
+  if (!id) return
   try {
-    await entidadService.eliminar(id)
+    if (permanente) await entidadService.purgar(id)
+    else await entidadService.eliminar(id)
     if (selectedEntidad.value?.id === id) cerrarForm()
     await fetchPage()
   } catch (e) {
     console.error('Error eliminando entidad religiosa:', e)
+  } finally {
+    eliminarId.value = null
   }
 }
 </script>

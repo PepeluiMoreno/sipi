@@ -153,10 +153,9 @@ export const ACTUALIZAR = gql`
 `
 
 export const ELIMINAR = gql`
-  mutation EliminarNotaria($id: ID!) {
-    deleteNotarias(filter: { id: { eq: $id } }) {
-      id
-      nombre
-    }
-  }
+  mutation EliminarNotaria($id: ID!) { deleteNotaria(id: $id) }
+`
+
+export const PURGAR = gql`
+  mutation PurgarNotaria($id: ID!) { purgarNotaria(id: $id) }
 `
