@@ -62,6 +62,9 @@ _PLURAL_OVERRIDES: dict = {
     'AdministracionTitular': 'administracionesTitulares',
     'RegistroPropiedadTitular': 'registrosPropiedadesTitulares',
     'EntidadReligiosaTitular': 'entidadesReligiosaTitulares',
+    'ProcesoVigilancia': 'procesosVigilancia',
+    'ProcesoDestinatarioRol': 'procesoDestinatariosRol',
+    'ProcesoDestinatarioUsuario': 'procesoDestinatariosUsuario',
 }
 
 
@@ -99,6 +102,8 @@ def _graphql_type_for_column(column):
             return Optional[float] if nullable else float
         if python_type in (datetime, date, Decimal):
             return Optional[str] if nullable else str
+        if python_type == dict:  # JSONB (parametros, datos, payload…) → JSON scalar
+            return Optional[strawberry.scalars.JSON] if nullable else strawberry.scalars.JSON
         return Optional[str] if nullable else str
     except NotImplementedError:
         return Optional[str]
@@ -529,7 +534,8 @@ def _make_create_resolver(model, gql_type):
         return None, None
 
     CreateInput = strawberry.input(
-        type(f"{model.__name__}CreateInput", (), {"__annotations__": create_fields})
+        type(f"{model.__name__}CreateInput", (),
+             {"__annotations__": create_fields, **{k: None for k in create_fields}})
     )
 
     async def resolver(info: strawberry.Info, data: CreateInput) -> Optional[gql_type]:
@@ -576,7 +582,8 @@ def _make_update_resolver(model, gql_type):
         return None, None
 
     UpdateInput = strawberry.input(
-        type(f"{model.__name__}UpdateInput", (), {"__annotations__": update_fields})
+        type(f"{model.__name__}UpdateInput", (),
+             {"__annotations__": update_fields, **{k: None for k in update_fields if k != "id"}})
     )
 
     async def resolver(info: strawberry.Info, data: UpdateInput) -> Optional[gql_type]:
