@@ -184,7 +184,7 @@ function defaultsParametros(tipo) {
   return base
 }
 
-watch(() => props.proceso, (p) => {
+function cargarDesde(p) {
   tab.value = 'config'
   muestras.value = []; probarMsg.value = ''; hallazgos.value = []
   const src = p || { tipo: 'portal_inmobiliario' }
@@ -199,7 +199,7 @@ watch(() => props.proceso, (p) => {
   Object.assign(P, merged)
   frecuenciaCron.value = src.frecuenciaCron || ''
   if (form.id) cargarHallazgos()
-}, { immediate: true })
+}
 
 function añadirFuente() { (P.fuentes ??= []).push(fuenteNueva('api_rest')) }
 
@@ -249,4 +249,7 @@ async function probar() {
     probando.value = false
   }
 }
+
+// Al final: todos los refs ya están inicializados antes del watch immediate.
+watch(() => props.proceso, (p) => cargarDesde(p), { immediate: true })
 </script>
