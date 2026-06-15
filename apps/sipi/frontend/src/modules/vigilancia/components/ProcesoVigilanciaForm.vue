@@ -61,16 +61,31 @@
 
           <UiPanel title="Criterios de detección" icon="ajustes">
             <div class="space-y-3">
-              <div>
-                <label class="label">Palabras clave de inclusión</label>
-                <KeywordInput v-model="P.keywords_inclusion" placeholder="término + Enter…"
-                              help="Suman interés (convento, ermita, palacio episcopal, ábside…)." />
-              </div>
-              <div>
-                <label class="label">Palabras clave de exclusión</label>
-                <KeywordInput v-model="P.keywords_exclusion" placeholder="término + Enter…"
-                              help="Descartan (obra nueva, promoción, garaje…)." />
-              </div>
+              <template v-if="form.tipo !== 'subvenciones_rehab'">
+                <div>
+                  <label class="label">Palabras clave de inclusión</label>
+                  <KeywordInput v-model="P.keywords_inclusion" placeholder="término + Enter…"
+                                help="Suman interés (convento, ermita, palacio episcopal, ábside…)." />
+                </div>
+                <div>
+                  <label class="label">Palabras clave de exclusión</label>
+                  <KeywordInput v-model="P.keywords_exclusion" placeholder="término + Enter…"
+                                help="Descartan (obra nueva, promoción, garaje…)." />
+                </div>
+              </template>
+              <template v-if="form.tipo === 'subvenciones_rehab'">
+                <div>
+                  <label class="label">Recurso ODM de concesiones</label>
+                  <input v-model="P.recurso_concesiones" class="input font-mono text-sm"
+                         placeholder="BDNS - Concesiones de Subvenciones" />
+                  <p class="text-xs text-zinc-400 mt-1">Fetcher fijo: OpenDataManager. Filtra NIF R/G y
+                     puntúa la finalidad de rehabilitación de edificio.</p>
+                </div>
+                <div>
+                  <label class="label">Año de concesión <span class="text-zinc-400">(opcional)</span></label>
+                  <input type="number" v-model.number="P.anio" class="input w-40" placeholder="todos" />
+                </div>
+              </template>
               <div v-if="form.tipo === 'portal_inmobiliario'">
                 <label class="label">Tipologías de interés</label>
                 <KeywordInput v-model="P.tipologias" placeholder="convento, ermita…" />
@@ -185,6 +200,9 @@ function defaultsParametros(tipo) {
   const base = { keywords_inclusion: [], keywords_exclusion: [], umbral_score: 60 }
   if (tipo === 'portal_inmobiliario') return { ...base, tipologias: [], fuentes: [] }
   if (tipo === 'desacralizacion') return { ...base, umbral_score: 70, diocesis: [] }
+  if (tipo === 'subvenciones_rehab') return {
+    recurso_concesiones: 'BDNS - Concesiones de Subvenciones', anio: null, umbral_score: 70,
+  }
   if (tipo === 'prensa') return { ...base, umbral_score: 50, medios: [] }
   return base
 }

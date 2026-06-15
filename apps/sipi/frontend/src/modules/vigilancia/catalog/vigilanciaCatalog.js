@@ -94,6 +94,32 @@ export const TIPOS_PROCESO = {
     ],
   },
 
+  subvenciones_rehab: {
+    label: 'Subvenciones de rehabilitación (BDNS)',
+    icon: 'church',
+    descripcion:
+      'Consulta en OpenDataManager las concesiones BDNS, filtra beneficiarios ' +
+      'con NIF R (entidad religiosa) o G (asociación/fundación) y valora la ' +
+      'fiabilidad de que financien la rehabilitación de un edificio inmatriculado. ' +
+      'Fetcher fijo: ODM (no requiere configurar fuentes).',
+    parametros: [
+      {
+        key: 'recurso_concesiones', label: 'Recurso ODM de concesiones', tipo: 'texto',
+        default: 'BDNS - Concesiones de Subvenciones',
+        help: 'Nombre EXACTO del recurso publicado en ODM con las concesiones BDNS.',
+      },
+      {
+        key: 'anio', label: 'Año de concesión', tipo: 'numero', min: 2008, max: 2100, default: null,
+        help: 'Filtra por año de la concesión. Vacío = todo el dataset.',
+      },
+      {
+        key: 'umbral_score', label: 'Umbral de certeza (0–100)', tipo: 'numero',
+        min: 0, max: 100, default: 70,
+        help: 'Fiabilidad ≥ umbral → hallazgo "cierto"; por debajo → "dudoso" (revisión humana).',
+      },
+    ],
+  },
+
   prensa: {
     label: 'Prensa online',
     icon: 'news',

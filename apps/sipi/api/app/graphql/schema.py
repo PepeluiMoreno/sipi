@@ -749,6 +749,7 @@ def _vig_tipo_evento(tipo_proceso: str):
     from sipi_core.models import TipoEventoExpediente as _T
     return {"portal_inmobiliario": _T.PUESTA_EN_VENTA,
             "desacralizacion": _T.CAMBIO_DE_USO,
+            "subvenciones_rehab": _T.REHABILITACION_SUBVENCIONADA,
             "prensa": _T.CAMBIO_VISITABILIDAD}.get(tipo_proceso, _T.PUESTA_EN_VENTA)
 
 
@@ -809,6 +810,9 @@ async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
         proc = (await db.execute(_select(_PV).where(_PV.id == str(proceso_id)))).scalar_one_or_none()
         if proc is None:
             return ProbarResult(ok=False, mensaje="Proceso no encontrado.")
+        # Tipos con fetcher fijo (no configurable por fuentes): ODM/BDNS.
+        if proc.tipo == "subvenciones_rehab":
+            return await _vig_run_subvenciones(db, proc, persistir)
         params = proc.parametros or {}
         fuentes = params.get("fuentes") or []
         if fuente_id:
@@ -871,6 +875,168 @@ async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
             proc.ultima_ejecucion = _dt.now(_tz.utc)
             await db.commit()
         return ProbarResult(ok=ok_any, mensaje="\n".join(lineas), muestras=muestras, creados=creados)
+
+
+async def _vig_run_subvenciones(db, proc, persistir: bool) -> ProbarResult:
+    """Motor del proceso `subvenciones_rehab`. Fetcher fijo: OpenDataManager.
+
+    Resuelve el recurso BDNS de concesiones (nombre→id→último dataset), descarga
+    el JSONL en streaming, filtra beneficiarios NIF R/G, puntúa la fiabilidad de
+    que financie la rehabilitación de un edificio inmatriculado (scorer de
+    sipi-core + cruce con el censo) y —si `persistir`— crea `Hallazgo`
+    PENDIENTE idempotentes por `origen_id = codConcesion`.
+    """
+    import os as _os
+    import json as _json
+    import httpx as _httpx
+    from datetime import datetime as _dt, timezone as _tz
+    from sqlalchemy import select as _select, text as _text
+    from sipi_core.db.registry import APP_SCHEMA as _S
+    from sipi_core.models import Hallazgo as _H, EstadoHallazgo as _EH, CertezaHallazgo as _CH
+    from sipi_core.modules.discovery.subvenciones import (
+        to_concesion as _to_conc, evaluar as _evaluar,
+        Q_RESOURCES as _QR, q_datasets as _qds,
+        resolver_recurso_id as _res_id, elegir_ultimo_dataset as _ult_ds,
+        RESOURCE_CONCESIONES as _RES_CONC, norm as _norm,
+    )
+
+    P = proc.parametros or {}
+    base = (_os.getenv("OPENDATAMANAGER_URL", "http://odmgr_app:8040")).rstrip("/")
+    token = _os.getenv("ODM_APP_TOKEN", "")
+    recurso = P.get("recurso_concesiones") or _RES_CONC
+    anio = P.get("anio")
+    umbral = float(P.get("umbral_score") or 70)
+    cap_probar = int(P.get("max_muestras") or 1500)
+    headers = {"User-Agent": "sipi-vigilancia/subvenciones"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    # --- censo: entidad religiosa por NIF/nombre + marca de inmatriculación ---
+    censo_nif, censo_nom = {}, {}
+    try:
+        rows = (await db.execute(_text(f"""
+            SELECT er.id AS id, er.nombre AS nombre, er.nif AS nif,
+                   EXISTS (SELECT 1 FROM {_S}.inmuebles i
+                           JOIN {_S}.inmatriculaciones im ON im.inmueble_id = i.id
+                           WHERE i.entidad_religiosa_id = er.id) AS inmat
+            FROM {_S}.entidades_religiosas er WHERE er.deleted_at IS NULL
+        """))).mappings().all()
+        for r in rows:
+            ident = (str(r["id"]), bool(r["inmat"]))
+            if r["nif"]:
+                censo_nif[(r["nif"] or "").upper()] = ident
+            if r["nombre"]:
+                censo_nom[_norm(r["nombre"])] = ident
+    except Exception:
+        pass  # sin censo, el scorer sigue: bonus 0
+
+    _BONUS = {("nif", True): (0.25, "censo_nif_inmatriculado"), ("nif", False): (0.10, "censo_nif"),
+              ("nom", True): (0.18, "censo_nombre_inmatriculado"), ("nom", False): (0.06, "censo_nombre")}
+
+    def _cruzar(nif, nombre):
+        ident = censo_nif.get((nif or "").upper()); modo = "nif"
+        if not ident:
+            modo = "nom"; bn = _norm(nombre); ident = censo_nom.get(bn)
+            if not ident and bn:
+                for sn, val in censo_nom.items():
+                    if bn in sn or sn in bn:
+                        ident = val; break
+        if not ident:
+            return 0.0, [], None
+        er_id, inmat = ident
+        bonus, senal = _BONUS[(modo, inmat)]
+        return bonus, [senal], er_id
+
+    # --- resolución del dataset en ODM ---------------------------------------
+    try:
+        async with _httpx.AsyncClient(timeout=30, headers=headers, follow_redirects=True) as cli:
+            d = (await cli.post(f"{base}/graphql", json={"query": _QR})).json()
+            rid = _res_id((d.get("data") or {}).get("resources") or [], recurso)
+            if not rid:
+                return ProbarResult(ok=False, mensaje=f"Recurso ODM no encontrado: «{recurso}». "
+                                    f"Revisa el nombre o que ODM lo tenga publicado.")
+            d2 = (await cli.post(f"{base}/graphql", json={"query": _qds(rid)})).json()
+            ds = _ult_ds((d2.get("data") or {}).get("datasets") or [])
+            if not ds:
+                return ProbarResult(ok=False, mensaje=f"El recurso «{recurso}» no tiene dataset publicado en ODM.")
+
+            # --- streaming del JSONL -----------------------------------------
+            url = f"{base}/api/datasets/{ds}/data.jsonl"
+            leidas = rg = candidatas = cierto = creados = ya = 0
+            muestras: List[MuestraProbar] = []
+            tipo_evento = _vig_tipo_evento(proc.tipo)
+            batch = 0
+            async with cli.stream("GET", url) as resp:
+                async for raw in resp.aiter_lines():
+                    line = (raw or "").strip()
+                    if not line:
+                        continue
+                    leidas += 1
+                    try:
+                        rec = _json.loads(line)
+                    except Exception:
+                        continue
+                    if anio:
+                        f = str(rec.get("fechaConcesion") or "")[:4]
+                        if f and f != str(anio):
+                            continue
+                    c = _to_conc(rec)
+                    if c is None:
+                        continue
+                    rg += 1
+                    bonus, sen_censo, er_id = _cruzar(c.nif, c.nombre)
+                    fiab = _evaluar(c.nif, c.nombre, *c.textos_finalidad(None),
+                                    bonus_censo=bonus, senales_censo=sen_censo)
+                    if not fiab.es_candidato:
+                        continue
+                    candidatas += 1
+                    es_cierto = (fiab.valor * 100) >= umbral
+                    cierto += es_cierto
+                    if len(muestras) < 50:
+                        muestras.append(MuestraProbar(
+                            fuente=c.nivel2 or "BDNS", titulo=(c.nombre or "")[:120],
+                            url=c.url_bdns, precio=(f"{c.importe:,.0f} €" if c.importe else None),
+                            score=round(fiab.valor * 100, 1)))
+                    if persistir:
+                        existe = (await db.execute(_text(
+                            f"SELECT 1 FROM {_S}.hallazgos WHERE fuente='odmgr:bdns' AND origen_id=:o LIMIT 1"
+                        ), {"o": c.cod_concesion})).first()
+                        if existe:
+                            ya += 1
+                            continue
+                        imp = (f"{c.importe:,.0f} €".replace(",", ".")) if c.importe else "s/importe"
+                        db.add(_H(
+                            fuente="odmgr:bdns", tipo_evento=tipo_evento, estado=_EH.PENDIENTE,
+                            certeza=_CH.CIERTO if es_cierto else _CH.DUDOSO,
+                            confianza=round(fiab.valor, 3),
+                            titulo=f"{imp} — {c.nombre}"[:255],
+                            descripcion=" · ".join(t for t in (c.convocatoria, c.instrumento) if t) or None,
+                            datos={"cod_concesion": c.cod_concesion, "nif": c.nif,
+                                   "beneficiario": c.beneficiario_raw, "importe": c.importe,
+                                   "convocatoria": c.convocatoria, "instrumento": c.instrumento,
+                                   "nivel": [c.nivel1, c.nivel2, c.nivel3],
+                                   "entidad_religiosa_id": er_id,
+                                   "scoring": fiab.detalle, "senales": fiab.senales},
+                            url_evidencia=(c.url_bdns or f"bdns:{c.cod_concesion}")[:500],
+                            fecha_evento=c.fecha_concesion,
+                            proceso_id=proc.id, origen_tipo="concesion_bdns", origen_id=c.cod_concesion))
+                        creados += 1; batch += 1
+                        if batch >= 500:
+                            await db.commit(); batch = 0
+                    elif candidatas >= cap_probar:
+                        break  # en «probar» basta una muestra acotada
+
+            if persistir:
+                proc.ultima_ejecucion = _dt.now(_tz.utc)
+                await db.commit()
+
+        verbo = "creados" if persistir else "detectados (muestra)"
+        msg = (f"Recurso «{recurso}» · {leidas} concesiones leídas, {rg} con NIF R/G, "
+               f"{candidatas} candidatas a rehabilitación ({cierto} ciertas). "
+               f"{creados} hallazgo(s) {verbo}" + (f", {ya} ya existían." if ya else "."))
+        return ProbarResult(ok=True, mensaje=msg, muestras=muestras, creados=creados)
+    except Exception as e:  # noqa: BLE001
+        return ProbarResult(ok=False, mensaje=f"Error consultando ODM: {e}")
 
 
 async def _probar_proceso_vigilancia(info: "strawberry.Info", proceso_id: strawberry.ID,
