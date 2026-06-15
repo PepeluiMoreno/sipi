@@ -299,3 +299,29 @@ def elegir_ultimo_dataset(datasets: list) -> Optional[str]:
     ds.sort(key=lambda d: (d.get("majorVersion") or 0, d.get("minorVersion") or 0,
                            d.get("patchVersion") or 0, d.get("createdAt") or ""))
     return ds[-1]["id"]
+
+
+# Recursos por ejercicio creados por seed_bdns_ejercicios.py en ODM:
+#   "BDNS · Concesiones 2024"  (anual)  /  "BDNS · Concesiones 2025-03"  (mensual)
+ETIQUETA_HIST_CONCESIONES = "Concesiones"
+_RE_HIJO_EJERCICIO = re.compile(r"^BDNS · (?P<etq>.+?) (?P<anio>20\d{2})(?:-(?P<mes>\d{2}))?$")
+
+
+def recursos_por_ejercicio(resources: list, etiqueta: str = ETIQUETA_HIST_CONCESIONES) -> list:
+    """De la lista de Q_RESOURCES, los hijos por ejercicio de una colección BDNS,
+    ordenados de más reciente a más antiguo: [(id, name, (anio, mes))].
+
+    Reconoce tanto hijos anuales ("… 2024") como mensuales ("… 2025-03"); el
+    consumidor debe deduplicar por clave de registro (codConcesion) al unir los
+    datasets, por si conviven ambas granularidades para un mismo año.
+    """
+    out = []
+    for r in resources or []:
+        m = _RE_HIJO_EJERCICIO.match(r.get("name") or "")
+        if not m or m.group("etq") != etiqueta:
+            continue
+        anio = int(m.group("anio"))
+        mes = int(m.group("mes")) if m.group("mes") else 0
+        out.append((r.get("id"), r.get("name"), (anio, mes)))
+    out.sort(key=lambda t: t[2], reverse=True)
+    return out

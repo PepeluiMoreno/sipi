@@ -19,6 +19,7 @@ from .fuentes import (
     ConcesionBDNS,
     iter_concesiones,
     construir_indice_convocatorias,
+    iter_concesiones_historico,
     extraer_nif_nombre,
     RESOURCE_CONCESIONES,
     RESOURCE_CONVOCATORIAS,

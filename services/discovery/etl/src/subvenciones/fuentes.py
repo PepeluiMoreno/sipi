@@ -15,6 +15,7 @@ from sipi_core.modules.discovery.subvenciones import (
     ConcesionBDNS, to_concesion as _to_concesion, extraer_nif_nombre,  # noqa: F401
     convocatoria_texto, RESOURCE_CONCESIONES, RESOURCE_CONVOCATORIAS,
     Q_RESOURCES, q_datasets, resolver_recurso_id, elegir_ultimo_dataset,
+    recursos_por_ejercicio, ETIQUETA_HIST_CONCESIONES,
 )
 
 
@@ -45,6 +46,33 @@ def iter_concesiones(client, resource_name: str = RESOURCE_CONCESIONES,
                 continue
         c = _to_concesion(rec)
         if c is not None:
+            yield c
+
+
+def iter_concesiones_historico(client, etiqueta: str = ETIQUETA_HIST_CONCESIONES
+                               ) -> Iterator[ConcesionBDNS]:
+    """Une el ÚLTIMO dataset de cada recurso hijo por ejercicio de la colección
+    BDNS (los que crea seed_bdns_ejercicios.py en ODM), de más reciente a más
+    antiguo, filtrando a NIF R/G y deduplicando por codConcesion (por si conviven
+    granularidad anual y mensual del mismo año). Si no hay hijos, no emite nada
+    (el consumidor puede recaer en iter_concesiones del recurso del año en curso).
+    """
+    data = client._post_json("/graphql", {"query": Q_RESOURCES})
+    hijos = recursos_por_ejercicio((data.get("data") or {}).get("resources") or [], etiqueta)
+    vistos: set = set()
+    for rid, _name, _clave in hijos:
+        ds = resolver_ultimo_dataset(client, rid)
+        if not ds:
+            continue
+        for rec in client.iter_jsonl(ds):
+            cod = rec.get("codConcesion")
+            if cod and cod in vistos:
+                continue
+            c = _to_concesion(rec)
+            if c is None:
+                continue
+            if cod:
+                vistos.add(cod)
             yield c
 
 

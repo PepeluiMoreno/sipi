@@ -164,12 +164,15 @@ def analizar(
     umbral: float = UMBRAL_CIERTO_DEFECTO,
     dry_run: bool = False,
     solo_informe: bool = False,
+    historico: bool = False,
     batch_size: int = 500,
 ) -> Counter:
     """Recorre las concesiones R/G del recurso ODM, puntúa y crea Hallazgos.
 
     `session_factory` es un callable que devuelve un context manager de Session
-    (sync) de sipi-core. `client` es un `ODMClient`.
+    (sync) de sipi-core. `client` es un `ODMClient`. Con `historico=True` recorre
+    todos los hijos por ejercicio de la colección (todo el histórico); si no,
+    solo el recurso del año en curso (opcionalmente filtrado por `anio`).
     """
     stats: Counter = Counter()
 
@@ -179,8 +182,10 @@ def analizar(
         if indice_conv:
             log.info("Índice de convocatorias: %d entradas", len(indice_conv))
 
+        fuente = (fuentes.iter_concesiones_historico(client) if historico
+                  else fuentes.iter_concesiones(client, anio=anio))
         n = 0
-        for c in fuentes.iter_concesiones(client, anio=anio):
+        for c in fuente:
             stats["leidas"] += 1
             bonus, senales_censo, er_id = censo.cruzar(c.nif, c.nombre)
             fiab = evaluar(
@@ -246,6 +251,8 @@ def main():
                    help="Fiabilidad (0..100) a partir de la cual el hallazgo es CIERTO")
     p.add_argument("--dry-run", action="store_true", help="No persiste; solo cuenta")
     p.add_argument("--informe", action="store_true", help="Solo estadísticas (alias de dry-run)")
+    p.add_argument("--historico", action="store_true",
+                   help="Recorre toda la colección por ejercicio (histórico), no solo el año en curso")
     args = p.parse_args()
 
     # Cliente ODM (sync, urllib) — reutiliza el del consumidor existente.
@@ -259,6 +266,7 @@ def main():
         umbral=args.umbral,
         dry_run=args.dry_run,
         solo_informe=args.informe,
+        historico=args.historico,
     )
 
 

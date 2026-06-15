@@ -76,3 +76,23 @@ e = evaluar("R0800012H", "Cáritas Diocesana",
 _check(not e.es_candidato, "R + finalidad vetada → no candidato")
 
 print("\nTodos los casos pasan.")
+
+
+# --- selección de recursos por ejercicio (colección histórica) ----------------
+from sipi_core.modules.discovery.subvenciones import recursos_por_ejercicio
+
+_RES = [
+    {"id": "a", "name": "BDNS · Concesiones 2024"},
+    {"id": "b", "name": "BDNS · Concesiones 2025-03"},
+    {"id": "c", "name": "BDNS · Concesiones 2025-12"},
+    {"id": "d", "name": "BDNS · Concesiones 2022"},
+    {"id": "e", "name": "BDNS · Concesiones (histórico por ejercicio)"},  # la colección padre, NO hija
+    {"id": "f", "name": "BDNS · Convocatorias 2024"},                      # otra etiqueta
+    {"id": "g", "name": "BDNS - Concesiones de Subvenciones"},             # recurso plano legacy
+]
+_sel = recursos_por_ejercicio(_RES, "Concesiones")
+_ids = [i for i, _, _ in _sel]
+_check(_ids == ["c", "b", "a", "d"], f"hijos por ejercicio, recientes primero: {_ids}")
+_check(all(x not in _ids for x in ("e", "f", "g")), "excluye colección, otra etiqueta y legacy")
+
+print("\nTodos los casos (incl. colección) pasan.")
