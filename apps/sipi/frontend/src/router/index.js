@@ -29,6 +29,7 @@ import VerificarEmail from '../modules/usuarios/views/VerificarEmail.vue'
 import ControlAcceso from '../modules/acceso/views/ControlAcceso.vue'
 import RolesPermisos from '../modules/acceso/views/RolesPermisos.vue'
 import ParametrosGenerales from '../modules/configuracion/views/ParametrosGenerales.vue'
+import ProcesosVigilancia from '../modules/vigilancia/views/ProcesosVigilancia.vue'
 import { getToken } from '../modules/auth/token'
 
 const routes = [
@@ -129,6 +130,11 @@ const routes = [
         path: '/config/parametros',
         name: 'ParametrosGenerales',
         component: ParametrosGenerales
+      },
+      {
+        path: '/vigilancia',
+        name: 'ProcesosVigilancia',
+        component: ProcesosVigilancia
       },
       {
         path: '/papelera',

@@ -119,6 +119,14 @@
             <span>Parámetros generales</span>
           </router-link>
           <router-link
+            to="/vigilancia"
+            class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+            :class="{ 'bg-gray-800': $route.path === '/vigilancia' }"
+          >
+            <EyeIcon class="w-5 h-5" />
+            <span>Procesos de vigilancia</span>
+          </router-link>
+          <router-link
             to="/papelera"
             class="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors"
             :class="{ 'bg-gray-800': $route.path === '/papelera' }"
@@ -164,6 +172,7 @@ import {
   ShieldCheckIcon,
   ArrowRightOnRectangleIcon,
   Cog6ToothIcon,
+  EyeIcon,
   TrashIcon
 } from '@heroicons/vue/24/outline'
 import { useAuth } from '../../auth/composables/useAuth'
