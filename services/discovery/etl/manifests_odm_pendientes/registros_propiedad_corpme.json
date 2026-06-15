@@ -1,0 +1,25 @@
+{
+  "odm_manifest_version": 1,
+  "_DRAFT": "opendata.registradores.org ES un portal CKAN real (API /api/3/action/*), pero orientado a datasets estadísticos/mercantiles. El DIRECTORIO de oficinas de Registro de la Propiedad (codigo, demarcacion, titular) sale del localizador de oficinas del CORPME, NO del catálogo estadístico. Verificar endpoint antes de activar.",
+  "publisher": {
+    "acronimo": "CORPME",
+    "nombre": "Colegio de Registradores de la Propiedad y Mercantiles de España",
+    "nivel": "ESTATAL",
+    "pais": "España",
+    "portal_url": "https://www.registradores.org/"
+  },
+  "resources": [
+    {
+      "name": "Registros de la Propiedad de España (CORPME)",
+      "fetcher": "HTML (genérico)",
+      "schedule": "0 4 1 * *",
+      "active": false,
+      "clase_fuente": "scraping_publico",
+      "collection": "Agentes — fe pública",
+      "_campos_destino": ["codigo_oficial", "denominacion", "domicilio", "telefono", "email", "municipio", "provincia", "titular"],
+      "params": [
+        {"key": "_pendiente", "value": "confirmar fuente del directorio de oficinas (localizador CORPME vs CKAN opendata)", "is_external": false}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "odm_manifest_version": 1,
+  "_DRAFT": "Pendiente de verificar la forma real de la fuente (localizador de oficinas del CGN). Va al repo opendatamanager/manifests/ una vez confirmado el endpoint/selectores.",
+  "publisher": {
+    "acronimo": "CGN",
+    "nombre": "Consejo General del Notariado",
+    "nivel": "ESTATAL",
+    "pais": "España",
+    "portal_url": "https://www.notariado.org/"
+  },
+  "resources": [
+    {
+      "name": "Notarías de España (CGN)",
+      "fetcher": "HTML (genérico)",
+      "schedule": "0 4 1 * *",
+      "active": false,
+      "clase_fuente": "scraping_publico",
+      "collection": "Agentes — fe pública",
+      "_campos_destino": ["codigo_oficial", "nombre_notario", "domicilio", "telefono", "email", "municipio", "provincia"],
+      "params": [
+        {"key": "navigation", "value": "searchloop", "is_external": false},
+        {"key": "_pendiente", "value": "fijar base_url del localizador de notarías + selectores fila/detalle", "is_external": false}
+      ]
+    }
+  ]
+}

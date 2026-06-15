@@ -1,6 +1,6 @@
 # Validación del procedimiento de fusión CEE × OSM
 
-Módulo: `services/etl/src/modules/fusion`. Objetivo: a partir del listado CEE
+Módulo: `services/discovery/etl/src/modules/fusion`. Objetivo: a partir del listado CEE
 de inmatriculaciones (sin coordenadas) y de los bienes religiosos de
 OpenStreetMap (con coordenadas), producir un *seed* de `Inmueble` sin duplicar,
 con procedencia y bandas de confianza.
@@ -93,7 +93,7 @@ Sin confirmación geográfica (municipio CEE sin join), el candidato de provinci
 ## Reproducir
 
 ```bash
-cd services/etl
+cd services/discovery/etl
 python scripts/seed_inmuebles_fusion.py \
     --cee ../../apps/api/ETL/preparation/data/output \
     --osm /ruta/osm_pontevedra.json \

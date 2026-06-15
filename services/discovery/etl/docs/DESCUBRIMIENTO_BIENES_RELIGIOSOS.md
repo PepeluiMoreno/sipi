@@ -202,7 +202,7 @@ Modelos destino: `Inmueble` (canónico) + `Inmatriculacion` (CEE) +
 
 ## 9. Estado e implementación
 
-- **Hecho y validado** (`services/etl/src/modules/fusion`): normalización es/gl,
+- **Hecho y validado** (`services/discovery/etl/src/modules/fusion`): normalización es/gl,
   extracción de advocación, reverse-geocoding a municipio, fusión bloqueada por
   municipio, bandas de confianza, emisión de hallazgos y backlog. Validado en
   Pontevedra (ver `VALIDACION_FUSION.md`).
