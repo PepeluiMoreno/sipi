@@ -117,6 +117,48 @@ def detectar_finalidad_rehab(*textos: str) -> Finalidad:
 
 
 # ============================================================================
+# Clasificación OBRA (de edificio) vs BIEN MUEBLE
+# ----------------------------------------------------------------------------
+# El objetivo son OBRAS de rehabilitación de edificios. La restauración de bienes
+# muebles (imágenes, retablos, órganos, pintura, orfebrería…) NO es una obra.
+# ============================================================================
+_OBRA_TOKENS = (
+    "cubierta", "tejado", "fachada", "muro", "estructura", "consolidacion",
+    "forjado", "cimentacion", "humedad", "accesibilidad", "edificio", "inmueble",
+    "templo", "iglesia", "ermita", "convento", "monasterio", "capilla", "catedral",
+    "basilica", "santuario", "claustro", "torre", "campanario", "espadana", "nave",
+    "abadia", "parroquia", "presbiterio", "abside", "soleria", "carpinteria",
+    "instalacion electrica", "saneamiento", "obras", "reforma", "reparacion",
+)
+_MUEBLE_TOKENS = (
+    "imagen", "imagenes", "retablo", "talla", "tallas", "pintura", "lienzo",
+    "organo", "escultura", "bienes muebles", "bien mueble", "policromia",
+    "orfebreria", "bordado", "manto", "palio", "pictoric", "oleo", "sarga",
+    "ajuar", "pieza", "ostensorio", "custodia", "campana", "documental", "archivo",
+)
+
+
+def clasificar_obra(*textos: str) -> str:
+    """'obra' | 'mueble' | 'mixto' | 'indet' a partir del título/finalidad.
+
+    - 'obra'  : menciona elementos constructivos/inmuebles y ningún bien mueble.
+    - 'mueble': menciona bienes muebles y ningún elemento constructivo.
+    - 'mixto' : ambos (p. ej. obra del templo + restauración del retablo).
+    - 'indet' : ninguno claro (título genérico tipo "subvención nominativa…").
+    """
+    t = _norm(" ".join(x for x in textos if x))
+    obra = any(k in t for k in _OBRA_TOKENS)
+    mueble = any(k in t for k in _MUEBLE_TOKENS)
+    if obra and not mueble:
+        return "obra"
+    if mueble and not obra:
+        return "mueble"
+    if obra and mueble:
+        return "mixto"
+    return "indet"
+
+
+# ============================================================================
 # 3. Vetos de gremio secular / refuerzo religioso sobre el NOMBRE
 # ============================================================================
 _VETO_GREMIO = re.compile(

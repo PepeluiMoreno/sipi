@@ -96,3 +96,12 @@ _check(_ids == ["c", "b", "a", "d"], f"hijos por ejercicio, recientes primero: {
 _check(all(x not in _ids for x in ("e", "f", "g")), "excluye colección, otra etiqueta y legacy")
 
 print("\nTodos los casos (incl. colección) pasan.")
+
+
+# --- clasificador obra vs bien mueble ----------------------------------------
+from sipi_core.modules.discovery.subvenciones import clasificar_obra
+_check(clasificar_obra("Reparación de cubiertas de la Catedral") == "obra", "cubierta+catedral → obra")
+_check(clasificar_obra("Restauración del retablo mayor") == "mueble", "retablo → mueble")
+_check(clasificar_obra("Rehabilitación de la iglesia y restauración del órgano") == "mixto", "iglesia+órgano → mixto")
+_check(clasificar_obra("Subvención nominativa 2024") == "indet", "título genérico → indet")
+print("Clasificador obra/mueble: casos pasan.")
