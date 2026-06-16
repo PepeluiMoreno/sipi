@@ -91,20 +91,26 @@
           </UiPanel>
         </div>
 
-        <UiPanel v-if="form.tipo === 'portal_inmobiliario'" title="Fuentes y cómo obtenerlas" icon="config">
-          <template #actions>
-            <UiButton size="sm" icon="plus" variant="ghost" @click="añadirFuente">Añadir fuente</UiButton>
-          </template>
+        <UiPanel v-if="form.tipo === 'portal_inmobiliario'" title="Portal y cómo obtenerlo" icon="config">
           <p class="text-xs text-zinc-400 mb-3">
-            Cada fuente declara su <b>fetcher</b> (API REST, scraper HTML, RSS…); los datos a rellenar
-            dependen de ese tipo.
+            Cada proceso vigila <b>un único portal</b>. Elige su <b>fetcher</b> (scraper HTML, API…);
+            los datos a rellenar dependen del tipo.
           </p>
-          <div class="space-y-3">
-            <FuenteEditor v-for="(fu, i) in (P.fuentes || [])" :key="fu.id"
-                          :model-value="fu" @update:model-value="v => P.fuentes[i] = v" @remove="P.fuentes.splice(i, 1)" />
-            <p v-if="!(P.fuentes || []).length" class="text-sm text-zinc-400 text-center py-6 border border-dashed rounded-lg">
-              Sin fuentes. Añade al menos una.
-            </p>
+          <FuenteEditor v-if="P.fuente" :model-value="P.fuente" :removable="false"
+                        @update:model-value="v => (P.fuente = v)" />
+          <!-- Probar EN la solapa de configuración -->
+          <div class="mt-3 flex items-center gap-2">
+            <UiButton size="sm" variant="secondary" icon="search" :loading="probando" :disabled="!form.id" @click="probar">
+              Probar
+            </UiButton>
+            <span v-if="!form.id" class="text-xs text-amber-600">Guarda el proceso para poder probarlo.</span>
+          </div>
+          <p v-if="probarMsg" class="mt-2 text-sm rounded bg-zinc-50 border border-zinc-200 px-3 py-2 whitespace-pre-line">{{ probarMsg }}</p>
+          <div v-if="muestras.length" class="mt-2 border border-zinc-200 rounded-lg divide-y">
+            <div v-for="(m, i) in muestras.slice(0, 8)" :key="i" class="p-2 text-sm flex items-center justify-between gap-3">
+              <a :href="m.url" target="_blank" class="truncate text-indigo-700 hover:underline">{{ m.titulo || m.url }}</a>
+              <span class="text-zinc-400 shrink-0">{{ m.score }}%<span v-if="m.precio"> · {{ m.precio }}</span></span>
+            </div>
           </div>
         </UiPanel>
       </div>
@@ -113,16 +119,11 @@
       <div v-show="tab === 'hallazgos'" class="space-y-3">
         <div class="flex items-center justify-between gap-2">
           <p class="text-sm text-zinc-500">Últimos hallazgos obtenidos por este proceso.</p>
-          <div class="flex gap-2 shrink-0">
-            <UiButton size="sm" variant="secondary" icon="search" :loading="probando" :disabled="!form.id" @click="probar">
-              Probar
-            </UiButton>
-            <UiButton size="sm" variant="primary" icon="check" :loading="ejecutando" :disabled="!form.id" @click="ejecutar">
-              Ejecutar ahora
-            </UiButton>
-          </div>
+          <UiButton size="sm" variant="primary" icon="check" :loading="ejecutando" :disabled="!form.id" @click="ejecutar">
+            Ejecutar ahora
+          </UiButton>
         </div>
-        <p v-if="!form.id" class="text-xs text-amber-600">Guarda el proceso antes de probarlo.</p>
+        <p v-if="!form.id" class="text-xs text-amber-600">Guarda el proceso antes de ejecutarlo.</p>
         <p v-if="probarMsg" class="text-sm rounded bg-zinc-50 border border-zinc-200 px-3 py-2">{{ probarMsg }}</p>
 
         <div v-if="muestras.length" class="border border-zinc-200 rounded-lg divide-y">
@@ -145,7 +146,7 @@
           </div>
         </div>
         <p v-else-if="!muestras.length" class="text-sm text-zinc-400 text-center py-8 border border-dashed rounded-lg">
-          Aún no hay hallazgos. Usa «Probar ahora» para validar las fuentes.
+          Aún no hay hallazgos. Usa «Ejecutar ahora» para buscar (o «Probar» en Configuración).
         </p>
       </div>
     </div>
@@ -183,7 +184,8 @@ const frecuenciaCron = ref('')
 
 function defaultsParametros(tipo) {
   const base = { keywords_inclusion: [], keywords_exclusion: [], umbral_score: 60 }
-  if (tipo === 'portal_inmobiliario') return { ...base, tipologias: [], fuentes: [] }
+  // Un proceso de portal = UN portal (fuente única, no lista).
+  if (tipo === 'portal_inmobiliario') return { ...base, tipologias: [], fuente: fuenteNueva('html_paginated') }
   if (tipo === 'desacralizacion') return { ...base, umbral_score: 70, diocesis: [] }
   if (tipo === 'prensa') return { ...base, umbral_score: 50, medios: [] }
   return base
@@ -200,15 +202,20 @@ function cargarDesde(p) {
   form.activo = src.activo ?? true
   form.severidadDefecto = src.severidadDefecto ?? 'aviso'
   const merged = { ...defaultsParametros(form.tipo), ...(src.parametros || {}) }
+  // Compat: si el guardado trae la lista antigua `fuentes`, toma la primera como fuente única.
+  if (form.tipo === 'portal_inmobiliario' && !merged.fuente && Array.isArray(merged.fuentes) && merged.fuentes.length) {
+    merged.fuente = merged.fuentes[0]
+  }
+  delete merged.fuentes
   Object.keys(P).forEach(k => delete P[k])
   Object.assign(P, merged)
   frecuenciaCron.value = src.frecuenciaCron || ''
   if (form.id) cargarHallazgos()
 }
 
-function añadirFuente() { (P.fuentes ??= []).push(fuenteNueva('api_rest')) }
-
 function handleSubmit() {
+  const parametros = JSON.parse(JSON.stringify(P))
+  delete parametros.fuentes  // solo persistimos `fuente` (única)
   emit('save', {
     id: form.id,
     nombre: form.nombre,
@@ -217,7 +224,7 @@ function handleSubmit() {
     activo: form.activo,
     frecuenciaCron: frecuenciaCron.value || null,
     severidadDefecto: form.severidadDefecto,
-    parametros: JSON.parse(JSON.stringify(P)),
+    parametros,
   })
 }
 

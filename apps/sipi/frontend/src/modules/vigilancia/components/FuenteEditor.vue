@@ -17,7 +17,7 @@
         </span>
         {{ f.activa ? 'Activa' : 'Pausada' }}
       </button>
-      <button type="button" class="text-zinc-400 hover:text-red-600 px-1" title="Eliminar fuente"
+      <button v-if="removable" type="button" class="text-zinc-400 hover:text-red-600 px-1" title="Eliminar fuente"
               @click="$emit('remove')">✕</button>
     </div>
 
@@ -56,7 +56,10 @@
 import { reactive, computed, watch } from 'vue'
 import { fetchersLista, fetcherDef, fuenteNueva } from '../catalog/fetcherCatalog'
 
-const props = defineProps({ modelValue: { type: Object, required: true } })
+const props = defineProps({
+  modelValue: { type: Object, required: true },
+  removable: { type: Boolean, default: true },
+})
 const emitFn = defineEmits(['update:modelValue', 'remove'])
 
 const fetchers = fetchersLista()

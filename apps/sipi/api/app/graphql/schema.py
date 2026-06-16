@@ -854,7 +854,12 @@ async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
         if proc is None:
             return ProbarResult(ok=False, mensaje="Proceso no encontrado.")
         params = proc.parametros or {}
-        fuentes = params.get("fuentes") or []
+        # Un proceso portal_inmobiliario = UN portal: parametros.fuente (objeto).
+        # Compatibilidad: si viene la lista antigua `fuentes`, se usa igual.
+        if isinstance(params.get("fuente"), dict):
+            fuentes = [params["fuente"]]
+        else:
+            fuentes = params.get("fuentes") or []
         if fuente_id:
             fuentes = [f for f in fuentes if f.get("id") == fuente_id]
         fuentes = [f for f in fuentes if f.get("activa", True)]
@@ -896,9 +901,17 @@ async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
                     items = _vig_items_html(resp, fp, str(resp.url))
                 else:
                     items = []
-                for it in items[:25]:
+                escaneados = len(items)
+                relevantes = 0
+                creados_fuente = 0
+                for it in items[:50]:
                     titulo = it.get("titulo"); iurl = it.get("url")
-                    conf, _, _ = _vig_score(f"{titulo or ''} {it.get('precio') or ''}", incl, excl)
+                    conf, ni_it, _ = _vig_score(f"{titulo or ''} {it.get('descripcion') or ''}", incl, excl)
+                    # Candidato SOLO si matchea alguna keyword de inclusión (evita falsos positivos
+                    # como un piso/ático cualquiera). Sin keywords configuradas, no filtra.
+                    if incl and ni_it <= 0:
+                        continue
+                    relevantes += 1
                     muestras.append(MuestraProbar(fuente=nombre, titulo=titulo, url=iurl,
                                                   precio=it.get("precio"), score=round(conf * 100, 1)))
                     if persistir and iurl:
@@ -910,13 +923,12 @@ async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
                                       certeza=_CH.CIERTO if conf * 100 >= umbral else _CH.DUDOSO,
                                       confianza=round(conf, 3), titulo=(titulo or "")[:255] or None,
                                       url_evidencia=iurl, datos=it))
-                            creados += 1
+                            creados += 1; creados_fuente += 1
                 if 200 <= resp.status_code < 400:
                     ok_any = True
-                extra = f", {len(items)} ítems" + (f", {creados} hallazgos" if persistir else "")
+                extra = f", {escaneados} escaneados, {relevantes} con keyword" + (f", {creados_fuente} hallazgos" if persistir else "")
                 lineas.append(f"• {nombre} [{fetcher}]: HTTP {resp.status_code} "
-                              f"({len(texto)//1024} KB, {ms} ms){extra}. "
-                              f"Keywords inclusión: {ninc}, exclusión: {nexc}.")
+                              f"({len(texto)//1024} KB, {ms} ms){extra}.")
             except Exception as e:  # noqa: BLE001
                 lineas.append(f"• {nombre} [{fetcher}]: ERROR — {e}")
         if persistir:
