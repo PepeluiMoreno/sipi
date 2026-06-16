@@ -792,6 +792,50 @@ def _probar_items_json(resp) -> list:
     return out
 
 
+# Headers realistas (sin esto muchos portales devuelven 403). Mismo patrón que el
+# cliente de survey / el paginated_html de ODM.
+_VIG_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "es-ES,es;q=0.9,en;q=0.7",
+    "Accept-Encoding": "gzip, deflate, br",
+    "DNT": "1",
+    "Upgrade-Insecure-Requests": "1",
+}
+
+
+def _vig_items_html(resp, fp: dict, base_url: str) -> list:
+    """Extrae anuncios de una página HTML con bs4 + selectores CSS (réplica del
+    paginated_html de ODM): record_selector + selectores de título/precio/url."""
+    try:
+        from bs4 import BeautifulSoup
+    except Exception:
+        return []
+    from urllib.parse import urljoin
+    soup = BeautifulSoup(resp.text or "", "html.parser")
+    sel_item = fp.get("selector_item") or "article"
+    out = []
+    for rec in soup.select(sel_item):
+        def _txt(sel):
+            el = rec.select_one(sel) if sel else None
+            return el.get_text(strip=True) if el else None
+
+        def _href(sel):
+            el = rec.select_one(sel) if sel else None
+            h = el.get("href") if el else None
+            return urljoin(base_url, h) if h else None
+
+        url = _href(fp.get("selector_url")) or _href("a[href]")
+        if not url:
+            continue
+        out.append({
+            "titulo": _txt(fp.get("selector_titulo")) or rec.get_text(" ", strip=True)[:120],
+            "precio": _txt(fp.get("selector_precio")),
+            "url": url,
+        })
+    return out
+
+
 async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
                    fuente_id: Optional[str], persistir: bool) -> ProbarResult:
     """Motor de vigilancia: descarga las fuentes activas de un proceso (httpx),
@@ -839,13 +883,19 @@ async def _vig_run(info: "strawberry.Info", proceso_id: strawberry.ID,
                 # AsyncClient: NO bloquea el event loop durante la descarga (si fuese
                 # síncrono, una ejecución lenta congelaría toda la API, login incluido).
                 async with _httpx.AsyncClient(timeout=12, follow_redirects=True,
-                                              headers={"User-Agent": "sipi-vigilancia/run"}) as cli:
+                                              headers=_VIG_HEADERS) as cli:
                     resp = await (cli.post(url, data=query or None) if metodo == "POST"
                                   else cli.get(url, params=query or None))
                 ms = int((_time.time() - t0) * 1000)
                 texto = resp.text or ""
                 _, ninc, nexc = _vig_score(texto, incl, excl)
-                items = _probar_items_json(resp) if (fetcher == "api_rest" and "json" in resp.headers.get("content-type", "").lower()) else []
+                ctype = resp.headers.get("content-type", "").lower()
+                if fetcher == "api_rest" and "json" in ctype:
+                    items = _probar_items_json(resp)
+                elif fetcher in ("html_paginated", "html_searchloop"):
+                    items = _vig_items_html(resp, fp, str(resp.url))
+                else:
+                    items = []
                 for it in items[:25]:
                     titulo = it.get("titulo"); iurl = it.get("url")
                     conf, _, _ = _vig_score(f"{titulo or ''} {it.get('precio') or ''}", incl, excl)

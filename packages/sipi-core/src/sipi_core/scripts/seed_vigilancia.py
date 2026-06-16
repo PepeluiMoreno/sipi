@@ -38,7 +38,7 @@ SEED = {
                 "id": "idealista-caserones-palacios",
                 "nombre": "Idealista — caserones y palacios",
                 "fetcher": "html_paginated",
-                "activa": True,
+                "activa": False,  # anti-bot DataDome → requiere motor de survey (Selenium+stealth)
                 "params": {
                     "url_busqueda": "https://www.idealista.com/venta-viviendas/espana/con-tipos-de-vivienda_caserones-y-palacios/",
                     "selector_item": "article.item",
@@ -52,7 +52,7 @@ SEED = {
                 "id": "idealista-edificios",
                 "nombre": "Idealista — edificios",
                 "fetcher": "html_paginated",
-                "activa": True,
+                "activa": False,  # anti-bot DataDome → requiere motor de survey (Selenium+stealth)
                 "params": {
                     "url_busqueda": "https://www.idealista.com/venta-edificios/espana/",
                     "selector_item": "article.item",
@@ -63,17 +63,20 @@ SEED = {
                 },
             },
             {
+                # Selectores verificados del recurso Fotocasa que funcionaba en ODM
+                # (requests + bs4, sin Selenium). record=article; h3 (título/enlace);
+                # precio en [class*=text-display-3] span. Ver opendatamanager/seed_resources.py.
                 "id": "fotocasa-viviendas",
                 "nombre": "Fotocasa — viviendas",
                 "fetcher": "html_paginated",
-                "activa": False,
+                "activa": True,
                 "params": {
                     "url_busqueda": "https://www.fotocasa.es/es/comprar/viviendas/espana/todas-las-zonas/l",
-                    "selector_item": "article.re-CardPackMinimal, article.re-Card",
-                    "selector_titulo": ".re-CardTitle, .re-Card-title",
-                    "selector_precio": ".re-CardPrice, .re-Card-price",
-                    "selector_url": "a.re-CardPackMinimal-info-container, a.re-Card-link",
-                    "selector_siguiente": ".sui-MoleculePagination-item--next a",
+                    "selector_item": "article",
+                    "selector_titulo": "h3",
+                    "selector_precio": "[class*='text-display-3'] span",
+                    "selector_url": "h3 a",
+                    "selector_siguiente": "a[aria-label='Página siguiente']",
                 },
             },
             {
