@@ -26,6 +26,14 @@ export APP_SCHEMA=sipi GIS_SCHEMA=sipi DEFAULT_SCHEMA=sipi DEFINED_SCHEMAS=sipi
 python load/cargar_entidades_religiosas.py     # ejemplo de loader ORM
 ```
 
+## Consumo de ODM (suscripción por colección)
+
+SIPI consume los recursos versionados de **OpenDataManager** por webhook
+(`app_webhook.py`) en vez de re-extraer. El enrutado es **por colección**
+(`COLLECTION_MAP`) con `RESOURCE_MAP` de respaldo: un recurso nuevo en una
+colección a la que SIPI está suscrito se procesa **sin tocar SIPI**. Contrato y
+configuración en **[docs/CONSUMO_ODM.md](docs/CONSUMO_ODM.md)**.
+
 ## Notas
 
 - Los modelos de dominio viven en `sipi-core`; aquí no se duplican (los stubs vacíos

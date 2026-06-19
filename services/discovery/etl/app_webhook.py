@@ -45,15 +45,24 @@ async def odm_webhook(request: Request, x_odm_signature: str = Header(default=""
     if payload.get("event") != "dataset.published":
         return {"ignored": payload.get("event")}
 
-    resource_name = (payload.get("dataset") or {}).get("resource_name")
+    dataset = payload.get("dataset") or {}
+    resource_name = dataset.get("resource_name")
     if not resource_name:
         raise HTTPException(status_code=400, detail="Payload sin dataset.resource_name")
-    if resource_name not in odm_config.RESOURCE_MAP:
-        log.info("Recurso no mapeado, ignorado: %s", resource_name)
-        return {"ignored_unmapped": resource_name}
+
+    # Enrutado por COLECCIÓN (preferente) con respaldo a RESOURCE_MAP. ODM envía
+    # `collections` (nombres) en el payload; si el recurso cae en una colección
+    # suscrita, se procesa aunque no esté en RESOURCE_MAP → se consumen recursos
+    # nuevos de una colección sin tocar SIPI.
+    collections = payload.get("collections") or dataset.get("collections") or []
+    destino = odm_config.resolver_destino(resource_name, collections, dataset.get("publisher"))
+    if destino is None:
+        log.info("Recurso no enrutable (ni RESOURCE_MAP ni colección suscrita), ignorado: %s %s",
+                 resource_name, collections)
+        return {"ignored_unmapped": resource_name, "collections": collections}
 
     client = ODMClient()
     # poblar_recurso resuelve el último dataset del recurso (= el recién publicado)
-    stats = await poblar_recurso(_session_factory(), client, resource_name)
-    log.info("Webhook %s -> %s", resource_name, dict(stats))
-    return {"resource": resource_name, "stats": dict(stats)}
+    stats = await poblar_recurso(_session_factory(), client, resource_name, destino=destino)
+    log.info("Webhook %s (%s) -> %s", resource_name, destino, dict(stats))
+    return {"resource": resource_name, "destino": list(destino), "stats": dict(stats)}

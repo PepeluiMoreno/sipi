@@ -14,12 +14,18 @@ from .resolvers import RESOLVERS, RESOLVERS_INMUEBLE_DIRECTO
 log = logging.getLogger("sipi.etl.odm")
 
 
-async def poblar_recurso(session_factory, client: ODMClient, resource_name: str) -> Counter:
+async def poblar_recurso(session_factory, client: ODMClient, resource_name: str,
+                         destino: tuple | None = None) -> Counter:
     """Puebla sipi-core desde un recurso ODM. `session_factory` es un callable
-    que devuelve un async context manager de AsyncSession (sipi-core)."""
-    if resource_name not in config.RESOURCE_MAP:
-        raise ValueError(f"Recurso no mapeado en RESOURCE_MAP: {resource_name!r}")
-    dominio, fuente = config.RESOURCE_MAP[resource_name]
+    que devuelve un async context manager de AsyncSession (sipi-core).
+
+    `destino` = (dominio, fuente) ya resuelto (p. ej. por colección desde el
+    webhook). Si es None, se resuelve por `RESOURCE_MAP` (backfill por nombre)."""
+    if destino is None:
+        if resource_name not in config.RESOURCE_MAP:
+            raise ValueError(f"Recurso no mapeado en RESOURCE_MAP: {resource_name!r}")
+        destino = config.RESOURCE_MAP[resource_name]
+    dominio, fuente = destino
     stats = Counter()
 
     # Inmuebles OSM/CEE -> fusión (no upsert directo)

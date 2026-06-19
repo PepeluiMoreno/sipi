@@ -58,6 +58,48 @@ RESOURCE_MAP = {
 }
 
 
+# --- Enrutado por COLECCIÓN (preferente) -------------------------------------
+# SIPI se suscribe en ODM a COLECCIONES organizativas (no recurso a recurso). El
+# webhook de ODM trae `collections` (nombres de las colecciones del recurso), y
+# enrutamos por ahí: una colección fija el DOMINIO (y la fuente si es uniforme).
+# Así, cuando ODM añade un recurso nuevo a una colección suscrita, SIPI lo procesa
+# SIN tocar este fichero. `RESOURCE_MAP` queda como respaldo/override fino (da la
+# `fuente` exacta de recursos concretos; gana sobre la colección).
+#
+# Cada colección debe existir en ODM como organizativa y SIPI estar suscrito a
+# ella (ver docs/CONSUMO_ODM.md). fuente=None → se deriva por recurso (fallback).
+COLLECTION_MAP = {
+    "SIPI · Administraciones (DIR3)":        ("administracion", "DIR3"),
+    "SIPI · Diócesis":                       ("diocesis", "CEE"),
+    "SIPI · Entidades religiosas":           ("entidad_religiosa", None),   # fuente por recurso
+    "SIPI · Notarías":                       ("notaria", "CGN"),
+    "SIPI · Registros de la Propiedad":      ("registro_propiedad", "CORPME"),
+    "SIPI · Inmuebles":                      ("inmueble", None),            # fuente por recurso (OSM/IAPH/CEE)
+}
+
+
+def _fuente_fallback(resource_name: str, publisher: str | None) -> str:
+    """Procedencia derivada cuando la colección no fija `fuente`: usa el publisher
+    (acrónimo/nombre) o, en su defecto, un slug del nombre del recurso."""
+    base = (publisher or resource_name or "ODM").strip()
+    return base.upper().replace(" ", "_")[:40] or "ODM"
+
+
+def resolver_destino(resource_name: str, collections=None, publisher: str | None = None):
+    """Resuelve (dominio, fuente) para un recurso ODM. Devuelve None si no aplica.
+
+    Prioridad: 1) RESOURCE_MAP[resource_name] (override fino, fuente exacta);
+               2) primera colección del recurso presente en COLLECTION_MAP
+                  (dominio de la colección; fuente de la colección o derivada)."""
+    if resource_name in RESOURCE_MAP:
+        return RESOURCE_MAP[resource_name]
+    for col in (collections or []):
+        if col in COLLECTION_MAP:
+            dominio, fuente = COLLECTION_MAP[col]
+            return (dominio, fuente or _fuente_fallback(resource_name, publisher))
+    return None
+
+
 def require_connection():
     """Falla pronto y claro si no hay datos de conexión a ODM."""
     missing = [k for k, v in (("ODM_BASE_URL", ODM_BASE_URL),) if not v]
