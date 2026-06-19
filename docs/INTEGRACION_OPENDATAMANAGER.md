@@ -5,6 +5,19 @@ github.com/PepeluiMoreno/OpenDataManager). Basado en lectura directa de ambos
 repos. **No modifica ODM**: los cambios en ODM se proponen aquí y se ejecutan con
 supervisión.
 
+> **Actualización (estado real del enganche).** Este documento es el plan de alto
+> nivel; algunas piezas ya están implementadas y con detalles distintos a lo que
+> se anticipó aquí:
+> - El consumo **no** es por lectura de `graphql_data`, sino por **webhook**
+>   (`POST /odm/webhook`, firmado HMAC-SHA256) + **descarga del JSONL**
+>   (`/api/datasets/{id}/data.jsonl`). Receptor: `services/discovery/etl/app_webhook.py`.
+> - El modelo de suscripción en ODM es **`Subscriber` + `ResourceSubscription`**
+>   (no `DatasetSubscription`), y admite **suscripción a COLECCIONES** además de a
+>   recursos sueltos.
+> - SIPI **enruta por colección** (`COLLECTION_MAP`), con `RESOURCE_MAP` de
+>   respaldo: un recurso nuevo de una colección suscrita se procesa sin tocar SIPI.
+> - **Contrato técnico vivo**: [`services/discovery/etl/docs/CONSUMO_ODM.md`](../services/discovery/etl/docs/CONSUMO_ODM.md).
+
 ---
 
 ## 1. Principio
@@ -42,9 +55,9 @@ aplicaciones. Si una fuente falta o está incompleta en ODM, **se programa en OD
 ### Fuentes de eventos (→ `Expediente`)
 | Tipo de expediente | Resource/Publisher ODM | Fuente | Estado |
 |---|---|---|---|
-| `subvencion` | publisher BDNS | infosubvenciones.es (API REST) | **solo publisher → falta resource** |
-| `actuacion`/`enajenacion` (contratos) | publisher PLACSP | contrataciondelestado.es | **solo publisher → falta resource** |
-| geolocalización/uso (enriquecimiento) | Catastro – Parcelas (INSPIRE WFS) | Dir. Gral. del Catastro | resource sembrado (Sevilla) |
+| `subvencion` | BDNS (recursos sembrados, incl. Órganos Convocantes) | infosubvenciones.es (API REST) | **resource(s) sembrado(s)** |
+| `actuacion`/`enajenacion` (contratos) | PLACSP (recursos sembrados) | contrataciondelestado.es | **resource(s) sembrado(s)** |
+| geolocalización/uso (enriquecimiento) | Catastro INSPIRE ATOM: Parcelas (CP), Edificios (BU), Direcciones (AD) | Dir. Gral. del Catastro | resources sembrados (nacional, por municipio) |
 | `deteccion`/`enajenacion` | OSM/Wikidata + portales | OSM/Wikidata/Idealista | OSM sí; portales en survey |
 
 ---
@@ -61,13 +74,17 @@ aplicaciones. Si una fuente falta o está incompleta en ODM, **se programa en OD
   APScheduler con jobstore en PostgreSQL; registra un cron-job por resource
   activo con `schedule`. **Refresco programado: ya hecho.**
 - **A demanda**: mutations `executeResource(id)` y `executeAllResources()`.
-- **Suscripciones**: `DatasetSubscription` (Application↔Resource) con
-  *version pinning* (`pinned_version`, `auto_upgrade`), `current_version` y
-  `notified_at` (aviso de versión nueva).
+- **Suscripciones**: `Subscriber` + `ResourceSubscription` (suscriptor↔recurso
+  **o** colección) con *version pinning* (`pinned_version`, `auto_upgrade`),
+  `current_version` y `notified_at`. La **suscripción a colección** cubre todos
+  los recursos miembros, presentes y futuros.
+- **Entrega push (webhook)**: al publicar un dataset, ODM hace `POST` firmado
+  (HMAC-SHA256, `X-ODM-Signature`) al `webhook_url` del Subscriber, con
+  `download_urls.data = /api/datasets/{id}/data.jsonl` y la lista `collections`.
 - **Datasets derivados**: `DerivedDatasetConfig` (p. ej. de BDNS concesiones
   extraer catálogo de beneficiarios por NIF).
-- **API de datos dinámica** (`app/graphql_data`): construye un schema GraphQL con
-  un query por dataset; es por donde un suscriptor (SIPI) **lee** el dato.
+- **API de datos dinámica** (`app/graphql_data`): un query por dataset; consumo
+  *fino*. Para poblado masivo SIPI prefiere el **JSONL** del webhook.
 - ODM tiene además **frontend propio** (Vue).
 
 ---
@@ -76,15 +93,17 @@ aplicaciones. Si una fuente falta o está incompleta en ODM, **se programa en OD
 
 Un proceso de vigilancia por dataset que SIPI necesita. Cada uno:
 
-1. **Suscripción**: SIPI (como `Application` en ODM) crea una `DatasetSubscription`
-   al `Resource` (con *version pinning*).
+1. **Suscripción**: SIPI (como `Subscriber` en ODM) se suscribe a una **colección**
+   (`SIPI · …`) o a recursos sueltos (`ResourceSubscription`), con `webhook_url` y
+   `webhook_secret` (= `ODM_WEBHOOK_SECRET` en SIPI).
 2. **Disparo del refresco**, dos vías:
    - **Schedule**: `Resource.schedule` (crontab) → el scheduler de ODM ejecuta el
      fetch periódicamente.
    - **A demanda**: el usuario lo lanza desde el **UI del frontend de SIPI**, que
      llama a `executeResource(id)` de ODM.
-3. **Consumo en SIPI**: tras el refresco (o al recibir `notified_at` de versión
-   nueva), SIPI lee el dataset por `graphql_data` y:
+3. **Consumo en SIPI**: al publicarse un dataset, ODM hace `POST /odm/webhook`
+   (firmado); SIPI verifica, **enruta por colección** y descarga el **JSONL**
+   (`/api/datasets/{id}/data.jsonl`), y:
    - si es **referencia** (geo/actores) → *upsert* en la tabla maestra
      (proyección/caché);
    - si es **fuente de evento** (BDNS/PLACSP/portales/OSM) → entra al
