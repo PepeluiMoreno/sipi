@@ -30,6 +30,17 @@ def _session_factory():
     return AsyncDatabaseManager().session
 
 
+@app.on_event("startup")
+def _preparar_suscripciones():
+    """Preparación del ETL = solicitud de suscripción a ODM. Al arrancar, SIPI
+    declara (idempotente) las colecciones que necesita y registra su readiness.
+    Best-effort: si ODM no responde o falta el token, no impide arrancar."""
+    try:
+        ODMClient().bootstrap_suscripciones()
+    except Exception as e:  # noqa: BLE001
+        log.warning("bootstrap_suscripciones falló (no bloquea el arranque): %s", e)
+
+
 @app.get("/health")
 def health():
     return {"status": "healthy", "service": "sipi-etl-odm-consumer"}
@@ -51,15 +62,17 @@ async def odm_webhook(request: Request, x_odm_signature: str = Header(default=""
         raise HTTPException(status_code=400, detail="Payload sin dataset.resource_name")
 
     # Enrutado por COLECCIÓN (preferente) con respaldo a RESOURCE_MAP. ODM envía
-    # `collections` (nombres) en el payload; si el recurso cae en una colección
-    # suscrita, se procesa aunque no esté en RESOURCE_MAP → se consumen recursos
-    # nuevos de una colección sin tocar SIPI.
+    # `collection_slugs` (clave estable) y `collections` (nombres); si el recurso cae
+    # en una colección suscrita, se procesa aunque no esté en RESOURCE_MAP → se
+    # consumen recursos nuevos de una colección sin tocar SIPI.
+    collection_slugs = payload.get("collection_slugs") or []
     collections = payload.get("collections") or dataset.get("collections") or []
-    destino = odm_config.resolver_destino(resource_name, collections, dataset.get("publisher"))
+    destino = odm_config.resolver_destino(
+        resource_name, collection_slugs, dataset.get("publisher"), collections=collections)
     if destino is None:
-        log.info("Recurso no enrutable (ni RESOURCE_MAP ni colección suscrita), ignorado: %s %s",
-                 resource_name, collections)
-        return {"ignored_unmapped": resource_name, "collections": collections}
+        log.info("Recurso no enrutable (ni RESOURCE_MAP ni colección suscrita), ignorado: %s slugs=%s",
+                 resource_name, collection_slugs or collections)
+        return {"ignored_unmapped": resource_name, "collection_slugs": collection_slugs}
 
     client = ODMClient()
     # poblar_recurso resuelve el último dataset del recurso (= el recién publicado)

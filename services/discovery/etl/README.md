@@ -29,10 +29,13 @@ python load/cargar_entidades_religiosas.py     # ejemplo de loader ORM
 ## Consumo de ODM (suscripción por colección)
 
 SIPI consume los recursos versionados de **OpenDataManager** por webhook
-(`app_webhook.py`) en vez de re-extraer. El enrutado es **por colección**
-(`COLLECTION_MAP`) con `RESOURCE_MAP` de respaldo: un recurso nuevo en una
-colección a la que SIPI está suscrito se procesa **sin tocar SIPI**. Contrato y
-configuración en **[docs/CONSUMO_ODM.md](docs/CONSUMO_ODM.md)**.
+(`app_webhook.py`) en vez de re-extraer. El enrutado es **por colección, por
+`slug`** (clave estable) — `COLLECTION_MAP` con `RESOURCE_MAP` de respaldo: un
+recurso nuevo en una colección a la que SIPI está suscrito se procesa **sin tocar
+SIPI**. La **preparación del ETL es una solicitud de suscripción** que SIPI emite
+a ODM al arrancar (`bootstrap_suscripciones`, auth Bearer M2M) y verifica con
+`mySubscriptions`. Contrato y configuración en
+**[docs/CONSUMO_ODM.md](docs/CONSUMO_ODM.md)**.
 
 ## Notas
 
