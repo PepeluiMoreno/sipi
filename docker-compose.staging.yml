@@ -1,11 +1,13 @@
 # Staging de SIPI — Fase 1: BD + receptor ETL del enganche con ODM.
 #
-# Expone el receptor de webhook vía el Traefik compartido (red externa
-# traefik_public, TLS Let's Encrypt) en ${ETL_DOMAIN}. La imagen del ETL la
+# Host único público: ${SIPI_DOMAIN} (Traefik compartido, red traefik_public, TLS
+# Let's Encrypt). El receptor del webhook se expone como PATH `/odm` de ese host
+# (Traefik enruta por path al contenedor interno); la BD y, en Fase 2, la API,
+# quedan internas (sin salir de la red de contenedores). La imagen del ETL la
 # publica el workflow «Deploy SIPI» a GHCR; la BD se construye en el servidor
 # (PostGIS, Dockerfile.postgres).
 #
-# La API y el frontend NO van en esta fase (la API requiere empaquetar sipi-core
+# El frontend y la API NO van en esta fase (la API requiere empaquetar sipi-core
 # para prod; ver docs). Aquí solo lo necesario para que ODM entregue webhooks.
 #
 # Deploy (lo hace el workflow; manual equivalente):
@@ -68,7 +70,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_public"
-      - "traefik.http.routers.sipi-etl.rule=Host(`${ETL_DOMAIN:-sipi-etl.staging.europalaica.org}`)"
+      # Host único de SIPI; el receptor del ETL se expone como PATH /odm (Traefik
+      # enruta por path al contenedor interno). priority alto para ganar al frontend
+      # (que servirá `/` en Fase 2). El resto de SIPI (API) queda interno, sin label.
+      - "traefik.http.routers.sipi-etl.rule=Host(`${SIPI_DOMAIN:-sipi.staging.europalaica.org}`) && PathPrefix(`/odm`)"
+      - "traefik.http.routers.sipi-etl.priority=100"
       - "traefik.http.routers.sipi-etl.entrypoints=websecure"
       - "traefik.http.routers.sipi-etl.tls=true"
       - "traefik.http.routers.sipi-etl.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
