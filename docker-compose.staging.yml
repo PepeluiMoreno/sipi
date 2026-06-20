@@ -1,0 +1,117 @@
+# Staging de SIPI — Fase 1: BD + receptor ETL del enganche con ODM.
+#
+# Expone el receptor de webhook vía el Traefik compartido (red externa
+# traefik_public, TLS Let's Encrypt) en ${ETL_DOMAIN}. La imagen del ETL la
+# publica el workflow «Deploy SIPI» a GHCR; la BD se construye en el servidor
+# (PostGIS, Dockerfile.postgres).
+#
+# La API y el frontend NO van en esta fase (la API requiere empaquetar sipi-core
+# para prod; ver docs). Aquí solo lo necesario para que ODM entregue webhooks.
+#
+# Deploy (lo hace el workflow; manual equivalente):
+#   C="docker compose --env-file .env.production -f docker-compose.staging.yml"
+#   $C pull etl-webhook
+#   $C --profile migrate run --rm etl-migrate     # alembic upgrade head (sipi-core)
+#   $C up -d --build --remove-orphans             # db + etl-webhook
+services:
+  db:
+    build:
+      context: ./apps/sipi/api
+      dockerfile: Dockerfile.postgres
+    image: sipi-db:staging
+    container_name: sipi-db-staging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sipi}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env.production}
+      POSTGRES_DB: ${POSTGRES_DB:-sipi}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C.UTF-8"
+    volumes:
+      - sipi_pgdata_staging:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sipi} -d ${POSTGRES_DB:-sipi}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks: [sipi-network]
+    shm_size: 256mb
+
+  etl-webhook:
+    image: ghcr.io/pepeluimoreno/sipi-etl:${IMAGE_TAG:-latest}
+    container_name: sipi-etl-webhook-staging
+    restart: unless-stopped
+    environment:
+      SIPI_ETL_MODE: webhook
+      # async (asyncpg) — el receptor usa AsyncDatabaseManager; sipi-core deriva el
+      # DSN síncrono para alembic. p.ej. postgresql+asyncpg://sipi:PWD@db:5432/sipi
+      DATABASE_URL: ${DATABASE_URL}
+      APP_SCHEMA: ${APP_SCHEMA:-sipi}
+      GIS_SCHEMA: ${GIS_SCHEMA:-sipi}
+      DEFAULT_SCHEMA: ${DEFAULT_SCHEMA:-sipi}
+      DATABASE_SCHEMA: ${DATABASE_SCHEMA:-sipi}
+      # Enganche con ODM
+      ODM_BASE_URL: ${ODM_BASE_URL}
+      ODM_WEBHOOK_SECRET: ${ODM_WEBHOOK_SECRET}
+      ODM_APP_TOKEN: ${ODM_APP_TOKEN:-}
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [sipi-network, traefik_public]
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_public"
+      - "traefik.http.routers.sipi-etl.rule=Host(`${ETL_DOMAIN:-sipi-etl.staging.europalaica.org}`)"
+      - "traefik.http.routers.sipi-etl.entrypoints=websecure"
+      - "traefik.http.routers.sipi-etl.tls=true"
+      - "traefik.http.routers.sipi-etl.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.sipi-etl.loadbalancer.server.port=8000"
+
+  # Migración one-shot de sipi-core (perfil "migrate"):
+  etl-migrate:
+    image: ghcr.io/pepeluimoreno/sipi-etl:${IMAGE_TAG:-latest}
+    profiles: ["migrate"]
+    environment:
+      SIPI_ETL_MODE: migrate
+      DATABASE_URL: ${DATABASE_URL}
+      APP_SCHEMA: ${APP_SCHEMA:-sipi}
+      GIS_SCHEMA: ${GIS_SCHEMA:-sipi}
+      DEFAULT_SCHEMA: ${DEFAULT_SCHEMA:-sipi}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [sipi-network]
+
+  # Backfill one-shot desde ODM (perfil "poblar"):
+  #   docker compose --env-file .env.production -f docker-compose.staging.yml --profile poblar run --rm etl-poblar
+  etl-poblar:
+    image: ghcr.io/pepeluimoreno/sipi-etl:${IMAGE_TAG:-latest}
+    profiles: ["poblar"]
+    environment:
+      SIPI_ETL_MODE: poblar
+      POBLAR_ARGS: ${POBLAR_ARGS:---todo}
+      DATABASE_URL: ${DATABASE_URL}
+      APP_SCHEMA: ${APP_SCHEMA:-sipi}
+      ODM_BASE_URL: ${ODM_BASE_URL}
+      ODM_APP_TOKEN: ${ODM_APP_TOKEN:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [sipi-network]
+
+networks:
+  sipi-network:
+    driver: bridge
+  traefik_public:
+    external: true
+
+volumes:
+  sipi_pgdata_staging:
+    name: sipi_pgdata_staging
