@@ -1,9 +1,13 @@
 name: Deploy SIPI
 
-# Solo manual. En DESARROLLO no se despliega por push ni se usa GHCR: se corre el
-# docker local del optiplex (docker compose, ver README). Este workflow queda para
-# un despliegue de producción futuro (requiere los secrets DEPLOY_HOST/USER/KEY y
-# SIPI_ENV_PRODUCTION); se lanza a mano desde la pestaña Actions.
+# Manual (workflow_dispatch). Despliega a STAGING (sipi-etl.staging.europalaica.org)
+# la Fase 1 del enganche con ODM: BD + receptor ETL. Construye la imagen del ETL,
+# la publica en GHCR y hace SSH-deploy con docker-compose.staging.yml.
+#
+# Secrets requeridos en el repo:
+#   DEPLOY_HOST, DEPLOY_USER, DEPLOY_KEY  → acceso SSH al servidor de staging
+#   SIPI_ENV_PRODUCTION                   → contenido de .env.production (ver .env.staging.example)
+#   DEPLOY_PATH (opcional)                → ruta del repo en el servidor (def. /opt/docker/apps/sipi)
 on:
   workflow_dispatch:
 
@@ -44,8 +48,8 @@ jobs:
           cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}-etl:latest
           cache-to: type=inline
 
-      # NB: api y frontend ya tienen Dockerfile propio; añadir aquí sus build-push
-      # cuando se quiera que este workflow despliegue todo el monorepo.
+      # Fase 2: añadir aquí el build-push de api (build desde la raíz + sipi-core
+      # instalable) y frontend (con VITE_API_URL) cuando se despliegue todo SIPI.
 
   deploy:
     needs: build
@@ -53,7 +57,7 @@ jobs:
     env:
       SIPI_ENV_PRODUCTION: ${{ secrets.SIPI_ENV_PRODUCTION }}
     steps:
-      - name: Deploy to server (SSH)
+      - name: Deploy to staging (SSH)
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -61,14 +65,17 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           envs: SIPI_ENV_PRODUCTION
           script: |
-            cd /opt/docker/apps/sipi          # <-- ruta del repo en tu servidor
-            git pull
+            set -e
+            cd "${{ secrets.DEPLOY_PATH }}" 2>/dev/null || cd /opt/docker/apps/sipi
+            git fetch --all --prune
+            git checkout master
+            git pull --ff-only
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             umask 077
             printf '%s\n' "$SIPI_ENV_PRODUCTION" > .env.production
-            COMPOSE="docker compose --env-file .env.production -f services/discovery/etl/docker-compose.prod.yml"
-            $COMPOSE pull
-            $COMPOSE --profile migrate run --rm etl-migrate   # migración idempotente (alembic upgrade head)
-            $COMPOSE up -d --remove-orphans
-            $COMPOSE ps
+            C="docker compose --env-file .env.production -f docker-compose.staging.yml"
+            $C pull etl-webhook
+            $C --profile migrate run --rm etl-migrate   # alembic upgrade head (idempotente)
+            $C up -d --build --remove-orphans            # db + etl-webhook
+            $C ps
             docker image prune -f
