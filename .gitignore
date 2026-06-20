@@ -1,54 +1,36 @@
-# === Monorepo SIPI: ignores comunes (cada subproyecto puede añadir los suyos) ===
-
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-build/
-dist/
 *.egg-info/
-*.egg
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Entornos virtuales
 .venv/
 venv/
 env/
-ENV/
-
 # Node / frontend
 node_modules/
 .pnpm-store/
-dist-ssr/
-*.local
-
-# Variables de entorno (usar los .env.example de cada subproyecto)
+dist/
+.vite/
+# Entornos / secretos
 .env
 .env.*
 !.env.example
-!.env.*.example
-
-# Temporales / copias / artefactos
-*.bak
-*.kk
-*.log
-projecttree.txt
-
-# Editores / SO
-.vscode/*
-!.vscode/extensions.json
+*.local
+# Editores
+.vscode/
 .idea/
 .DS_Store
-Thumbs.db
+# Agentes
+.agent/
+.claude/
 
-# Notebooks
-.ipynb_checkpoints/
+# Legacy (repos antiguos preservados hasta confirmar borrado)
+_legacy/
+Taxonomia
+Taxonomia*
 
-# Config local de agentes
-.claude/settings.local.json
+# Dumps de BD y workspaces de editor
+*.dump
+*.code-workspace
+
+# Scratch local (bundles, patches, handoffs sueltos)
+/tmp/

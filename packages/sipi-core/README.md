@@ -1,77 +1,75 @@
 # sipi-core
 
-Paquete Python con el **núcleo de dominio** del ecosistema SIPI (Sistema de
-Información del Patrimonio Inmatriculado, proyecto de Europa Laica). Centraliza
-los modelos de datos, mixins, la capa de acceso a base de datos y las
-migraciones, de modo que el resto de componentes los consuman como dependencia
-en lugar de duplicarlos.
+Núcleo de dominio de SIPI: **única fuente de verdad** de los modelos (SQLAlchemy),
+mixins y acceso a datos. Lo consumen las dos apps (`apps/sipi`, `apps/sipi-survey`) y
+los servicios de descubrimiento, en lugar de duplicarlos.
 
-## Componentes del ecosistema
-
-| Repo | Rol |
-|------|-----|
-| **sipi-core** (este) | Modelos SQLAlchemy, mixins, sesiones y migraciones Alembic |
-| [sipi-api](https://github.com/PepeluiMoreno/sipi-api) | API GraphQL (Strawberry) sobre estos modelos |
-| [sipi-frontend](https://github.com/PepeluiMoreno/sipi-frontend) | SPA Vue 3 + Apollo + Leaflet |
-| [sipi-survey](https://github.com/PepeluiMoreno/sipi-survey) | Orquestador de ETL y monitorización |
-| [sipi-etl](https://github.com/PepeluiMoreno/sipi-etl) | ETL (censo, OSM/Wikidata, matching) |
-
-## Arquitectura multi-esquema
-
-Los modelos se reparten en dos esquemas PostgreSQL para separar dominio de
-datos geoespaciales (ver `sipi_core/docs/MULTI_SCHEMA_ARCHITECTURE.md`):
-
-- **`app`** — dominio de negocio: actores (administraciones, agencias,
-  notarios, registradores, técnicos, entidades religiosas, privados),
-  inmuebles, documentos, transmisiones, intervenciones, subvenciones,
-  figuras de protección, tipologías, historiografía, usuarios y discovery.
-- **`gis`** — geografía y datos espaciales (PostGIS): geografía administrativa
-  e integración con OpenStreetMap.
-
-## Estructura
+## Layout (src/)
 
 ```
-sipi_core/
-├── models/        # modelos de dominio (inmuebles, actores_base, geografia, ...)
-├── mixins/        # mixins reutilizables: base, identificacion, direccion,
-│                  #   contacto, documento, titularidad
-├── db/
-│   ├── metadata.py    # MetaData / esquemas
-│   ├── registry.py    # registro de modelos
-│   ├── sessions/      # gestor de sesiones (async/sync)
-│   └── alembic/       # entorno y versiones de migración
-├── config.py
-├── alembic.ini
-└── docker/        # Dockerfiles, compose, nginx, init-db
+packages/sipi-core/
+├── pyproject.toml          name = "sipi-core"  (distribución)
+└── src/sipi_core/          paquete importable: import sipi_core
+    ├── modules/<dominio>/   modelos agrupados por dominio (estilo SIGA)
+    ├── models/__init__.py   FACHADA — re-exporta todos los modelos
+    ├── mixins/              UUIDPKMixin, AuditMixin, Identificacion/Contacto/…
+    └── db/                  registry (Base, APP_SCHEMA), metadata, sessions, alembic
 ```
+
+`import sipi_core.models` registra todas las tablas en `Base.metadata` (la API
+introspecta esa fachada para autogenerar el esquema GraphQL).
+
+## Dominios (`modules/`)
+
+`geografia`, `catalogos`, `actores`, `entidades_religiosas`, `inmuebles`,
+`transmisiones`, `intervenciones`, `documentos`, `expedientes`, `discovery`,
+`notificaciones`, `usuarios`, y los módulos transversales **`acceso`** (RBAC por
+transacción), **`comunicacion`** (notificaciones de dominio + router ODMGR) y
+**`configuracion`** (parámetros tipados por ámbito). Ver
+[../../docs/DISENO_MODULOS_NUEVOS.md](../../docs/DISENO_MODULOS_NUEVOS.md).
+
+## Esquema (opción B)
+
+Todo en el esquema `sipi`, configurable por entorno. `db/registry.py`:
+
+```python
+APP_SCHEMA     = os.getenv("APP_SCHEMA", "app")    # en SIPI: sipi
+GIS_SCHEMA     = os.getenv("GIS_SCHEMA", "gis")    # en SIPI: sipi
+DEFAULT_SCHEMA = os.getenv("DEFAULT_SCHEMA", APP_SCHEMA)
+```
+
+En desarrollo/producción se exporta `APP_SCHEMA=GIS_SCHEMA=DEFAULT_SCHEMA=DEFINED_SCHEMAS=sipi`.
 
 ## Stack
 
-Python 3.12 · SQLAlchemy 2.0 (async) · Alembic · PostgreSQL + PostGIS ·
-GeoAlchemy2.
+Python ≥3.10 · SQLAlchemy 2.0 (async) · Alembic · PostgreSQL + PostGIS · GeoAlchemy2 ·
+Strawberry (tipos GraphQL).
 
-## Configuración
-
-Las variables de entorno **no** se versionan. Usa las plantillas:
+## Instalación y migraciones
 
 ```bash
-cp sipi_core/.env.development.example sipi_core/.env.development   # desarrollo
-cp sipi_core/.env.production.example  sipi_core/.env.production    # producción
-# rellenar los valores marcados como CHANGEME (DB_PASSWORD, DATABASE_URL, SSL_*)
+pip install -e .                       # editable (src layout)
+cd src/sipi_core
+export DATABASE_URL=postgresql://sipi:<pwd>@localhost:5433/sipi
+export DEFINED_SCHEMAS=sipi APP_SCHEMA=sipi GIS_SCHEMA=sipi DEFAULT_SCHEMA=sipi
+alembic upgrade head
+alembic current
 ```
 
-## Migraciones
+## Seeds (RBAC / configuración / comunicación)
 
-```bash
-cd sipi_core
-alembic upgrade head        # aplicar migraciones
-alembic revision --autogenerate -m "descripcion"
+```python
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+import sipi_core.models  # carga la fachada
+from sipi_core.modules.acceso.services.seed import seed as seed_acceso
+from sipi_core.modules.configuracion.services.seed import seed as seed_config
+from sipi_core.modules.comunicacion.services.seed import seed as seed_comu
+
+with Session(create_engine(DATABASE_URL)) as s:
+    seed_acceso(s); seed_config(s); seed_comu(s)
 ```
 
-> Las extensiones PostGIS se inicializan vía `db/alembic/init_postgis.sql`.
-
-## Uso como dependencia
-
-Una vez publicado/instalable, `sipi-api` y demás componentes importan los
-modelos desde aquí (`from sipi_core.models import ...`) en lugar de mantener
-copias propias.
+> **Nota de integridad**: el `MetaData` aún no tiene `naming_convention`, por lo que
+> `alembic check` reporta FKs como "drift" (falso positivo). Ver
+> [src/sipi_core/docs/INTEGRIDAD_DIFERIDA_FASE1.md](src/sipi_core/docs/INTEGRIDAD_DIFERIDA_FASE1.md).

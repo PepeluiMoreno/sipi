@@ -1,0 +1,38 @@
+# Base de datos y ORM
+sqlalchemy[asyncio]~=2.0.36
+alembic~=1.14.0
+asyncpg~=0.30.0
+psycopg[binary]~=3.2.3
+GeoAlchemy2~=0.15.2
+
+# GraphQL (versión compatible con Pydantic 2.11+)
+strawberry-graphql[asgi]~=0.243.0
+strawberry-sqlalchemy-mapper~=0.8.0
+aiodataloader~=0.3.0
+
+# Servidor web
+uvicorn[standard]~=0.32.1
+starlette~=0.41.3
+
+# Utilidades
+pandas>=2.2.0,<3.0.0
+requests~=2.32.0
+python-dotenv~=1.0.1
+unidecode~=1.3.8
+beautifulsoup4~=4.12   # extracción HTML del motor de vigilancia (scraping de portales)
+
+# Geospacial
+Shapely~=2.1.2
+geopy~=2.4.0
+osmnx[all]~=2.0.7
+
+# Pydantic (ajustado para compatibilidad)
+pydantic~=2.9.2
+pydantic-core~=2.23.2
+httpx[http2]~=0.24.1
+# Núcleo de dominio compartido (modelos SQLAlchemy). Ver docs/CONSOLIDACION_MODELOS.md
+# Descomentar tras mergear sipi-core@refactor/paquete-instalable y elegir estrategia de esquema.
+# Producción (fijar a un tag/commit cuando exista):
+# sipi-core @ git+https://github.com/PepeluiMoreno/sipi-core.git@main
+# Desarrollo local:
+# -e ../sipi-core

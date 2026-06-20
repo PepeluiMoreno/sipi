@@ -1,14 +1,20 @@
-# Raíz del monorepo SIPI — workspace de uv.
-# Los paquetes Python instalables se declaran como miembros del workspace;
-# así api/etl/survey pueden depender de sipi-core por ruta, sin dependencias git.
 [project]
-name = "sipi"
+name = "sipi-monorepo"
 version = "0.1.0"
-description = "SIPI — Sistema de Información del Patrimonio Inmatriculado (monorepo)"
+description = "SIPI — Sistema de Información del Patrimonio Inmobiliario (monorepo)"
 requires-python = ">=3.10"
 
+# Workspace uv: sipi-core es la única fuente de modelos; apps y services lo consumen.
 [tool.uv.workspace]
-members = ["packages/sipi-core"]
+members = [
+    "packages/sipi-core",
+]
 
 [tool.uv.sources]
 sipi-core = { workspace = true }
+
+# Dependencia de desarrollo del workspace: instalar sipi-core en editable.
+[dependency-groups]
+dev = [
+    "sipi-core",
+]

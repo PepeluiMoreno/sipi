@@ -1,95 +1,114 @@
-# SIPI — monorepo
+# SIPI — Sistema de Información del Patrimonio Inmatriculado
 
-**Sistema de Información del Patrimonio Inmatriculado** (proyecto de Europa Laica).
-Inventario, geolocalización y seguimiento de inmuebles del patrimonio
-inmatriculado, a partir de fuentes abiertas (catastro/inmatriculaciones, OSM,
-Wikidata) y portales inmobiliarios.
+Monorepo único de SIPI: dos aplicaciones que comparten un mismo núcleo de dominio.
 
-Este repositorio reúne, con su historial preservado, los componentes que antes
-vivían en repos separados (`sipi-core`, `sipi-api`, `sipi-frontend`,
-`sipi-survey`, `sipi-etl`).
+- **SIPI** (`apps/sipi`) — gestión y mantenimiento de **expedientes** del patrimonio
+  inmobiliario (inmuebles, entidades religiosas, ciclo de vida, validación de hallazgos).
+- **SIPI-Survey** (`apps/sipi-survey`) — aplicación técnica de **vigilancia**:
+  establecimiento y control de los *dispositivos de vigilancia* (watchers/scrapers que
+  vigilan portales y fuentes: Idealista, Fotocasa, OSM/Wikidata, BOE, BDNS…).
+
+Ambas se construyen sobre **`packages/sipi-core`** (modelos de dominio = única fuente
+de verdad).
 
 ## Estructura
 
 ```
-sipi/
-├── packages/
-│   └── sipi-core/     # Núcleo de dominio: modelos SQLAlchemy, mixins,
-│                      #   sesiones y migraciones Alembic (única fuente de verdad)
-├── apps/
-│   ├── api/           # API GraphQL (Strawberry + SQLAlchemy async + PostGIS)
-│   └── frontend/      # SPA Vue 3 + Pinia + Apollo + Leaflet
-├── services/
-│   ├── survey/        # Orquestador de ETL y monitorización (scraping, eventos)
-│   └── etl/           # ETL: censo, OSM/Wikidata, matching
-├── pyproject.toml     # workspace uv (miembro: packages/sipi-core)
-└── .gitignore
+packages/
+└── sipi-core/              Núcleo de dominio (modelos SQLAlchemy, mixins, acceso a datos)
+    └── src/sipi_core/
+        ├── modules/<dominio>/   actores, catalogos, geografia, inmuebles, expedientes,
+        │                        entidades_religiosas, transmisiones, intervenciones,
+        │                        documentos, discovery, notificaciones, usuarios,
+        │                        acceso (RBAC), comunicacion, configuracion
+        ├── models/__init__.py   FACHADA: re-exporta todos los modelos (import sipi_core.models)
+        ├── db/                  registry, metadata, alembic (migraciones)
+        └── mixins/
+apps/
+├── sipi/                   Aplicación de expedientes
+│   ├── api/                GraphQL (Strawberry/Starlette), autogenerado desde sipi-core
+│   └── frontend/           Vue 3 + Pinia + Apollo + Leaflet
+└── sipi-survey/            Aplicación de vigilancia (control de dispositivos)
+services/
+└── discovery/             Pipelines de descubrimiento (los "dispositivos")
+    ├── etl/                Carga (ODM/loaders ORM sobre sipi-core), census, fusión
+    ├── survey/             Geocoders, RegionMonitor, orquestador de portales, scoring
+    └── osm/                Sincronización OSM/Wikidata
+docs/                       Documentación viva del monorepo
+docker-compose.yml          Orquestación raíz (db + api + frontend)
+pyproject.toml              Workspace uv
+_legacy/                    Repos antiguos preservados (gitignored, pre-monorepo)
 ```
 
-## Relación entre componentes
+## Decisiones de arquitectura
 
-```
-                    packages/sipi-core  (modelos + esquema + migraciones)
-                      ▲        ▲       ▲
-                      │        │       │
-            apps/api ─┘  services/etl ─┘  services/survey
-                │
-        apps/frontend ── GraphQL ──> apps/api
-```
+- **Modelo único en `sipi-core`.** API, ETL y survey lo importan; no hay modelos
+  duplicados. La API GraphQL se autogenera por introspección de `sipi_core.models`.
+- **Esquema de BD: opción B** — todo en el esquema `sipi` de PostgreSQL, configurable
+  por entorno (`APP_SCHEMA=GIS_SCHEMA=DEFAULT_SCHEMA=DEFINED_SCHEMAS=sipi`). Las FKs/PKs
+  de los modelos están parametrizadas con `APP_SCHEMA`.
+- **PostgreSQL local** (sin Supabase). Contenedor `db` del compose, volumen `sipi_pgdata`.
+- **Expediente** es la bitácora del ciclo de vida del inmueble con flujo de validación
+  (`propuesto → ratificado/descartado`) y dimensión de confianza (`certeza` CIERTO/DUDOSO,
+  `confianza` 0–1). Las detecciones del descubrimiento se materializan como Expediente.
+- **RBAC por transacción** (`modules/acceso`, estilo SIGA): ratificar/descartar un
+  expediente es una *transacción* sujeta a permiso.
+- **Eventos ODMGR como backbone** (`modules/comunicacion/services/odmgr_router`): una
+  actualización de dataset (OpenDataManager) bifurca, según política configurable, en
+  (a) notificación a los roles implicados y/o (b) disparo del pipeline de
+  descubrimiento (extracción → análisis → scoring → Expediente). Ver
+  [docs/DISENO_MODULOS_NUEVOS.md](docs/DISENO_MODULOS_NUEVOS.md) §2bis.
 
-Todos comparten la **misma base de datos PostgreSQL/PostGIS** y los modelos de
-`packages/sipi-core`.
-
-## Stack por componente
-
-| Componente | Stack | Build |
-|------------|-------|-------|
-| `packages/sipi-core` | Python 3.12, SQLAlchemy 2.0 (async), Alembic, GeoAlchemy2 | `uv` / `pyproject.toml` |
-| `apps/api` | Strawberry GraphQL, Starlette, asyncpg, PostGIS | `requirements.txt` |
-| `apps/frontend` | Vue 3, Pinia, Vue Router, Apollo, Leaflet, Tailwind, Vite | `pnpm` / `package.json` |
-| `services/survey` | FastAPI, SQLAlchemy, Redis, Selenium, Overpass/WDQS | `requirements.txt` |
-| `services/etl` | asyncpg, SQLAlchemy, Selenium, Overpass/WDQS | `requirements.txt` |
-
-## Desarrollo
-
-Cada componente conserva su propio arranque (ver el README de cada carpeta):
+## Puesta en marcha (desarrollo)
 
 ```bash
-# Núcleo de dominio (paquete instalable)
-cd packages/sipi-core && uv sync       # o: pip install -e .
+# 1) Base de datos (reusa el volumen de datos existente sipi_pgdata)
+docker compose up -d db
 
-# API
-cd apps/api && pip install -r requirements.txt
-#   y, en el monorepo, el núcleo por ruta en lugar de dependencia git:
-#   pip install -e ../../packages/sipi-core
+# 2) Núcleo instalable (editable) para herramientas locales
+pip install -e packages/sipi-core
 
-# Frontend
-cd apps/frontend && pnpm install && pnpm dev
+# 3) Migraciones (esquema sipi)
+cd packages/sipi-core/src/sipi_core
+export DATABASE_URL=postgresql://sipi:<pwd>@localhost:5433/sipi
+export DEFINED_SCHEMAS=sipi APP_SCHEMA=sipi GIS_SCHEMA=sipi DEFAULT_SCHEMA=sipi
+alembic upgrade head
 
-# ETL / Survey
-cd services/etl && pip install -r requirements.txt
+# 3b) Seed inicial: RBAC (roles/transacciones) + superadministrador
+python -m sipi_core.modules.acceso.services.seed         # roles, transacciones, permisos (idempotente)
+python -m sipi_core.modules.usuarios.seed_superadmin     # usuario 'superadmin' con rol admin
+#   La contraseña se lee de SIPI_SUPERADMIN_PASSWORD (env / GitHub Secret / secret manager).
+#   Si no está, se GENERA y se imprime una sola vez. Nunca se commitea: solo el hash va a la BD.
+#   export SIPI_SUPERADMIN_PASSWORD=...  (opcional; sin ella, contraseña aleatoria al crear)
+
+# 4) Stack completo
+docker compose up -d        # db + api (GraphQL en :8040/graphql) + frontend (:5173)
 ```
 
-Las variables de entorno **no** se versionan: cada componente trae su
-`.env.example` (o `.env.*.example`) como plantilla.
+### Acceso vía Traefik (dev, estilo SIGA)
 
-## Notas / pendientes
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
+Expone el frontend tras el Traefik compartido (red `traefik_public`) en
+**https://sipi.optiplex-790** (HTTP y HTTPS con cert auto-firmado). La API y la BD
+quedan en la red interna; el frontend reenvía `/graphql` a `api:8040` (proxy de
+Vite, mismo origen, sin CORS). El dominio es configurable:
 
-- **Consolidación de modelos**: `apps/api` todavía mantiene su propia copia de
-  los modelos en `app/db/models`. Migrarlos para que consuma
-  `packages/sipi-core` (por ruta) está planificado en
-  `apps/api/docs/CONSOLIDACION_MODELOS.md` — implica decidir la estrategia de
-  esquema (`sipi` único vs `app`/`gis`) y regenerar la línea base de Alembic, y
-  debe validarse contra una base de datos.
-- **Fusión survey + etl**: `services/survey` y `services/etl` comparten parte de
-  `src/` (modelos de apoyo, OSM/Wikidata). Quedan co-localizados; la
-  deduplicación efectiva de su código es un paso posterior.
-- Un `docker-compose` unificado en la raíz queda pendiente; por ahora cada
-  componente trae su propio compose/Dockerfile.
+```bash
+# .env (raíz)
+APP_DEV_DOMAIN=sipi.optiplex-790   # debe resolver al host (Traefik enruta por Host)
+APP_PREFIX=sipi
+```
 
-## Migración desde los repos antiguos
+## Documentación
 
-Los cinco repos originales se integraron con `git subtree` preservando su
-historial. Una vez validado este monorepo, los repos
-`sipi-core`/`sipi-api`/`sipi-frontend`/`sipi-survey`/`sipi-etl` pueden
-**archivarse** en GitHub.
+- [docs/DISENO_MODULOS_NUEVOS.md](docs/DISENO_MODULOS_NUEVOS.md) — diseño de los módulos
+  acceso / comunicación / configuración (+ §2bis ODMGR).
+- [packages/sipi-core/src/sipi_core/docs/INTEGRIDAD_DIFERIDA_FASE1.md](packages/sipi-core/src/sipi_core/docs/INTEGRIDAD_DIFERIDA_FASE1.md)
+  — estado de integridad de esquema y el problema de `naming_convention`.
+- [apps/sipi/api/docs/CONSOLIDACION_MODELOS.md](apps/sipi/api/docs/CONSOLIDACION_MODELOS.md)
+  — histórico de la consolidación de modelos API → sipi-core.
+
+> Los documentos de diseño previos al monorepo y los repos originales se conservan en
+> `_legacy/` (no versionado) y en el historial de git.
