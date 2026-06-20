@@ -1,15 +1,26 @@
 name: Deploy SIPI
 
-# Manual (workflow_dispatch). Despliega a STAGING (sipi-etl.staging.europalaica.org)
-# la Fase 1 del enganche con ODM: BD + receptor ETL. Construye la imagen del ETL,
-# la publica en GHCR y hace SSH-deploy con docker-compose.staging.yml.
+# Deploy a STAGING (sipi.staging.europalaica.org): Fase 1 del enganche con ODM
+# (BD + receptor ETL). Construye la imagen del ETL, la publica en GHCR y hace
+# SSH-deploy con docker-compose.staging.yml.
+#
+# Se dispara en push a master (y manualmente con workflow_dispatch).
 #
 # Secrets requeridos en el repo:
 #   DEPLOY_HOST, DEPLOY_USER, DEPLOY_KEY  → acceso SSH al servidor de staging
 #   SIPI_ENV_PRODUCTION                   → contenido de .env.production (ver .env.staging.example)
 #   DEPLOY_PATH (opcional)                → ruta del repo en el servidor (def. /opt/docker/apps/sipi)
 on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - '**.md'
   workflow_dispatch:
+
+# Un deploy a la vez; no cancelar uno en curso (puede estar migrando la BD).
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
 
 env:
   REGISTRY: ghcr.io
