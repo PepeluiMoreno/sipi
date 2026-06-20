@@ -18,7 +18,9 @@ Contrato ODM verificado contra el repo opendatamanager:
 import os
 
 # --- Conexión a ODM (se rellena en tiempo de ejecución) ------------------------
-ODM_BASE_URL = os.environ.get("ODM_BASE_URL", "").rstrip("/")
+# `ODM_BASE_URL` es el nombre del contrato; aceptamos también `ODMGR_URL`, el
+# nombre canónico que usa el resto de SIPI (el .env compartido), para no duplicar.
+ODM_BASE_URL = (os.environ.get("ODM_BASE_URL") or os.environ.get("ODMGR_URL") or "").rstrip("/")
 ODM_WEBHOOK_SECRET = os.environ.get("ODM_WEBHOOK_SECRET", "")
 # Token/clave de aplicación si ODM exige auth M2M para /graphql y /api/datasets:
 ODM_APP_TOKEN = os.environ.get("ODM_APP_TOKEN", "")
