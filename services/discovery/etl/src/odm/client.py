@@ -52,6 +52,56 @@ class ODMClient:
         with urllib.request.urlopen(req, timeout=self.timeout) as r:
             return json.loads(r.read().decode("utf-8"))
 
+    # -- Preparación del ETL: suscripción declarativa + readiness (M2M) --------
+    def request_subscriptions(self, collection_slugs) -> list:
+        """Declara (idempotente) las suscripciones a colecciones que SIPI necesita,
+        por slug. Requiere ODM_APP_TOKEN (auth Bearer de la aplicación)."""
+        query = ("mutation($slugs:[String!]!){ requestSubscriptions(collectionSlugs:$slugs)"
+                 "{ id collectionId } }")
+        data = self._post_json("/graphql", {"query": query,
+                                            "variables": {"slugs": list(collection_slugs)}})
+        if data.get("errors"):
+            raise ODMError(f"requestSubscriptions error: {data['errors']}")
+        return (data.get("data") or {}).get("requestSubscriptions") or []
+
+    def my_subscriptions(self) -> list:
+        """Readiness de las suscripciones de esta aplicación (¿satisfechas?)."""
+        query = ("query{ mySubscriptions{ subscriptionId targetKind targetName targetSlug "
+                 "active satisfied currentVersion latestDatasetId dataUrl memberCount "
+                 "satisfiedMemberCount } }")
+        data = self._post_json("/graphql", {"query": query})
+        if data.get("errors"):
+            raise ODMError(f"mySubscriptions error: {data['errors']}")
+        return (data.get("data") or {}).get("mySubscriptions") or []
+
+    def bootstrap_suscripciones(self, slugs=None) -> list:
+        """Preparación del ETL: pide las suscripciones necesarias (idempotente) y
+        devuelve el readiness, marcando en el log las que NO están satisfechas.
+
+        La "preparación" del consumidor es por tanto una solicitud de suscripción a
+        ODM, no configuración manual. Requiere ODM_APP_TOKEN."""
+        import logging
+        log = logging.getLogger("sipi.etl.odm")
+        slugs = list(slugs if slugs is not None else config.SLUGS_NECESARIOS)
+        if not self.app_token:
+            log.warning("bootstrap_suscripciones: sin ODM_APP_TOKEN; se omite la "
+                        "suscripción declarativa (configura el token Bearer M2M).")
+            return []
+        self.request_subscriptions(slugs)
+        readiness = self.my_subscriptions()
+        por_slug = {r.get("targetSlug"): r for r in readiness if r.get("targetSlug")}
+        for slug in slugs:
+            r = por_slug.get(slug)
+            if r is None:
+                log.warning("Colección '%s' no existe en ODM (créala y añádele recursos).", slug)
+            elif not r.get("satisfied"):
+                log.warning("Colección '%s' suscrita pero SIN datos aún (%s/%s miembros con dataset).",
+                            slug, r.get("satisfiedMemberCount"), r.get("memberCount"))
+            else:
+                log.info("Colección '%s' lista (%s/%s miembros con dataset).",
+                         slug, r.get("satisfiedMemberCount"), r.get("memberCount"))
+        return readiness
+
     # -- Backfill: recurso -> último dataset -> JSONL --------------------------
     def latest_dataset_id(self, resource_name: str) -> str:
         """Devuelve el id del último dataset publicado de un recurso (admin GraphQL).

@@ -58,24 +58,38 @@ RESOURCE_MAP = {
 }
 
 
-# --- Enrutado por COLECCIÓN (preferente) -------------------------------------
-# SIPI se suscribe en ODM a COLECCIONES organizativas (no recurso a recurso). El
-# webhook de ODM trae `collections` (nombres de las colecciones del recurso), y
-# enrutamos por ahí: una colección fija el DOMINIO (y la fuente si es uniforme).
-# Así, cuando ODM añade un recurso nuevo a una colección suscrita, SIPI lo procesa
-# SIN tocar este fichero. `RESOURCE_MAP` queda como respaldo/override fino (da la
-# `fuente` exacta de recursos concretos; gana sobre la colección).
+# --- Enrutado por COLECCIÓN (preferente), por SLUG ---------------------------
+# SIPI se suscribe en ODM a COLECCIONES (no recurso a recurso). El enrutado va por
+# el `slug` de colección — la CLAVE ESTABLE de ODM (no el nombre de display, que es
+# editable y frágil; ni el UUID, que cambia entre entornos). El webhook trae
+# `collection_slugs`; mapeamos slug → (dominio, fuente). Cuando ODM añade un recurso
+# nuevo a una colección suscrita, SIPI lo procesa SIN tocar este fichero.
 #
-# Cada colección debe existir en ODM como organizativa y SIPI estar suscrito a
-# ella (ver docs/CONSUMO_ODM.md). fuente=None → se deriva por recurso (fallback).
+# Esta tabla es a la vez la DECLARACIÓN DE NECESIDADES de SIPI (los slugs que pide
+# en `requestSubscriptions`, ver client.bootstrap_suscripciones) y el MAPA DE
+# ENRUTADO. Las colecciones en ODM son neutrales/compartibles (sin prefijo de app);
+# `RESOURCE_MAP` queda como override fino por recurso (gana sobre la colección).
+# fuente=None → se deriva por recurso (fallback por publisher/nombre).
 COLLECTION_MAP = {
-    "SIPI · Administraciones (DIR3)":        ("administracion", "DIR3"),
-    "SIPI · Diócesis":                       ("diocesis", "CEE"),
-    "SIPI · Entidades religiosas":           ("entidad_religiosa", None),   # fuente por recurso
-    "SIPI · Notarías":                       ("notaria", "CGN"),
-    "SIPI · Registros de la Propiedad":      ("registro_propiedad", "CORPME"),
-    "SIPI · Inmuebles":                      ("inmueble", None),            # fuente por recurso (OSM/IAPH/CEE)
+    "administraciones-dir3":       ("administracion", "DIR3"),
+    "diocesis":                    ("diocesis", "CEE"),
+    "entidades-religiosas":        ("entidad_religiosa", None),   # fuente por recurso
+    "notarias":                    ("notaria", "CGN"),
+    "registros-de-la-propiedad":   ("registro_propiedad", "CORPME"),
+    "inmuebles":                   ("inmueble", None),            # fuente por recurso (OSM/IAPH/CEE)
 }
+
+# Slugs que SIPI necesita: lo que `bootstrap_suscripciones` pide a ODM.
+SLUGS_NECESARIOS = tuple(COLLECTION_MAP.keys())
+
+
+def _slugify(name: str) -> str:
+    """Reproduce el slug de ODM (minúsculas, no-alfanuméricos → '-'). Permite
+    derivar el slug desde un nombre cuando el payload no trae `collection_slugs`
+    (compatibilidad con emisores antiguos)."""
+    import re
+    base = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")
+    return (base or "coleccion")[:120]
 
 
 def _fuente_fallback(resource_name: str, publisher: str | None) -> str:
@@ -85,17 +99,24 @@ def _fuente_fallback(resource_name: str, publisher: str | None) -> str:
     return base.upper().replace(" ", "_")[:40] or "ODM"
 
 
-def resolver_destino(resource_name: str, collections=None, publisher: str | None = None):
+def resolver_destino(resource_name: str, collection_slugs=None,
+                     publisher: str | None = None, collections=None):
     """Resuelve (dominio, fuente) para un recurso ODM. Devuelve None si no aplica.
 
     Prioridad: 1) RESOURCE_MAP[resource_name] (override fino, fuente exacta);
-               2) primera colección del recurso presente en COLLECTION_MAP
-                  (dominio de la colección; fuente de la colección o derivada)."""
+               2) primer `slug` del recurso presente en COLLECTION_MAP;
+               3) compat: slugify de los nombres de `collections` (emisores viejos).
+    """
     if resource_name in RESOURCE_MAP:
         return RESOURCE_MAP[resource_name]
+    for slug in (collection_slugs or []):
+        if slug in COLLECTION_MAP:
+            dominio, fuente = COLLECTION_MAP[slug]
+            return (dominio, fuente or _fuente_fallback(resource_name, publisher))
     for col in (collections or []):
-        if col in COLLECTION_MAP:
-            dominio, fuente = COLLECTION_MAP[col]
+        slug = _slugify(col)
+        if slug in COLLECTION_MAP:
+            dominio, fuente = COLLECTION_MAP[slug]
             return (dominio, fuente or _fuente_fallback(resource_name, publisher))
     return None
 
