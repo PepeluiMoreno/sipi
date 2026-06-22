@@ -19,6 +19,20 @@ PY
 MODE="${SIPI_ETL_MODE:-webhook}"
 if [ "$MODE" = "migrate" ]; then
     echo "[entrypoint] modo MIGRATE: alembic upgrade head (sipi-core)"
+    # Las migraciones asumen que los esquemas (DEFINED_SCHEMAS, p.ej. app,gis) ya
+    # existen — ninguna hace CREATE SCHEMA. Los creamos aquí, idempotente.
+    python - <<'PY'
+import os, re, psycopg2
+dsn = re.sub(r"\+\w+", "", os.environ.get("DATABASE_URL", ""))  # postgresql+asyncpg -> postgresql
+schemas = (os.environ.get("DEFINED_SCHEMAS") or os.environ.get("APP_SCHEMA") or "app").split(",")
+conn = psycopg2.connect(dsn); conn.autocommit = True
+cur = conn.cursor()
+for s in (x.strip() for x in schemas):
+    if s:
+        cur.execute(f'CREATE SCHEMA IF NOT EXISTS "{s}"')
+cur.close(); conn.close()
+print("[entrypoint] esquemas asegurados:", schemas)
+PY
     cd /app/packages/sipi-core/src/sipi_core
     exec python -m alembic upgrade head
 elif [ "$MODE" = "poblar" ]; then

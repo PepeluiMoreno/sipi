@@ -37,11 +37,11 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       GRAPHQL_HOST: 0.0.0.0
       GRAPHQL_PORT: 8000
-      APP_SCHEMA: sipi
-      GIS_SCHEMA: sipi
-      DEFAULT_SCHEMA: sipi
-      DATABASE_SCHEMA: sipi
-      DEFINED_SCHEMAS: ${DEFINED_SCHEMAS:-sipi}
+      APP_SCHEMA: app
+      GIS_SCHEMA: gis
+      DEFAULT_SCHEMA: app
+      DATABASE_SCHEMA: app
+      DEFINED_SCHEMAS: app,gis
       PYTHONUNBUFFERED: 1
     depends_on:
       db:
@@ -79,10 +79,11 @@ services:
     environment:
       SIPI_ETL_MODE: webhook
       DATABASE_URL: ${DATABASE_URL}
-      APP_SCHEMA: sipi
-      GIS_SCHEMA: sipi
-      DEFAULT_SCHEMA: sipi
-      DATABASE_SCHEMA: sipi
+      APP_SCHEMA: app
+      GIS_SCHEMA: gis
+      DEFAULT_SCHEMA: app
+      DATABASE_SCHEMA: app
+      DEFINED_SCHEMAS: app,gis
       ODM_BASE_URL: ${ODM_BASE_URL:-${ODMGR_URL:-}}
       ODM_WEBHOOK_SECRET: ${ODM_WEBHOOK_SECRET}
       ODM_APP_TOKEN: ${ODM_APP_TOKEN:-}
@@ -115,11 +116,11 @@ services:
     environment:
       SIPI_ETL_MODE: migrate
       DATABASE_URL: ${DATABASE_URL}
-      APP_SCHEMA: sipi
-      GIS_SCHEMA: sipi
-      DEFAULT_SCHEMA: sipi
-      DATABASE_SCHEMA: sipi
-      DEFINED_SCHEMAS: sipi
+      APP_SCHEMA: app
+      GIS_SCHEMA: gis
+      DEFAULT_SCHEMA: app
+      DATABASE_SCHEMA: app
+      DEFINED_SCHEMAS: app,gis
     depends_on:
       db:
         condition: service_healthy
@@ -134,9 +135,9 @@ services:
       SIPI_ETL_MODE: poblar
       POBLAR_ARGS: ${POBLAR_ARGS:---todo}
       DATABASE_URL: ${DATABASE_URL}
-      APP_SCHEMA: sipi
-      GIS_SCHEMA: sipi
-      DEFAULT_SCHEMA: sipi
+      APP_SCHEMA: app
+      GIS_SCHEMA: gis
+      DEFAULT_SCHEMA: app
       ODM_BASE_URL: ${ODM_BASE_URL:-${ODMGR_URL:-}}
       ODM_APP_TOKEN: ${ODM_APP_TOKEN:-}
     depends_on:
