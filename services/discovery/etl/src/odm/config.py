@@ -69,24 +69,25 @@ RESOURCE_MAP = {
 #
 # Esta tabla es a la vez la DECLARACIÓN DE NECESIDADES de SIPI (los slugs que pide
 # en `requestSubscriptions`, ver client.bootstrap_suscripciones) y el MAPA DE
-# ENRUTADO. Las colecciones en ODM son NEUTRALES/COMPARTIBLES (sin prefijo de app):
-# SIPI se adapta a los slugs reales de ODM, no al revés. `RESOURCE_MAP` afina el
-# dominio/fuente por recurso (gana sobre la colección); el tuple de aquí es el
-# FALLBACK para miembros de la colección aún no mapeados en RESOURCE_MAP.
-# fuente=None → se deriva por recurso (publisher/nombre).
+# ENRUTADO. ODM se adapta a esta taxonomía: las colecciones en ODM se nombran de
+# forma que su slug (slugify con transliteración de acentos) coincida con estas
+# claves. `RESOURCE_MAP` afina el dominio/fuente por recurso (gana sobre la
+# colección); fuente=None → se deriva por recurso (publisher/nombre).
 #
-# Slugs reales en ODM (manifests/*.json → app/services/collections.slugify):
-#   "Iglesia católica (red nuclear)" → iglesia-catolica-red-nuclear
-#       (diócesis, parroquias, RER, CONFER, transparencia diocesana)
-#   "Inmuebles religiosos en España" → inmuebles-religiosos-en-espana (OSM, IAPH)
-#   "Asociaciones" → asociaciones  (NO suscrita: registro civil genérico, sin
-#       dominio en sipi-core; ingerirla contaminaría entidad_religiosa).
-# Pendiente en ODM (aún sin colección): administraciones (DIR3/BDNS), notarías
-#   (CGN), registros de la propiedad (CORPME) → cuando ODM las declare, añade su
-#   slug real aquí.
+# slug de ODM ⇐ nombre de colección en manifests/*.json:
+#   diocesis                  ⇐ "Diócesis"
+#   entidades-religiosas      ⇐ "Entidades religiosas" (RER/CONFER/parroquias)
+#   inmuebles                 ⇐ "Inmuebles" (OSM/IAPH/CEE)
+#   administraciones-dir3     ⇐ "Administraciones DIR3" (BDNS órganos)
+#   notarias                  ⇐ "Notarías" (cuando exista el recurso CGN)
+#   registros-de-la-propiedad ⇐ "Registros de la propiedad" (cuando exista CORPME)
 COLLECTION_MAP = {
-    "iglesia-catolica-red-nuclear":   ("entidad_religiosa", None),  # diócesis/RER/CONFER/parroquias → RESOURCE_MAP afina
-    "inmuebles-religiosos-en-espana": ("inmueble", None),           # OSM/IAPH/CEE → fuente por recurso
+    "administraciones-dir3":       ("administracion", "DIR3"),
+    "diocesis":                    ("diocesis", "CEE"),
+    "entidades-religiosas":        ("entidad_religiosa", None),   # fuente por recurso
+    "notarias":                    ("notaria", "CGN"),
+    "registros-de-la-propiedad":   ("registro_propiedad", "CORPME"),
+    "inmuebles":                   ("inmueble", None),            # fuente por recurso (OSM/IAPH/CEE)
 }
 
 # Slugs que SIPI necesita: lo que `bootstrap_suscripciones` pide a ODM.
