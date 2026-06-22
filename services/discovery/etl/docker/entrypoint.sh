@@ -20,7 +20,7 @@ MODE="${SIPI_ETL_MODE:-webhook}"
 if [ "$MODE" = "migrate" ]; then
     echo "[entrypoint] modo MIGRATE: alembic upgrade head (sipi-core)"
     cd /app/packages/sipi-core/src/sipi_core
-    exec alembic upgrade head
+    exec python -m alembic upgrade head
 elif [ "$MODE" = "poblar" ]; then
     echo "[entrypoint] modo POBLAR (one-shot): scripts/poblar_desde_odm.py ${POBLAR_ARGS:---todo}"
     exec python scripts/poblar_desde_odm.py ${POBLAR_ARGS:---todo}
