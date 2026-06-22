@@ -1,8 +1,8 @@
 name: Deploy SIPI
 
-# Deploy a STAGING (sipi.staging.europalaica.org): Fase 1 del enganche con ODM
-# (BD + receptor ETL). Construye la imagen del ETL, la publica en GHCR y hace
-# SSH-deploy con docker-compose.staging.yml.
+# Deploy a STAGING (sipi.staging.europalaica.org): stack completo de SIPI
+# (BD + API + frontend + receptor ETL). Construye las imágenes (api, frontend, etl),
+# las publica en GHCR y hace SSH-deploy con docker-compose.staging.yml.
 #
 # Se dispara en push a master (y manualmente con workflow_dispatch).
 #
@@ -45,6 +45,30 @@ jobs:
 
       - uses: docker/setup-buildx-action@v3
 
+      - name: Build and push API (GraphQL + sipi-core)
+        uses: docker/build-push-action@v5
+        with:
+          context: .                              # raíz del monorepo (necesita packages/sipi-core)
+          file: apps/sipi/api/Dockerfile.staging
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-api:latest
+            ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}-api:latest
+          cache-to: type=inline
+
+      - name: Build and push frontend (SPA + nginx)
+        uses: docker/build-push-action@v5
+        with:
+          context: ./apps/sipi/frontend
+          file: ./apps/sipi/frontend/Dockerfile.prod
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-frontend:latest
+            ${{ env.IMAGE_PREFIX }}-frontend:${{ github.sha }}
+          cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}-frontend:latest
+          cache-to: type=inline
+
       - name: Build and push ETL (consumidor ODM)
         uses: docker/build-push-action@v5
         with:
@@ -58,9 +82,6 @@ jobs:
             BUILD_SHA=${{ github.sha }}
           cache-from: type=registry,ref=${{ env.IMAGE_PREFIX }}-etl:latest
           cache-to: type=inline
-
-      # Fase 2: añadir aquí el build-push de api (build desde la raíz + sipi-core
-      # instalable) y frontend (con VITE_API_URL) cuando se despliegue todo SIPI.
 
   deploy:
     needs: build
@@ -85,8 +106,8 @@ jobs:
             umask 077
             printf '%s\n' "$SIPI_ENV_PRODUCTION" > .env.production
             C="docker compose --env-file .env.production -f docker-compose.staging.yml"
-            $C pull etl-webhook
+            $C pull api frontend etl-webhook
             $C --profile migrate run --rm etl-migrate   # alembic upgrade head (idempotente)
-            $C up -d --build --remove-orphans            # db + etl-webhook
+            $C up -d --build --remove-orphans            # db (build) + api + frontend + etl-webhook
             $C ps
             docker image prune -f

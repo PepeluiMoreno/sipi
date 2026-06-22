@@ -1,0 +1,19 @@
+# Imagen de la API GraphQL de SIPI para staging/prod. Build context = raíz del
+# monorepo (necesita packages/sipi-core, que en dev va por volumen).
+FROM python:3.11-slim
+WORKDIR /code
+ENV PYTHONPATH=/code PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y --no-install-recommends gcc curl && rm -rf /var/lib/apt/lists/*
+
+# sipi-core: única fuente de modelos, instalada por ruta (igual que el ETL)
+COPY packages/sipi-core /opt/sipi-core
+RUN pip install --no-cache-dir -e /opt/sipi-core
+
+COPY apps/sipi/api/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY apps/sipi/api/ .
+RUN mkdir -p /code/logs && chmod +x /code/scripts/entrypoint.sh /code/scripts/wait-for-db.sh 2>/dev/null || true
+
+EXPOSE 8000
+ENTRYPOINT ["/code/scripts/entrypoint.sh"]

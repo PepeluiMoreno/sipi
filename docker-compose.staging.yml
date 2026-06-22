@@ -1,66 +1,96 @@
-# Staging de SIPI — Fase 1: BD + receptor ETL del enganche con ODM.
-#
-# Host único público: ${APP_DOMAIN} (Traefik compartido, red traefik_public, TLS
-# Let's Encrypt). El receptor del webhook se expone como PATH `/odm` de ese host
-# (Traefik enruta por path al contenedor interno); la BD y, en Fase 2, la API,
-# quedan internas (sin salir de la red de contenedores). La imagen del ETL la
-# publica el workflow «Deploy SIPI» a GHCR; la BD se construye en el servidor
-# (PostGIS, Dockerfile.postgres).
-#
-# El frontend y la API NO van en esta fase (la API requiere empaquetar sipi-core
-# para prod; ver docs). Aquí solo lo necesario para que ODM entregue webhooks.
-#
-# Deploy (lo hace el workflow; manual equivalente):
-#   C="docker compose --env-file .env.production -f docker-compose.staging.yml"
-#   $C pull etl-webhook
-#   $C --profile migrate run --rm etl-migrate     # alembic upgrade head (sipi-core)
-#   $C up -d --build --remove-orphans             # db + etl-webhook
+# SIPI en el servidor de staging (vps2). Stack completo: BD + API + frontend +
+# receptor ETL del enganche con ODM. Un único host público ${APP_DOMAIN}; Traefik
+# enruta por path:
+#   /            → frontend (SPA)
+#   /graphql     → API GraphQL (el SPA llama a /graphql por defecto, mismo origen)
+#   /odm         → receptor de webhook del ETL
+# La BD queda interna. Imágenes publicadas a GHCR por el workflow «Deploy SIPI».
 services:
   db:
     build:
       context: ./apps/sipi/api
       dockerfile: Dockerfile.postgres
-    image: sipi-db:staging
-    container_name: sipi-db-staging
+    image: sipi-db:latest
+    container_name: sipi-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-sipi}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD en .env.production}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?define POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-sipi}
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C.UTF-8"
     volumes:
-      - sipi_pgdata_staging:/var/lib/postgresql/data
+      - sipi_pgdata:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sipi} -d ${POSTGRES_DB:-sipi}"]
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 20
       start_period: 10s
     restart: unless-stopped
-    networks: [sipi-network]
+    networks: [internal]
     shm_size: 256mb
+
+  api:
+    image: ghcr.io/pepeluimoreno/sipi-api:${IMAGE_TAG:-latest}
+    container_name: sipi-api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      GRAPHQL_HOST: 0.0.0.0
+      GRAPHQL_PORT: 8000
+      APP_SCHEMA: ${APP_SCHEMA:-sipi}
+      GIS_SCHEMA: ${GIS_SCHEMA:-sipi}
+      DEFAULT_SCHEMA: ${DEFAULT_SCHEMA:-sipi}
+      DATABASE_SCHEMA: ${DATABASE_SCHEMA:-sipi}
+      DEFINED_SCHEMAS: ${DEFINED_SCHEMAS:-sipi}
+      PYTHONUNBUFFERED: 1
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal, traefik_public]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_public"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.rule=Host(`${APP_DOMAIN:-sipi.staging.europalaica.org}`) && PathPrefix(`/graphql`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.priority=100"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.entrypoints=websecure"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.tls=true"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.${APP_PREFIX:-sipi}-api.loadbalancer.server.port=8000"
+
+  frontend:
+    image: ghcr.io/pepeluimoreno/sipi-frontend:${IMAGE_TAG:-latest}
+    container_name: sipi-frontend
+    restart: unless-stopped
+    depends_on: [api]
+    networks: [internal, traefik_public]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik_public"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-web.rule=Host(`${APP_DOMAIN:-sipi.staging.europalaica.org}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-web.entrypoints=websecure"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-web.tls=true"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-web.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
+      - "traefik.http.services.${APP_PREFIX:-sipi}-web.loadbalancer.server.port=80"
 
   etl-webhook:
     image: ghcr.io/pepeluimoreno/sipi-etl:${IMAGE_TAG:-latest}
-    container_name: sipi-etl-webhook-staging
+    container_name: sipi-etl-webhook
     restart: unless-stopped
     environment:
       SIPI_ETL_MODE: webhook
-      # async (asyncpg) — el receptor usa AsyncDatabaseManager; sipi-core deriva el
-      # DSN síncrono para alembic. p.ej. postgresql+asyncpg://sipi:PWD@db:5432/sipi
       DATABASE_URL: ${DATABASE_URL}
       APP_SCHEMA: ${APP_SCHEMA:-sipi}
       GIS_SCHEMA: ${GIS_SCHEMA:-sipi}
       DEFAULT_SCHEMA: ${DEFAULT_SCHEMA:-sipi}
       DATABASE_SCHEMA: ${DATABASE_SCHEMA:-sipi}
-      # Enganche con ODM
-      ODM_BASE_URL: ${ODM_BASE_URL}
+      ODM_BASE_URL: ${ODM_BASE_URL:-${ODMGR_URL:-}}
       ODM_WEBHOOK_SECRET: ${ODM_WEBHOOK_SECRET}
       ODM_APP_TOKEN: ${ODM_APP_TOKEN:-}
       PYTHONUNBUFFERED: 1
     depends_on:
       db:
         condition: service_healthy
-    networks: [sipi-network, traefik_public]
+    networks: [internal, traefik_public]
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
       interval: 30s
@@ -70,9 +100,6 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_public"
-      # Host único de SIPI; el receptor del ETL se expone como PATH /odm (Traefik
-      # enruta por path al contenedor interno). priority alto para ganar al frontend
-      # (que servirá `/` en Fase 2). El resto de SIPI (API) queda interno, sin label.
       - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.rule=Host(`${APP_DOMAIN:-sipi.staging.europalaica.org}`) && PathPrefix(`/odm`)"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.priority=100"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.entrypoints=websecure"
@@ -80,7 +107,8 @@ services:
       - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
       - "traefik.http.services.${APP_PREFIX:-sipi}-odm.loadbalancer.server.port=8000"
 
-  # Migración one-shot de sipi-core (perfil "migrate"):
+  # Migración one-shot de sipi-core (alembic upgrade head):
+  #   docker compose --env-file .env.production -f docker-compose.staging.yml --profile migrate run --rm etl-migrate
   etl-migrate:
     image: ghcr.io/pepeluimoreno/sipi-etl:${IMAGE_TAG:-latest}
     profiles: ["migrate"]
@@ -93,9 +121,9 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    networks: [sipi-network]
+    networks: [internal]
 
-  # Backfill one-shot desde ODM (perfil "poblar"):
+  # Backfill one-shot desde ODM:
   #   docker compose --env-file .env.production -f docker-compose.staging.yml --profile poblar run --rm etl-poblar
   etl-poblar:
     image: ghcr.io/pepeluimoreno/sipi-etl:${IMAGE_TAG:-latest}
@@ -105,19 +133,18 @@ services:
       POBLAR_ARGS: ${POBLAR_ARGS:---todo}
       DATABASE_URL: ${DATABASE_URL}
       APP_SCHEMA: ${APP_SCHEMA:-sipi}
-      ODM_BASE_URL: ${ODM_BASE_URL}
+      ODM_BASE_URL: ${ODM_BASE_URL:-${ODMGR_URL:-}}
       ODM_APP_TOKEN: ${ODM_APP_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy
-    networks: [sipi-network]
+    networks: [internal]
 
 networks:
-  sipi-network:
-    driver: bridge
+  internal:
   traefik_public:
     external: true
 
 volumes:
-  sipi_pgdata_staging:
-    name: sipi_pgdata_staging
+  sipi_pgdata:
+    name: sipi_pgdata
