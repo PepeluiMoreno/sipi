@@ -98,10 +98,22 @@ jobs:
           envs: SIPI_ENV_PRODUCTION
           script: |
             set -e
-            cd "${{ secrets.DEPLOY_PATH }}" 2>/dev/null || cd /opt/docker/apps/sipi
-            git fetch --all --prune
-            git checkout master
-            git pull --ff-only
+            REPO=https://github.com/PepeluiMoreno/sipi.git
+            DIR="${{ secrets.DEPLOY_PATH }}"; [ -n "$DIR" ] || DIR=/opt/docker/apps/sipi
+            # Auto-clonable: si el dir no es un repo git, (re)clónalo. Evita el
+            # "fatal: not a git repository" cuando el directorio existe sin .git.
+            if [ -d "$DIR/.git" ]; then
+              cd "$DIR"
+              git fetch --all --prune
+              git checkout master
+              git reset --hard origin/master
+            else
+              rm -rf "$DIR"
+              mkdir -p "$(dirname "$DIR")"
+              git clone "$REPO" "$DIR"
+              cd "$DIR"
+              git checkout master
+            fi
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             umask 077
             printf '%s\n' "$SIPI_ENV_PRODUCTION" > .env.production
