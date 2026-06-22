@@ -1,6 +1,6 @@
 name: Deploy SIPI
 
-# Deploy a STAGING (sipi.staging.europalaica.org): stack completo de SIPI
+# Deploy a STAGING (sipi.pepelui.es): stack completo de SIPI
 # (BD + API + frontend + receptor ETL). Construye las imágenes (api, frontend, etl),
 # las publica en GHCR y hace SSH-deploy con docker-compose.staging.yml.
 #
