@@ -50,7 +50,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_public"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.rule=Host(`${APP_DOMAIN:-sipi.staging.europalaica.org}`) && PathPrefix(`/graphql`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-api.rule=Host(`${APP_DOMAIN:-sipi.pepelui.es}`) && PathPrefix(`/graphql`)"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-api.priority=100"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-api.entrypoints=websecure"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-api.tls=true"
@@ -66,7 +66,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_public"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-web.rule=Host(`${APP_DOMAIN:-sipi.staging.europalaica.org}`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-web.rule=Host(`${APP_DOMAIN:-sipi.pepelui.es}`)"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-web.entrypoints=websecure"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-web.tls=true"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-web.tls.certresolver=${TRAEFIK_CERTRESOLVER:-letsencrypt}"
@@ -101,7 +101,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=traefik_public"
-      - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.rule=Host(`${APP_DOMAIN:-sipi.staging.europalaica.org}`) && PathPrefix(`/odm`)"
+      - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.rule=Host(`${APP_DOMAIN:-sipi.pepelui.es}`) && PathPrefix(`/odm`)"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.priority=100"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.entrypoints=websecure"
       - "traefik.http.routers.${APP_PREFIX:-sipi}-odm.tls=true"

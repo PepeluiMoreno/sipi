@@ -69,9 +69,18 @@ RESOURCE_MAP = {
 #
 # Esta tabla es a la vez la DECLARACIÓN DE NECESIDADES de SIPI (los slugs que pide
 # en `requestSubscriptions`, ver client.bootstrap_suscripciones) y el MAPA DE
-# ENRUTADO. Las colecciones en ODM son neutrales/compartibles (sin prefijo de app);
-# `RESOURCE_MAP` queda como override fino por recurso (gana sobre la colección).
-# fuente=None → se deriva por recurso (fallback por publisher/nombre).
+# ENRUTADO. ODM se adapta a esta taxonomía: las colecciones en ODM se nombran de
+# forma que su slug (slugify con transliteración de acentos) coincida con estas
+# claves. `RESOURCE_MAP` afina el dominio/fuente por recurso (gana sobre la
+# colección); fuente=None → se deriva por recurso (publisher/nombre).
+#
+# slug de ODM ⇐ nombre de colección en manifests/*.json:
+#   diocesis                  ⇐ "Diócesis"
+#   entidades-religiosas      ⇐ "Entidades religiosas" (RER/CONFER/parroquias)
+#   inmuebles                 ⇐ "Inmuebles" (OSM/IAPH/CEE)
+#   administraciones-dir3     ⇐ "Administraciones DIR3" (BDNS órganos)
+#   notarias                  ⇐ "Notarías" (cuando exista el recurso CGN)
+#   registros-de-la-propiedad ⇐ "Registros de la propiedad" (cuando exista CORPME)
 COLLECTION_MAP = {
     "administraciones-dir3":       ("administracion", "DIR3"),
     "diocesis":                    ("diocesis", "CEE"),
@@ -86,11 +95,15 @@ SLUGS_NECESARIOS = tuple(COLLECTION_MAP.keys())
 
 
 def _slugify(name: str) -> str:
-    """Reproduce el slug de ODM (minúsculas, no-alfanuméricos → '-'). Permite
-    derivar el slug desde un nombre cuando el payload no trae `collection_slugs`
-    (compatibilidad con emisores antiguos)."""
+    """Reproduce el slug de ODM (translitera acentos á→a/ñ→n…, minúsculas,
+    no-alfanuméricos → '-'). Permite derivar el slug desde un nombre cuando el
+    payload no trae `collection_slugs` (compatibilidad con emisores antiguos).
+    Debe coincidir con app/services/collections.slugify_collection de ODM."""
     import re
-    base = re.sub(r"[^a-z0-9]+", "-", (name or "").lower()).strip("-")
+    import unicodedata
+    decompuesto = unicodedata.normalize("NFKD", (name or "").lower())
+    sin_acentos = "".join(c for c in decompuesto if unicodedata.category(c) != "Mn")
+    base = re.sub(r"[^a-z0-9]+", "-", sin_acentos).strip("-")
     return (base or "coleccion")[:120]
 
 
