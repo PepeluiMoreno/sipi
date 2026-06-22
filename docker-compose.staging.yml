@@ -121,6 +121,10 @@ services:
       DEFAULT_SCHEMA: app
       DATABASE_SCHEMA: app
       DEFINED_SCHEMAS: app,gis
+      # Usuarios sembrados por init_staging.py (contraseñas desde el secret):
+      SIPI_SUPERADMIN_PASSWORD: ${SIPI_SUPERADMIN_PASSWORD:-}
+      SIPI_VIEWER_USERNAME: ${SIPI_VIEWER_USERNAME:-visitante}
+      SIPI_VIEWER_PASSWORD: ${SIPI_VIEWER_PASSWORD:-}
     depends_on:
       db:
         condition: service_healthy
